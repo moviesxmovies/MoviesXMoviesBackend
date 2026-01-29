@@ -1,0 +1,13 @@
+[run]
+branch = True
+source = .
+omit =
+    tests/*
+    manage.py
+    main/asgi.py
+    main/wsgi.py
+    */migrations/*
+
+[html]
+directory = coverage_html_report
+title = MoviesX Backend Coverage Report

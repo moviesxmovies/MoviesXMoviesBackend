@@ -188,3 +188,10 @@ poedit app locale="es":
 [group('redis')]
 rq:
     uv run watchmedo auto-restart --pattern=tasks.py --recursive -- ./manage.py rqworker 
+
+[group('testing')]
+coverage:
+    uv run pytest --rich --cov=./ --cov-report=xml --cov-report=html
+    echo "✔ Coverage reports generated: coverage.xml and htmlcov/index.html"
+
+alias cv:=coverage
