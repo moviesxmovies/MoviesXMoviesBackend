@@ -38,7 +38,7 @@ migrate app="":
 create-su username="admin" password="admin" email="admin@example.com":
     #!/usr/bin/env bash
     uv run manage.py shell -v0 -c '
-    from django.contrib.auth.models import User
+    from users.models import User
     user, _ = User.objects.get_or_create(username="{{ username }}")
     user.email = "{{ email }}"
     user.set_password("{{ password }}") 
