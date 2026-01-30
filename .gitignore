@@ -1,7 +1,7 @@
 .venv
 __pycache__
 *.pyc
-*.env
+.env
 *.sqlite3
 .pytest_cache
 coverage_html_report
