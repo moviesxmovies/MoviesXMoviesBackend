@@ -1,6 +1,7 @@
 from django.db import models
+from shared.models import Timestamps
 
-class Award(models.Model):
+class Award(Timestamps):
     class Category(models.TextChoices):
         # MOVIES
         BEST_PICTURE = 'BP', 'Best Picture'

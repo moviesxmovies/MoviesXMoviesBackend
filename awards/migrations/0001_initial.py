@@ -12,13 +12,16 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Genre',
+            name='Award',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('name', models.CharField(max_length=32, unique=True)),
-                ('slug', models.SlugField(max_length=32, unique=True)),
+                ('slug', models.CharField(max_length=32, unique=True)),
+                ('category', models.CharField(blank=True, choices=[('BP', 'Best Picture'), ('BA', 'Best Animated Feature'), ('BD', 'Best Documentary'), ('IF', 'Best International Feature'), ('MA', 'Best Actor in a Leading Role'), ('WA', 'Best Actress in a Leading Role'), ('SA', 'Best Supporting Actor'), ('SX', 'Best Supporting Actress'), ('DR', 'Best Director'), ('DD', 'Best Debut Director')])),
+                ('icon', models.ImageField(default='awards/no-award.png', upload_to='awards')),
+                ('date', models.DateField(blank=True, null=True)),
             ],
             options={
                 'abstract': False,
