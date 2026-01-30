@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'shared.apps.SharedConfig',
     'persons.apps.PersonsConfig',
     'genres.apps.GenresConfig',
-    'award.apps.AwardConfig',
+    'awards.apps.AwardsConfig',
 ]
 
 MIDDLEWARE = [
