@@ -3,4 +3,5 @@ from .models import Platform
 
 @admin.register(Platform)
 class PlatformAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["name", "slug", "url", "created_at"]
+    prepopulated_fields = {"slug": ("name",)}
