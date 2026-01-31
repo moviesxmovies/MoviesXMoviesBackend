@@ -2,7 +2,7 @@ name: Deploy
 
 on:
     workflow_run:
-        workflows: ["Checks"]
+        workflows: ["Build Docker Image"]
         types: [completed]
         branches: [main]
 
