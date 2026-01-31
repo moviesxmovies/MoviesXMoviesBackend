@@ -9,6 +9,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pytest-cov>=7.0.0",
     "pytest-django>=4.11.1",
+    "uvicorn>=0.40.0",
 ]
 
 [dependency-groups]
