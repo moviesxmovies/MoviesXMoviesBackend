@@ -12,11 +12,6 @@ jobs:
         runs-on: ubuntu-latest
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         steps:
-            - name: Add SSH known hosts
-              run: |
-                  mkdir -p ~/.ssh
-                  ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
-
             - name: Connect to server
               uses: appleboy/scp-action@master
               with:
@@ -27,5 +22,6 @@ jobs:
 
             - name: Down docker compose API
               run: docker compose down api
+              
             - name: Up docker compose API
               run: docker compose up -d api
