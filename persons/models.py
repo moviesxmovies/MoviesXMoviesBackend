@@ -7,8 +7,6 @@ class Person(Timestamps):
     """
     Model representing a celebrity, usually an actor/actress or director.
 
-    This model extends the :class:`shared.models.Timestamps` model to include created and updated timestamps.
-
     Attributes:
         name (models.CharField): The full name of the person.
         slug (models.SlugField): A URL-friendly version of the person's name.
