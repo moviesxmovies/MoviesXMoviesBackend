@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'awards.apps.AwardsConfig',
     'movies.apps.MoviesConfig',
     'reviews.apps.ReviewsConfig',
+    'ratings.apps.RatingsConfig',
 ]
 
 MIDDLEWARE = [
