@@ -7,6 +7,5 @@ class User(AbstractUser):
 
     Attributes:
         bio (models.TextField): A brief biography of the user.
-    
     """
     bio = models.TextField(blank=True, null=True)

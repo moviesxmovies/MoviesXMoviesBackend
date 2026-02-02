@@ -4,6 +4,7 @@ from shared.models import Timestamps
 class Award(Timestamps):
     """
     An award or nomination given in recognition of excellence in cinematic achievements.
+    
     Attributes:
         name (models.CharField): The name of the award.
         slug (models.CharField): A URL-friendly version of the award's name.

@@ -6,6 +6,7 @@ from shared.models import Timestamps
 class Platform(Timestamps):
     """
     Model representing a streaming platform.
+    
     Attributes:
         name (models.CharField): The name of the platform.
         slug (models.SlugField): A URL-friendly version of the platform's name.

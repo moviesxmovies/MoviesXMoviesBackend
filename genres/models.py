@@ -5,6 +5,7 @@ from shared.models import Timestamps
 class Genre(Timestamps):
     """
     A movie genre model
+    
     Attributes:
         name (models.CharField): The name of the genre.
         slug (models.SlugField): A URL-friendly version of the genre's name.
