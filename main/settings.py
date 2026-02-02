@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'persons.apps.PersonsConfig',
     'genres.apps.GenresConfig',
     'awards.apps.AwardsConfig',
+    'reviews.apps.ReviewsConfig',
 ]
 
 MIDDLEWARE = [
