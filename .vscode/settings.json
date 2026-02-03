@@ -1,6 +1,7 @@
 {
     "conventionalCommits.scopes": [
         "Platform",
-        "Person"
+        "Person",
+        "Auth"
     ]
 }
