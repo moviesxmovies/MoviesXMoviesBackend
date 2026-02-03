@@ -1,9 +1,9 @@
 from django.db import models
 
-from shared.models import Timestamps
+from shared.models import BaseModel
 
 
-class Person(Timestamps):
+class Person(BaseModel):
     """
     Model representing a celebrity, usually an actor/actress or director.
 
@@ -13,6 +13,7 @@ class Person(Timestamps):
         image (models.ImageField): A profile image of the person.
         country (models.CharField): The country of origin of the person.
     """
+
     class Country(models.TextChoices):
         """
         Enumeration of supported countries for persons.
@@ -21,6 +22,7 @@ class Person(Timestamps):
             SPAIN: Represents Spain.
             ENGLAND: Represents England.
         """
+
         SPAIN = 'ES', 'Spain'
         ENGLAND = 'EN', 'England'
 
