@@ -189,9 +189,11 @@ poedit app locale="es":
 rq:
     uv run watchmedo auto-restart --pattern=tasks.py --recursive -- ./manage.py rqworker 
 
+# Generate coverage reports and open HTML report in browser
 [group('testing')]
 coverage:
     uv run pytest --rich --cov=./ --cov-report=xml --cov-report=html
-    echo "✔ Coverage reports generated: coverage.xml and htmlcov/index.html"
+    echo "✔ Coverage reports generated: coverage.xml and coverage_html_report/index.html"
+    @python -c "import webbrowser, os; path = os.path.abspath('coverage_html_report/index.html'); webbrowser.open('file://' + path)"
 
 alias cv:=coverage

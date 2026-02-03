@@ -6,8 +6,11 @@ from django.utils import timezone
 from genres.models import Genre
 
 
+# =================================================================
+# BASE MODEL TESTS
+# =================================================================
 @pytest.mark.django_db
-class TestSoftDelete:
+class TestBaseModel:
     def test_soft_delete_sets_timestamp(self):
         obj = Genre.objects.create(name='Test', slug='test-genre')
         obj.delete()
