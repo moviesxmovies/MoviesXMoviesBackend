@@ -58,6 +58,13 @@ class TestBaseModel:
         assert Genre.includes_all.count() == 2
         assert Genre.includes_all.filter(deleted_at__isnull=False).count() == 2
 
+    def test_bulk_hard_delete_permanently_removes(self):
+        Genre.objects.create(name='Permanent 1', slug='permanent-1')
+        Genre.objects.create(name='Permanent 2', slug='permanent-2')
+
+        Genre.objects.all().hard_delete()
+        assert Genre.includes_all.count() == 0
+
     def test_timestamps_update(self):
         obj = Genre.objects.create(name='Original', slug='original-genre')
         old_update = obj.updated_at
