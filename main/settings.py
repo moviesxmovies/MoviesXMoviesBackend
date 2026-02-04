@@ -30,6 +30,13 @@ DEBUG = config('DEBUG', default=True, cast=config.boolean)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=config.list, default='*')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://moviesxmovies.jonaykb.com',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # Application definition
 
