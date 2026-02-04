@@ -1,13 +1,7 @@
-from django.urls import path, include
-from shared.views import GoogleLogin
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
-from django.urls import path
+from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from shared.views import CustomTokenObtainPairView
+from shared.views import CustomTokenObtainPairView, GoogleLogin
 
 urlpatterns = [
     path(
@@ -20,6 +14,6 @@ urlpatterns = [
         TokenRefreshView.as_view(),
         name='token_refresh',
     ),
-    path('auth/', include('dj_rest_auth.urls')),
-    path('auth/google/', GoogleLogin.as_view(), name='google_rest_login'),
+    path('oauth/', include('dj_rest_auth.urls')),
+    path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
 ]
