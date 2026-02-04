@@ -20,6 +20,6 @@ urlpatterns = [
         TokenRefreshView.as_view(),
         name='token_refresh',
     ),
-    path('auth/', include('dj_rest_auth.urls')),
-    path('auth/google/', GoogleLogin.as_view(), name='google_rest_login'),
+    path('oauth/', include('dj_rest_auth.urls')),
+    path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
 ]
