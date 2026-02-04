@@ -2,7 +2,13 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
 
-class GoogleLogin(SocialLoginView): 
+class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     client_class = OAuth2Client
-    callback_url = "http://127.0.0.1:8000/accounts/google/login/callback/"
+
+    @property
+    def callback_url(self):
+        protocol = "https" if self.request.is_secure() else "http"
+        host = self.request.get_host()
+        
+        return f"{protocol}://{host}/accounts/google/login/callback/"
