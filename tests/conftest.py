@@ -26,6 +26,14 @@ ADMIN_USER_PASSWORD = 'adminpassword123'
 # ===========================================
 
 
+@pytest.fixture(autouse=True)
+def disable_drf_throttling(settings):
+    settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
+        'anon': None,
+        'user': None,
+    }
+
+
 @pytest.fixture
 def create_test_user(db):
     user = User.objects.create_user(username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD)
