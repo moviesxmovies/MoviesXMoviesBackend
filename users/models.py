@@ -9,3 +9,5 @@ class User(AbstractUser):
         bio (models.TextField): A brief biography of the user.
     """
     bio = models.TextField(blank=True, null=True)
+    boarded = models.BooleanField(default=False)
+    verified = models.BooleanField(default=False)

@@ -16,9 +16,7 @@ REFRESH_URL = '/api/auth/refresh/'
 
 TEST_USER_USERNAME = 'testuser'
 TEST_USER_PASSWORD = 'testpassword123'
-
-ADMIN_USER_USERNAME = 'adminuser'
-ADMIN_USER_PASSWORD = 'adminpassword123'
+TEST_USER_EMAIL = 'test@mail.es'
 
 
 # ===========================================
@@ -36,13 +34,7 @@ def disable_drf_throttling(settings):
 
 @pytest.fixture
 def create_test_user(db):
-    user = User.objects.create_user(username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD)
-    return user
-
-
-@pytest.fixture
-def create_admin_user(db):
-    admin_user = User.objects.create_superuser(
-        username=ADMIN_USER_USERNAME, password=ADMIN_USER_PASSWORD
+    user = User.objects.create_user(
+        username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD, email=TEST_USER_EMAIL
     )
-    return admin_user
+    return user
