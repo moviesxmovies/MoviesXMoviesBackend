@@ -35,7 +35,7 @@ class TestBaseModel:
         assert Genre.includes_all.count() == 2
 
     def test_restore_functionality(self):
-        obj = Genre.objects.create(name='Im Always Come Back', slug='come-back-genre')
+        obj = Genre.objects.create(name='I Always Come Back', slug='come-back-genre')
         obj.delete()
         assert Genre.objects.count() == 0
 
