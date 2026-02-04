@@ -15,15 +15,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock ./
-
 RUN uv sync --frozen --no-dev
 
 COPY . .
 
-RUN adduser --disabled-password --gecos "" django_user && \
+RUN mkdir -p /app/staticfiles /app/media && \
+    adduser --disabled-password --gecos "" django_user && \
     chown -R django_user:django_user /app
+
 USER django_user
 
 EXPOSE 7996
 
-CMD ["sh", "-c", "uv run python manage.py migrate && uv run python manage.py collectstatic --noinput && uv run uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
+RUN uv run python manage.py collectstatic --noinput
+
+CMD ["sh", "-c", "uv run python manage.py migrate && uv run uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
