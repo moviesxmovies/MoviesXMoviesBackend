@@ -26,4 +26,4 @@ USER django_user
 
 EXPOSE 7996
 
-CMD ["sh", "-c", "uv run python manage.py migrate && uv run uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
+CMD ["sh", "-c", "uv run python manage.py migrate && uv run python manage.py collectstatic --noinput && uv run uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
