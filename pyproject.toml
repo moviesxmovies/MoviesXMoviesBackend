@@ -1,12 +1,13 @@
 [project]
 name = "moviesxmoviesbackend"
-version = "0.9.2"
+version = "0.9.3"
 requires-python = ">=3.14"
 dependencies = [
     "cryptography>=46.0.4",
     "dj-rest-auth>=5.0.2",
     "django>=6.0.1",
     "django-allauth>=65.14.0",
+    "django-cors-headers>=4.9.0",
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.29.0",
     "pillow>=12.1.0",
