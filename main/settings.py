@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework.authtoken',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
     'drf_spectacular',
     'django.contrib.sites', 
     'allauth',
@@ -84,10 +86,20 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_SERIALIZER': 'shared.serializers.CustomTokenObtainPairSerializer',
+    'JWT_TOKEN_CLAIMS_SERIALIZER': 'shared.serializers.CustomTokenObtainPairSerializer',
+    
+    'USER_DETAILS_SERIALIZER': 'users.serializers.CustomUserSerializer',
+    
+    'JWT_AUTH_HTTPONLY': False,
+    'JWT_AUTH_RETURN_EXPIRATION': True,
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
