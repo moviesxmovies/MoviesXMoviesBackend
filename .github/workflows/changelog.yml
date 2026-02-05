@@ -18,11 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract version from package.json
+      - name: Extract Version from pyproject.toml
         id: get_version
         run: |
-          VERSION=$(jq -r '.version' package.json)
-          echo "PROJECT_VERSION=$VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(grep -m 1 '^version = ' pyproject.toml | cut -d '"' -f 2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
