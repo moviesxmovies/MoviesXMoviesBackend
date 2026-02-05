@@ -4,7 +4,6 @@ from dj_rest_auth.registration.views import SocialLoginView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .serializers import CustomTokenObtainPairSerializer
-from dj_rest_auth.serializers import JWTSerializer
 
 
 class GoogleLogin(SocialLoginView):
