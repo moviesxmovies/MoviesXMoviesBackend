@@ -89,6 +89,10 @@ AUTHENTICATION_BACKENDS = [
 REST_AUTH = {
     'USE_JWT': True,
     'JWT_SERIALIZER': 'shared.serializers.CustomTokenObtainPairSerializer',
+    'JWT_TOKEN_CLAIMS_SERIALIZER': 'shared.serializers.CustomTokenObtainPairSerializer',
+    
+    'USER_DETAILS_SERIALIZER': 'users.serializers.CustomUserSerializer',
+    
     'JWT_AUTH_HTTPONLY': False,
     'JWT_AUTH_RETURN_EXPIRATION': True,
 }

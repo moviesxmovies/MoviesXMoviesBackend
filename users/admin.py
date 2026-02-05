@@ -7,6 +7,6 @@ class CustomUserAdmin(UserAdmin):
     model = User
     
     fieldsets = UserAdmin.fieldsets + (
-        (None, {'fields': ['bio']}),
+        (None, {'fields': ['bio', 'boarded', 'verified']}),
     )
 
