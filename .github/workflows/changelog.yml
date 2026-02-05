@@ -23,19 +23,17 @@ jobs:
         run: |
           VERSION=$(grep -m 1 '^version = ' pyproject.toml | cut -d '"' -f 2)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-      - name: Conventional Changelog Action
+      - name: Generate Changelog
         id: changelog
-        uses: Tri some-un/conventional-changelog-action@v5
+        uses: re-fort/changelog-generator@v1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          git-branch: 'main'
-          skip-version-file: "true" 
-          skip-commit: "true"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          body: ${{ steps.changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
