@@ -18,22 +18,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract Version from pyproject.toml
+      - name: Extract version from package.json
         id: get_version
         run: |
-          VERSION=$(grep -m 1 '^version = ' pyproject.toml | cut -d '"' -f 2)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-      - name: Generate Changelog
-        id: changelog
-        uses: re-fort/changelog-generator@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
+          VERSION=$(jq -r '.version' package.json)
+          echo "PROJECT_VERSION=$VERSION" >> $GITHUB_OUTPUT
+          
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           name: Release v${{ steps.get_version.outputs.VERSION }}
-          body: ${{ steps.changelog.outputs.body }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
