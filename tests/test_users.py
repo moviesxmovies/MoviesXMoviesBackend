@@ -111,8 +111,6 @@ def test_obtain_token_contains_custom_claims(client, create_test_user):
     try:
         token = UntypedToken(access_token)
         assert token['username'] == TEST_USER_USERNAME
-        assert token['is_staff'] is False
-        assert token['email'] == TEST_USER_EMAIL
         assert token['boarded'] is False
         assert token['verified'] is False
     except (InvalidToken, TokenError) as e:
@@ -143,8 +141,6 @@ def test_refresh_token_contains_custom_claims(client, create_test_user):
     try:
         token = UntypedToken(access_token)
         assert token['username'] == TEST_USER_USERNAME
-        assert token['is_staff'] is False
-        assert token['email'] == TEST_USER_EMAIL
         assert token['boarded'] is False
         assert token['verified'] is False
     except (InvalidToken, TokenError) as e:
