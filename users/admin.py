@@ -12,5 +12,5 @@ class CustomUserAdmin(UserAdmin):
     list_display = ['username', 'boarded', 'verified']
     list_filter = ['boarded', 'verified']
     search_fields = ['username', 'email']
-    
+    filter_horizontal = UserAdmin.filter_horizontal + ('following_person', 'following', 'platforms')
 
