@@ -9,4 +9,4 @@ class ReviewAdmin(admin.ModelAdmin):
     search_fields = ['title']
     exclude = ['deleted_at']
     list_filter = ['isPositive']
-    autocomplete_fields = ['user']
+    autocomplete_fields = ['user', 'movie']
