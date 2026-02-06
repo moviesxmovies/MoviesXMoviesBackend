@@ -22,9 +22,9 @@ class BaseModel(models.Model):
     Also includes a 'deleted_at' field for soft deletion.
 
     Attributes:
-        created_at (DateTimeField): The date and time when the record was created.
-        updated_at (DateTimeField): The date and time when the record was last updated.
-        deleted_at (DateTimeField): The date and time when the record was soft deleted.
+        created_at (models.DateTimeField): The date and time when the record was created.
+        updated_at (models.DateTimeField): The date and time when the record was last updated.
+        deleted_at (models.DateTimeField): The date and time when the record was soft deleted.
 
     Note:
         This is an abstract model and will not create a database table.
