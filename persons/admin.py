@@ -9,3 +9,4 @@ class PersonAdmin(admin.ModelAdmin):
     search_fields = ['name', 'country']
     prepopulated_fields = {'slug': ('name',)}
     exclude = ['deleted_at']
+    list_filter = ['country']
