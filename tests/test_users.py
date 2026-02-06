@@ -1,5 +1,5 @@
 import pytest
-from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_USER_USERNAME
+from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_PASSWORD, TEST_USER_USERNAME
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
