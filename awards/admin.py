@@ -10,3 +10,4 @@ class AwardAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     exclude = ['deleted_at']
     list_filter = ['category']
+    ordering = ['date']

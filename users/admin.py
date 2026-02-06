@@ -9,4 +9,8 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         (None, {'fields': ['bio', 'boarded', 'verified']}),
     )
+    list_display = ['username', 'boarded', 'verified']
+    list_filter = ['boarded', 'verified']
+    search_fields = ['username', 'email']
+    
 
