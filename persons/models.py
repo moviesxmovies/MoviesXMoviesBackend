@@ -30,3 +30,6 @@ class Person(BaseModel):
     slug = models.SlugField(max_length=32)
     image = models.ImageField(upload_to='person', default='person/default.png')
     country = models.CharField(max_length=4, choices=Country)
+
+    def __str__(self):
+        return self.slug

@@ -24,3 +24,6 @@ class Rating(BaseModel):
 
     class Meta:
         unique_together = ['user', 'movie']
+
+    def __str__(self):
+        return f'{self.user}: {self.movie} | {self.rating}'

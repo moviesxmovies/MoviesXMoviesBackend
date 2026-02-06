@@ -16,3 +16,6 @@ class Platform(BaseModel):
     name = models.CharField(max_length=32, unique=True)
     slug = models.SlugField(max_length=32, unique=True)
     url = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return self.slug

@@ -41,3 +41,6 @@ class Award(BaseModel):
     category = models.CharField(choices=Category, blank=True, max_length=2)
     icon = models.ImageField(upload_to='awards', default='awards/no-award.png')
     date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return self.slug
