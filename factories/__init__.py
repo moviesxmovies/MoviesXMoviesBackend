@@ -4,7 +4,7 @@ from .movies import MovieFactory
 from .persons import PersonFactory
 from .platforms import PlatformFactory
 from .ratings import RatingFactory
-from .review_s import ReviewFactory
+from .reviews import ReviewFactory
 from .users import UserFactory
 
 __all__ = [
