@@ -145,3 +145,42 @@ def test_refresh_token_contains_custom_claims(client, create_test_user):
         assert token['verified'] is False
     except (InvalidToken, TokenError) as e:
         pytest.fail(f'Token validation failed: {e}')
+
+
+# =================================================================
+# USER MODEL
+# =================================================================
+
+
+@pytest.mark.django_db
+def test_user_following_extracted(user_factory):
+    user1 = user_factory()
+    user2 = user_factory()
+
+    user_main = user_factory(following=[user2])
+
+    assert user2 in user_main.following.all()
+    assert user_main.following.count() == 1
+
+
+@pytest.mark.django_db
+def test_user_following_person_extracted(user_factory, person_factory):
+    persona = person_factory()
+
+    user = user_factory(following_person=[persona])
+
+    assert persona in user.following_person.all()
+
+
+@pytest.mark.django_db
+def test_user_platforms_extracted(user_factory, platform_factory):
+    netflix = platform_factory(name='Netflix')
+
+    user = user_factory(platforms=[netflix])
+
+    assert netflix in user.platforms.all()
+
+
+def test_user_factory_build(user_factory):
+    user = user_factory.build()
+    assert user.pk is None

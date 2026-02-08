@@ -1,0 +1,19 @@
+import pytest
+
+# ===========================================================================
+#  MODELS
+# ===========================================================================
+
+# ===========================================================================
+#  GENRE
+# ===========================================================================
+
+
+@pytest.mark.django_db
+def test_genre_creation(genre_factory):
+    genre = genre_factory()
+    assert genre.name is not None
+    assert genre.slug is not None
+    assert genre.deleted_at is None
+    assert genre.created_at is not None
+    assert genre.updated_at is not None
