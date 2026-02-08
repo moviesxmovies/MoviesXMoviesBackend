@@ -19,3 +19,9 @@ def test_person_creation(person_factory):
     assert person.deleted_at is None
     assert person.created_at is not None
     assert person.updated_at is not None
+
+
+@pytest.mark.django_db
+def test_person_str(person_factory):
+    person = person_factory(name='John Doe')
+    assert str(person) == 'john-doe'

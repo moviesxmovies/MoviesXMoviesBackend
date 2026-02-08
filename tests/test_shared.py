@@ -2,8 +2,10 @@ from time import sleep
 
 import pytest
 from django.utils import timezone
+from rest_framework.test import APIRequestFactory
 
 from genres.models import Genre
+from shared.views import GoogleLogin
 
 
 # =================================================================
@@ -74,3 +76,35 @@ class TestBaseModel:
         obj.save()
 
         assert obj.updated_at > old_update
+
+
+# =================================================================
+# VIEWS
+# =================================================================
+
+# =================================================================
+# GOOGLELOGIN
+# =================================================================
+
+
+@pytest.mark.django_db
+class TestGoogleLoginView:
+    def test_callback_url_logic(self):
+        factory = APIRequestFactory()
+        request = factory.post('/api/auth/google/', HTTP_HOST='mxm-backend.com', secure=True)
+
+        view = GoogleLogin()
+        view.request = request
+
+        expected_url = 'https://mxm-backend.com/accounts/google/login/callback/'
+        assert view.callback_url == expected_url
+
+    def test_callback_url_http_fallback(self):
+        factory = APIRequestFactory()
+        request = factory.post('/api/auth/google/', HTTP_HOST='localhost:8000', secure=False)
+
+        view = GoogleLogin()
+        view.request = request
+
+        expected_url = 'http://localhost:8000/accounts/google/login/callback/'
+        assert view.callback_url == expected_url

@@ -3,6 +3,9 @@ from .models import Movie
 
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ["title", "slug", "synopsis", "release_date", "cover"]
-    prepopulated_fields = {"slug": ("title",)}
-    raw_id_fields = ("directors", "actors", "genres", "platforms")
+    exclude = ['deleted_at']
+    list_display = ['title', 'release_date']
+    search_fields = ['title']
+    prepopulated_fields = {'slug': ('title',)}
+    list_filter = ['platforms']
+    filter_horizontal = ('directors', 'actors', 'genres', 'platforms')

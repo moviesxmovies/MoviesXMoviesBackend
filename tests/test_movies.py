@@ -50,3 +50,9 @@ def test_movie_with_extracted_relations(
     assert movie.directors.first().name == 'Christopher Nolan'
     assert movie.genres.count() == 1
     assert movie.genres.first().name == 'Sci-Fi'
+
+
+@pytest.mark.django_db
+def test_movie_str(movie_factory):
+    movie = movie_factory(title='Inception')
+    assert str(movie) == 'inception'

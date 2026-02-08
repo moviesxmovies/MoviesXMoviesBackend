@@ -17,3 +17,9 @@ def test_genre_creation(genre_factory):
     assert genre.deleted_at is None
     assert genre.created_at is not None
     assert genre.updated_at is not None
+
+
+@pytest.mark.django_db
+def test_genre_str(genre_factory):
+    genre = genre_factory(name='Action')
+    assert str(genre) == 'action'
