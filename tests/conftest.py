@@ -1,6 +1,29 @@
 import pytest
+from pytest_factoryboy import register
 
+from factories import (
+    AwardFactory,
+    GenreFactory,
+    MovieFactory,
+    PersonFactory,
+    RatingFactory,
+    ReviewFactory,
+    UserFactory,
+    PlatformFactory,
+    MovieListFactory
+
+)
 from users.models import User
+
+register(UserFactory)
+register(MovieFactory)
+register(PersonFactory)
+register(GenreFactory)
+register(RatingFactory)
+register(ReviewFactory)
+register(AwardFactory)
+register(PlatformFactory)
+register(MovieListFactory)
 
 # ===========================================
 # URLS
