@@ -1,6 +1,22 @@
 import pytest
+from pytest_factoryboy import register
 
+from factories import (
+    GenreFactory,
+    MovieFactory,
+    PersonFactory,
+    RatingFactory,
+    ReviewFactory,
+    UserFactory,
+)
 from users.models import User
+
+register(UserFactory)
+register(MovieFactory)
+register(PersonFactory)
+register(GenreFactory)
+register(RatingFactory)
+register(ReviewFactory)
 
 # ===========================================
 # URLS
@@ -38,3 +54,4 @@ def create_test_user(db):
         username=TEST_USER_USERNAME, password=TEST_USER_PASSWORD, email=TEST_USER_EMAIL
     )
     return user
+
