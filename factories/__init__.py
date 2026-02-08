@@ -6,6 +6,7 @@ from .platforms import PlatformFactory
 from .ratings import RatingFactory
 from .reviews import ReviewFactory
 from .users import UserFactory
+from .movielists import MovieListFactory
 
 __all__ = [
     'UserFactory',
@@ -16,4 +17,5 @@ __all__ = [
     'MovieFactory',
     'RatingFactory',
     'ReviewFactory',
+    'MovieListFactory',
 ]
