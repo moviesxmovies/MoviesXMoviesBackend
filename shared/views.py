@@ -14,8 +14,9 @@ class GoogleLogin(SocialLoginView):
     def callback_url(self):
         protocol = 'https' if self.request.is_secure() else 'http'
         host = self.request.get_host()
-        
-        return f"{protocol}://{host}/accounts/google/login/callback/"
+
+        return f'{protocol}://{host}/accounts/google/login/callback/'
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer

@@ -20,3 +20,9 @@ def test_award_creation(award_factory):
     assert award.deleted_at is None
     assert award.created_at is not None
     assert award.updated_at is not None
+
+
+@pytest.mark.django_db
+def test_award_str(award_factory):
+    award = award_factory(name='Special Award')
+    assert str(award) == 'special-award'

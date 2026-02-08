@@ -32,15 +32,15 @@ def test_movie_list_build_skips_relations(movie_list_factory):
 
 @pytest.mark.django_db
 def test_movie_list_with_extracted_movies(movie_list_factory, movie_factory):
-    MOVIE_TITLE = 'Origen'
-    peli_especifica = movie_factory(title=MOVIE_TITLE)
+    MOVIE_TITLE = 'Inception'
+    specific_movie = movie_factory(title=MOVIE_TITLE)
 
-    movie_list = movie_list_factory(movies=[peli_especifica])
+    movie_list = movie_list_factory(movies=[specific_movie])
     assert movie_list.movies.count() == 1
     assert movie_list.movies.first().title == MOVIE_TITLE
 
 
 @pytest.mark.django_db
 def test_movie_list_str(movie_list_factory):
-    movie_list = movie_list_factory(name='Mi Lista de Películas')
-    assert str(movie_list) == 'mi-lista-de-películas'
+    movie_list = movie_list_factory(name='My Movie List')
+    assert str(movie_list) == 'my-movie-list'
