@@ -7,6 +7,7 @@ from movies.models import Movie
 from .genres import GenreFactory
 from .persons import PersonFactory
 from .platforms import PlatformFactory
+from .awards import AwardFactory
 
 
 class MovieFactory(factory.django.DjangoModelFactory):
@@ -57,3 +58,12 @@ class MovieFactory(factory.django.DjangoModelFactory):
             self.platforms.add(*extracted)
         else:
             self.platforms.add(PlatformFactory())
+
+    @factory.post_generation
+    def awards(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            self.awards.add(*extracted)
+        else:
+            self.awards.add(AwardFactory())

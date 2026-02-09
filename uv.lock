@@ -426,7 +426,7 @@ wheels = [
 
 [[package]]
 name = "moviesxmoviesbackend"
-version = "0.10.7"
+version = "0.11.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cryptography" },
@@ -436,20 +436,20 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "djangorestframework-simplejwt" },
     { name = "drf-spectacular" },
-    { name = "factory-boy" },
     { name = "pillow" },
     { name = "prettyconf" },
     { name = "psycopg2-binary" },
     { name = "pyjwt" },
-    { name = "pytest-factoryboy" },
     { name = "requests" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "factory-boy" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
+    { name = "pytest-factoryboy" },
     { name = "pytest-rich" },
 ]
 
@@ -462,20 +462,20 @@ requires-dist = [
     { name = "django-cors-headers", specifier = ">=4.9.0" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.5.1" },
     { name = "drf-spectacular", specifier = ">=0.29.0" },
-    { name = "factory-boy", specifier = ">=3.3.3" },
     { name = "pillow", specifier = ">=12.1.0" },
     { name = "prettyconf", specifier = ">=2.3.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pyjwt", specifier = ">=2.11.0" },
-    { name = "pytest-factoryboy", specifier = ">=2.8.1" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "factory-boy", specifier = ">=3.3.3" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-django", specifier = ">=4.11.1" },
+    { name = "pytest-factoryboy", specifier = ">=2.8.1" },
     { name = "pytest-rich", specifier = ">=0.2.0" },
 ]
 

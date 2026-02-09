@@ -22,6 +22,23 @@ def test_person_creation(person_factory):
     assert person.deleted_at is None
     assert person.created_at is not None
     assert person.updated_at is not None
+    assert person.awards is not None
+
+
+@pytest.mark.django_db
+def test_person_build_does_not_add_relations(person_factory):
+    person = person_factory.build()
+
+    assert person.pk is None
+
+
+@pytest.mark.django_db
+def test_person_creation_with_extracted_relations(person_factory, award_factory):
+    award = award_factory(name='Prime')
+
+    person = person_factory(awards=[award])
+    assert person.awards.count() == 1
+    assert person.awards.first().name == 'Prime'
 
 
 @pytest.mark.django_db
@@ -42,4 +59,5 @@ def test_person_serializer(person_factory):
     assert serialized['name'] == 'John Doe'
     assert serialized['slug'] == 'john-doe'
     assert serialized['image'] is not None
+    assert serialized['awards'] is not None
     assert serialized['country'] == 'England'
