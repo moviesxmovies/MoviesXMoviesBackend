@@ -35,21 +35,25 @@ def test_movie_build_does_not_add_relations(movie_factory):
 
 @pytest.mark.django_db
 def test_movie_with_extracted_relations(
-    movie_factory, person_factory, genre_factory, platform_factory
+    movie_factory, person_factory, genre_factory, platform_factory, award_factory
 ):
     director = person_factory(name='Christopher Nolan')
     genre = genre_factory(name='Sci-Fi')
     actor = person_factory(name='Leonardo DiCaprio')
     platform = platform_factory(name='Netflix')
+    award = award_factory(name='Prime')
 
     movie = movie_factory(
-        directors=[director], genres=[genre], actors=[actor], platforms=[platform]
+        directors=[director], genres=[genre], actors=[actor], platforms=[platform], awards=[award]
     )
 
     assert movie.directors.count() == 1
     assert movie.directors.first().name == 'Christopher Nolan'
     assert movie.genres.count() == 1
     assert movie.genres.first().name == 'Sci-Fi'
+    assert movie.awards.count() == 1
+    assert movie.awards.first().name == 'Prime'
+    
 
 
 @pytest.mark.django_db
