@@ -7,7 +7,7 @@ handler404 = 'shared.handlers.handler404'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/movies-list/', include('movielists.urls')),
+    path('api/movies-lists/', include('movielists.urls')),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/', include('users.urls')),
 ]

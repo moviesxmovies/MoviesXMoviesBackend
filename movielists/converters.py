@@ -4,7 +4,7 @@ from .models import MovieList
 
 
 class MovieListConverter:
-    regex = r'[\w]+'
+    regex = r'[\w-]+'
 
     def to_python(self, movie_list_slug: str) -> MovieList:
         return get_object_or_404(MovieList, slug=movie_list_slug)

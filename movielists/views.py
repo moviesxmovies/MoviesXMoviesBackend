@@ -57,7 +57,7 @@ def movies_list_detail(request, user, movies_list):
         case MovieList.Privacity.PUBLIC:
             return MovieListSerializer(movies_list, request=request).json_response()
         case MovieList.Privacity.FOLLOWERS:
-            if not user.is_friend(request.user):
+            if user.is_friend(request.user):
                 return MovieListSerializer(movies_list, request=request).json_response()
 
     return JsonResponse(
