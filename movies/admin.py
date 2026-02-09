@@ -8,4 +8,4 @@ class MovieAdmin(admin.ModelAdmin):
     search_fields = ['title']
     prepopulated_fields = {'slug': ('title',)}
     list_filter = ['platforms']
-    filter_horizontal = ('directors', 'actors', 'genres', 'platforms')
+    filter_horizontal = ('directors', 'actors', 'genres', 'platforms','awards')

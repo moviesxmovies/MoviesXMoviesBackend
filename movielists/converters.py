@@ -1,19 +1,14 @@
-from http import HTTPStatus
-
-from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 
 from .models import MovieList
 
 
 class MovieListConverter:
-    regex = r'[\d]+'
+    regex = r'[\w]+'
 
-    def to_python(self, movie_list_pk: int) -> MovieList:
-        try:
-            return MovieList.objects.get(pk=movie_list_pk)
-        except MovieList.DoesNotExist:
-            return JsonResponse({'error': 'Movie List not found'}, status=HTTPStatus.NOT_FOUND)
+    def to_python(self, movie_list_slug: str) -> MovieList:
+        return get_object_or_404(MovieList, slug=movie_list_slug)
 
-    def to_url(self, movie_list: MovieList) -> int:
+    def to_url(self, movie_list: MovieList) -> str:
 
-        return movie_list.pk
+        return movie_list.slug

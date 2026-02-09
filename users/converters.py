@@ -1,6 +1,4 @@
-from http import HTTPStatus
-
-from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 
 from .models import User
 
@@ -9,10 +7,7 @@ class UserConverter:
     regex = r'[\w]+'
 
     def to_python(self, username: int) -> User:
-        try:
-            return User.objects.get(username=username)
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=HTTPStatus.NOT_FOUND)
+        return get_object_or_404(User, username=username)
 
     def to_url(self, user: User) -> int:
 
