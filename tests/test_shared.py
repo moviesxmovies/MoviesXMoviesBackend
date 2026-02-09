@@ -8,7 +8,6 @@ from genres.models import Genre
 from shared.views import GoogleLogin
 
 from shared.serializers import BaseSerializer
-from django.http import JsonResponse
 
 
 # =================================================================
