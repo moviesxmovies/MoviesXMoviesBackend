@@ -1,5 +1,8 @@
 import pytest
 
+from persons.models import Person
+from persons.serializers import PersonSerializer
+
 # ===========================================================================
 #  MODELS
 # ===========================================================================
@@ -25,3 +28,18 @@ def test_person_creation(person_factory):
 def test_person_str(person_factory):
     person = person_factory(name='John Doe')
     assert str(person) == 'john-doe'
+
+
+# ===========================================================================
+#  SERIALIZERS
+# ===========================================================================
+@pytest.mark.django_db
+def test_person_serializer(person_factory):
+    person = person_factory(name='John Doe', country=Person.Country.ENGLAND)
+    serialized = PersonSerializer(person).serialize()
+
+    assert serialized['id'] == person.pk
+    assert serialized['name'] == 'John Doe'
+    assert serialized['slug'] == 'john-doe'
+    assert serialized['image'] is not None
+    assert serialized['country'] == 'England'

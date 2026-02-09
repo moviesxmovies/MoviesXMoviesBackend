@@ -14,6 +14,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 class UserSerializer(BaseSerializer):
     def serialize_instance(self, instance) -> dict:
         return {
+            'id': instance.pk,
             'username': instance.username,
             'bio': instance.bio,
         }

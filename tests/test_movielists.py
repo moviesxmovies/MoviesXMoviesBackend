@@ -1,4 +1,5 @@
 import pytest
+from movielists.serializers import MovieListSerializer
 
 # ===========================================================================
 #  MODELS
@@ -44,3 +45,20 @@ def test_movie_list_with_extracted_movies(movie_list_factory, movie_factory):
 def test_movie_list_str(movie_list_factory):
     movie_list = movie_list_factory(name='My Movie List')
     assert str(movie_list) == 'my-movie-list'
+
+# ===========================================================================
+#  SERIALIZERS
+# ===========================================================================
+@pytest.mark.django_db
+def test_movielist_serializer(movie_list_factory):
+    movie_list = movie_list_factory(name='My Movie List')
+    serialized = MovieListSerializer(movie_list).serialize()
+
+    assert serialized['id'] == movie_list.pk
+    assert serialized['name'] == 'My Movie List'
+    assert serialized['slug'] == 'my-movie-list'
+    assert serialized['privacity'] == movie_list.privacity
+    assert serialized['user']['username'] == movie_list.user.username
+    assert isinstance(serialized['movies'], list)
+    assert serialized['created_at'] == movie_list.created_at.isoformat()
+    assert serialized['updated_at'] == movie_list.updated_at.isoformat()

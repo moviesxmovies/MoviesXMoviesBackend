@@ -7,7 +7,7 @@ class AwardSerializer(BaseSerializer):
             'id': instance.pk,
             'name': instance.name,
             'slug': instance.slug,
-            'cattegory': instance.get_category_display(),
+            'category': instance.get_category_display(),
             'icon': self.build_url(instance.icon.url),
             'date': instance.date.isoformat() if instance.date else None,
         }

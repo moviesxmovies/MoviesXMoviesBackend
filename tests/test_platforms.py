@@ -1,5 +1,7 @@
 import pytest
 
+from platforms.serializers import PlatformSerializer
+
 # ===========================================================================
 #  MODELS
 # ===========================================================================
@@ -24,3 +26,17 @@ def test_platform_creation(platform_factory):
 def test_platform_str(platform_factory):
     platform = platform_factory(name='Netflix')
     assert str(platform) == 'netflix'
+
+
+# ===========================================================================
+#  SERIALIZERS
+# ===========================================================================
+@pytest.mark.django_db
+def test_platform_serializer(platform_factory):
+    platform = platform_factory(name='Netflix', url='https://www.netflix.com')
+    serialized = PlatformSerializer(platform).serialize()
+
+    assert serialized['id'] == platform.pk
+    assert serialized['name'] == 'Netflix'
+    assert serialized['slug'] == 'netflix'
+    assert serialized['url'] == 'https://www.netflix.com'

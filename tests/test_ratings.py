@@ -1,4 +1,6 @@
 import pytest
+from ratings.serializers import RatingSerializer
+
 
 # ===========================================================================
 #  MODELS
@@ -23,3 +25,16 @@ def test_rating_creation(rating_factory):
 def test_rating_str(rating_factory):
     rating = rating_factory(rating=5)
     assert str(rating) == f'{rating.user}: {rating.movie} | {rating.rating}'
+
+# ===========================================================================
+#  SERIALIZERS
+# ===========================================================================
+@pytest.mark.django_db
+def test_rating_serializer(rating_factory):
+    rating = rating_factory(rating=5)
+    serialized = RatingSerializer(rating).serialize()
+
+    assert serialized['id'] == rating.pk
+    assert serialized['user'] == rating.user.username
+    assert serialized['movie'] == rating.movie.slug
+    assert serialized['rating'] == 5
