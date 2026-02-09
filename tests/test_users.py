@@ -3,6 +3,8 @@ from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_PASSWORD, TEST_USER_USERN
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
+from users.serializers import UserSerializer
+
 # =================================================================
 # AUTH
 # =================================================================
@@ -184,3 +186,16 @@ def test_user_platforms_extracted(user_factory, platform_factory):
 def test_user_factory_build(user_factory):
     user = user_factory.build()
     assert user.pk is None
+
+
+# ===========================================================================
+# SERIALIZERS
+# ===========================================================================
+@pytest.mark.django_db
+def test_user_serializer(user_factory):
+    user = user_factory()
+    serialized = UserSerializer(user).serialize()
+
+    assert serialized['id'] == user.pk
+    assert serialized['username'] == user.username
+    assert serialized['bio'] == user.bio

@@ -1,5 +1,7 @@
 import pytest
 
+from genres.serializers import GenreSerializer
+
 # ===========================================================================
 #  MODELS
 # ===========================================================================
@@ -23,3 +25,18 @@ def test_genre_creation(genre_factory):
 def test_genre_str(genre_factory):
     genre = genre_factory(name='Action')
     assert str(genre) == 'action'
+
+
+# ===========================================================================
+#  SERIALIZERS
+# ===========================================================================
+
+
+@pytest.mark.django_db
+def test_genre_serializer(genre_factory):
+    genre = genre_factory(name='Comedy')
+    serialized = GenreSerializer(genre).serialize()
+
+    assert serialized['id'] == genre.pk
+    assert serialized['name'] == 'Comedy'
+    assert serialized['slug'] == 'comedy'

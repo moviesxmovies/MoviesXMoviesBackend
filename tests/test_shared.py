@@ -7,6 +7,8 @@ from rest_framework.test import APIRequestFactory
 from genres.models import Genre
 from shared.views import GoogleLogin
 
+from shared.serializers import BaseSerializer
+
 
 # =================================================================
 # BASE MODEL TESTS
@@ -108,3 +110,92 @@ class TestGoogleLoginView:
 
         expected_url = 'http://localhost:8000/accounts/google/login/callback/'
         assert view.callback_url == expected_url
+
+# =================================================================
+#  SERIALIZERS
+# =================================================================
+
+@pytest.mark.django_db
+def test_base_serializer():
+    class TestModel:
+        def __init__(self, id, name):
+            self.id = id
+            self.name = name
+
+    class TestSerializer(BaseSerializer):
+        def serialize_instance(self,instance):
+            return {
+                'id': instance.id,
+                'name': instance.name,
+            }
+
+    test_instance = TestModel(id=1, name='Test Name')
+    serializer = TestSerializer(test_instance)
+    serialized_data = serializer.serialize()
+
+    assert serialized_data['id'] == 1
+    assert serialized_data['name'] == 'Test Name'
+
+@pytest.mark.django_db
+def test_base_serializer_json():
+    class TestModel:
+        def __init__(self, id, name):
+            self.id = id
+            self.name = name
+
+    class TestSerializer(BaseSerializer):
+        def serialize_instance(self,instance):
+            return {
+                'id': instance.id,
+                'name': instance.name,
+            }
+
+    test_instance = TestModel(id=2, name='Another Test')
+    serializer = TestSerializer(test_instance)
+    json_data = serializer.to_json()
+    json_response = serializer.json_response()
+
+    assert json_data == '{"id": 2, "name": "Another Test"}'
+    assert json_response.status_code == 200
+    assert json_response.content == b'{"id": 2, "name": "Another Test"}'
+
+
+@pytest.mark.django_db
+def test_base_serializer_request_img():
+    class TestModel:
+        def __init__(self, id, name):
+            self.id = id
+            self.name = name
+
+    class TestSerializer(BaseSerializer):
+        def serialize_instance(self,instance):
+            return {
+                'id': instance.id,
+                'name': instance.name,
+                'url': self.build_url('/test-path/')
+            }
+
+    factory = APIRequestFactory()
+    request = factory.get('/test/', HTTP_HOST='localhost:8000', secure=False)
+
+    test_instance = TestModel(id=3, name='URL Test')
+    serializer = TestSerializer(test_instance, request=request)
+    serialized_data = serializer.serialize()
+
+    assert serialized_data['url'] == 'http://localhost:8000/test-path/'
+
+@pytest.mark.django_db
+def test_base_serializer_not_implemented():
+    class TestModel:
+        def __init__(self, id, name):
+            self.id = id
+            self.name = name
+
+    class IncompleteSerializer(BaseSerializer):
+        pass
+
+    test_instance = TestModel(id=4, name='Not Implemented Test')
+    serializer = IncompleteSerializer(test_instance)
+
+    with pytest.raises(NotImplementedError):
+        serializer.serialize()
