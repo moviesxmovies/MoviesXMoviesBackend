@@ -30,7 +30,7 @@ class MovieList(BaseModel):
     slug = models.SlugField(max_length=128)
     description = models.TextField(blank=True)
     privacity = models.CharField(max_length=1, choices=Privacity, default=Privacity.PUBLIC)
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='movie_lists')
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='movies_lists')
     movies = models.ManyToManyField('movies.Movie', related_name='in_movie_lists', blank=True)
 
     def __str__(self):

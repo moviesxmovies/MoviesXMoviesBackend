@@ -145,6 +145,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=90),
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'ALGORITHM': 'HS256',
 }
 
 ROOT_URLCONF = 'main.urls'
