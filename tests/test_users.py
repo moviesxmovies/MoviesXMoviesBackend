@@ -1,6 +1,7 @@
 import json
 from datetime import timezone
 from http import HTTPStatus
+from types import SimpleNamespace
 
 import jwt
 import pytest
@@ -207,6 +208,22 @@ def test_user_serializer(user_factory):
     assert serialized['id'] == user.pk
     assert serialized['username'] == user.username
     assert serialized['bio'] == user.bio
+    assert not serialized['following']
+
+
+@pytest.mark.django_db
+def test_user_serializer_is_following(user_factory):
+    user = user_factory()
+    user_request = user_factory()
+    user_request.following.add(user)
+    user_request.save()
+    request = SimpleNamespace(user=user_request)
+    serialized = UserSerializer(user, request=request).serialize()
+
+    assert serialized['id'] == user.pk
+    assert serialized['username'] == user.username
+    assert serialized['bio'] == user.bio
+    assert serialized['following']
 
 
 # ===========================================================================
@@ -291,6 +308,7 @@ def test_auth_user_not_exists(rf, user_factory, generate_jwt, mock_view_auth_req
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert json.loads(response.content)['error'] == 'Token is invalid'
+
 
 @pytest.mark.django_db
 def test_auth_malformed_token(rf, mock_view_auth_required):

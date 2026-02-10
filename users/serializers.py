@@ -17,4 +17,5 @@ class UserSerializer(BaseSerializer):
             'id': instance.pk,
             'username': instance.username,
             'bio': instance.bio,
+            'following': instance.is_followed_by(self.request.user) if self.request and self.request.user else None,
         }
