@@ -1,8 +1,16 @@
+import json
+from datetime import timezone
+from http import HTTPStatus
+
+import jwt
 import pytest
 from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_PASSWORD, TEST_USER_USERNAME
+from django.conf import settings
+from django.http import JsonResponse
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
+from users.decorators import auth_required
 from users.serializers import UserSerializer
 
 # =================================================================
@@ -199,3 +207,95 @@ def test_user_serializer(user_factory):
     assert serialized['id'] == user.pk
     assert serialized['username'] == user.username
     assert serialized['bio'] == user.bio
+
+
+# ===========================================================================
+# DECORATORS
+# ===========================================================================
+@pytest.fixture
+def mock_view_auth_required():
+
+    @auth_required
+    def view(request):
+        return JsonResponse(
+            {'username': request.user.username, 'user_id': request.user.id}, status=HTTPStatus.OK
+        )
+
+    return view
+
+
+@pytest.mark.django_db
+def test_auth_success(rf, user_factory, generate_jwt, mock_view_auth_required):
+    user = user_factory()
+    token = generate_jwt(user)
+
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = mock_view_auth_required(request)
+
+    data = json.loads(response.content)
+    assert response.status_code == HTTPStatus.OK
+    assert data['user_id'] == user.id
+    assert data['username'] == user.username
+
+
+@pytest.mark.django_db
+def test_auth_no_token_provided(rf, mock_view_auth_required):
+    request = rf.get('/')
+    response = mock_view_auth_required(request)
+
+    data = json.loads(response.content)
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert data['error'] == 'Token not provided'
+
+
+@pytest.mark.django_db
+def test_auth_invalid_token_type(rf, user_factory, mock_view_auth_required):
+    user = user_factory()
+    payload = {'user_id': user.id, 'token_type': 'refresh'}
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = mock_view_auth_required(request)
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert json.loads(response.content)['error'] == 'Token type is invalid'
+
+
+@pytest.mark.django_db
+def test_auth_expired_token(rf, user_factory, mock_view_auth_required):
+    user = user_factory()
+    from datetime import datetime, timedelta
+
+    payload = {
+        'user_id': user.id,
+        'token_type': 'access',
+        'exp': datetime.now(timezone.utc) - timedelta(seconds=1),
+    }
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = mock_view_auth_required(request)
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert 'expired' in json.loads(response.content)['error'].lower()
+
+
+@pytest.mark.django_db
+def test_auth_user_not_exists(rf, user_factory, generate_jwt, mock_view_auth_required):
+    user = user_factory()
+    token = generate_jwt(user)
+    user.delete()
+
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = mock_view_auth_required(request)
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert json.loads(response.content)['error'] == 'Token is invalid'
+
+@pytest.mark.django_db
+def test_auth_malformed_token(rf, mock_view_auth_required):
+    malformed_token = 'this.is.not.a.valid.token'
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {malformed_token}')
+    response = mock_view_auth_required(request)
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert json.loads(response.content)['error'] == 'Token is invalid or have an incorrect padding'
