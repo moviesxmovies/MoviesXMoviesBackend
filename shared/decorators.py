@@ -3,7 +3,7 @@ import json
 from django.http import JsonResponse
 
 
-def require_http_methods(*methods):
+def require_http_methods(methods):
     def decorator(func):
         def wrapper(request, *args, **kwargs):
             if request.method not in methods:

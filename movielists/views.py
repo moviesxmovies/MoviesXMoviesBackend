@@ -11,7 +11,7 @@ from .serializers import MovieListSerializer
 
 
 @api_view()
-@require_http_methods('GET')
+@require_http_methods(['GET'])
 @auth_required
 def movies_list_self(request):
     """Users movies Lists
@@ -26,7 +26,7 @@ def movies_list_self(request):
 
 
 @api_view()
-@require_http_methods('GET')
+@require_http_methods(['GET'])
 @auth_required
 def movies_list_list(request, user):
     """Get user movie lists
@@ -48,7 +48,7 @@ def movies_list_list(request, user):
 
 
 @api_view()
-@require_http_methods('GET')
+@require_http_methods(['GET'])
 @auth_required
 def movies_list_detail(request, user, movies_list):
     if request.user == user:
