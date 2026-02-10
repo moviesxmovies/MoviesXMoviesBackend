@@ -3,6 +3,8 @@ from django.http import JsonResponse
 
 def handler404(request, exception):
     message = 'Not found'
+    if not request:
+        return JsonResponse({'error': message}, status=404)
 
     if exception:
         msg = str(exception)
