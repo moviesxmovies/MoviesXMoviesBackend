@@ -10,3 +10,4 @@ coverage.xml
 media/**
 staticfiles
 fixtures/movie_fixtures.json
+mediaapi/
