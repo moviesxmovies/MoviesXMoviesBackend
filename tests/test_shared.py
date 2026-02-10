@@ -1,13 +1,16 @@
+import json
+from http import HTTPStatus
 from time import sleep
 
 import pytest
+from django.http import JsonResponse
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from genres.models import Genre
-from shared.views import GoogleLogin
-
+from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.serializers import BaseSerializer
+from shared.views import GoogleLogin
 
 
 # =================================================================
@@ -111,9 +114,11 @@ class TestGoogleLoginView:
         expected_url = 'http://localhost:8000/accounts/google/login/callback/'
         assert view.callback_url == expected_url
 
+
 # =================================================================
 #  SERIALIZERS
 # =================================================================
+
 
 @pytest.mark.django_db
 def test_base_serializer():
@@ -123,7 +128,7 @@ def test_base_serializer():
             self.name = name
 
     class TestSerializer(BaseSerializer):
-        def serialize_instance(self,instance):
+        def serialize_instance(self, instance):
             return {
                 'id': instance.id,
                 'name': instance.name,
@@ -136,6 +141,7 @@ def test_base_serializer():
     assert serialized_data['id'] == 1
     assert serialized_data['name'] == 'Test Name'
 
+
 @pytest.mark.django_db
 def test_base_serializer_json():
     class TestModel:
@@ -144,7 +150,7 @@ def test_base_serializer_json():
             self.name = name
 
     class TestSerializer(BaseSerializer):
-        def serialize_instance(self,instance):
+        def serialize_instance(self, instance):
             return {
                 'id': instance.id,
                 'name': instance.name,
@@ -168,12 +174,8 @@ def test_base_serializer_request_img():
             self.name = name
 
     class TestSerializer(BaseSerializer):
-        def serialize_instance(self,instance):
-            return {
-                'id': instance.id,
-                'name': instance.name,
-                'url': self.build_url('/test-path/')
-            }
+        def serialize_instance(self, instance):
+            return {'id': instance.id, 'name': instance.name, 'url': self.build_url('/test-path/')}
 
     factory = APIRequestFactory()
     request = factory.get('/test/', HTTP_HOST='localhost:8000', secure=False)
@@ -183,6 +185,7 @@ def test_base_serializer_request_img():
     serialized_data = serializer.serialize()
 
     assert serialized_data['url'] == 'http://localhost:8000/test-path/'
+
 
 @pytest.mark.django_db
 def test_base_serializer_not_implemented():
@@ -199,3 +202,191 @@ def test_base_serializer_not_implemented():
 
     with pytest.raises(NotImplementedError):
         serializer.serialize()
+
+
+# ===========================================================================
+#  DECORATORS
+# ===========================================================================
+
+# ===========================================================================
+#  REQUIRE HTTP METHODS
+# ===========================================================================
+
+
+@pytest.fixture
+def mock_view_require_http_methods():
+    """Creates a dummy view function decorated with @require_http_methods(['GET', 'POST']) for testing."""
+
+    @require_http_methods(['GET', 'POST'])
+    def view(request):
+        return JsonResponse({'data': 'success'}, status=HTTPStatus.OK)
+
+    return view
+
+
+@pytest.mark.django_db
+def test_allowed_methods(rf, mock_view_require_http_methods):
+    # Test GET
+    request_get = rf.get('/')
+    response_get = mock_view_require_http_methods(request_get)
+    assert response_get.status_code == HTTPStatus.OK
+    data = json.loads(response_get.content)
+    assert data == {'data': 'success'}
+
+    # Test POST
+    request_post = rf.post('/')
+    response_post = mock_view_require_http_methods(request_post)
+    assert response_post.status_code == HTTPStatus.OK
+    data = json.loads(response_post.content)
+    assert data == {'data': 'success'}
+
+
+@pytest.mark.django_db
+def test_disallowed_method(rf, mock_view_require_http_methods):
+    request = rf.delete('/')
+    response = mock_view_require_http_methods(request)
+    assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    data = json.loads(response.content)
+    assert data == {'error': 'Method not allowed'}
+
+
+@pytest.mark.django_db
+def test_put_is_also_disallowed(rf, mock_view_require_http_methods):
+    request = rf.put('/')
+    response = mock_view_require_http_methods(request)
+    assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    data = json.loads(response.content)
+    assert data == {'error': 'Method not allowed'}
+
+
+# =================================================================
+#  GET QUERY PARAMS
+# =================================================================
+@pytest.fixture
+def mock_view_get_query_params():
+    """Creates a dummy view function decorated with @get_query_params for testing."""
+
+    @get_query_params('search', 'page')
+    def view(request, *args, **kwargs):
+        return JsonResponse(kwargs, status=HTTPStatus.OK)
+
+    return view
+
+
+@pytest.mark.django_db
+def test_params_injection_success(rf, mock_view_get_query_params):
+
+    params = {'search': 'django', 'page': '5'}
+    request = rf.get('/', params)
+
+    response = mock_view_get_query_params(request)
+
+    data = json.loads(response.content)
+
+    assert response.status_code == HTTPStatus.OK
+    assert data['search'] == 'django'
+    assert data['page'] == '5'
+
+
+@pytest.mark.django_db
+def test_params_not_provided_are_none(rf, mock_view_get_query_params):
+
+    request = rf.get('/')
+    response = mock_view_get_query_params(request)
+    data = json.loads(response.content)
+
+    assert response.status_code == HTTPStatus.OK
+    assert data['search'] is None
+    assert data['page'] is None
+
+
+@pytest.mark.django_db
+def test_extra_params_are_ignored_by_decorator(rf, mock_view_get_query_params):
+
+    request = rf.get('/', {'search': 'test', 'extra_param': 'hack'})
+    response = mock_view_get_query_params(request)
+    data = json.loads(response.content)
+
+    assert data['search'] == 'test'
+    assert 'extra_param' not in data
+
+
+# =================================================================
+#  GET BODY
+# =================================================================
+class MockMovieModel:
+    """Mock model class for testing get_body decorator with model instantiation."""
+
+    def __init__(self, title, year):
+        self.title = title
+        self.year = year
+
+
+@pytest.fixture
+def mock_view_get_body_with_model():
+    """View that uses get_body and converts the JSON to an instance of MockMovieModel."""
+
+    @get_body(MockMovieModel, required_fields=['title', 'year'])
+    def view(request, mockmoviemodel=None):
+        return JsonResponse({'title': mockmoviemodel.title, 'year': mockmoviemodel.year})
+
+    return view
+
+
+@pytest.fixture
+def mock_view_get_body_no_model():
+    """View that uses get_body without a model, injecting a dictionary in 'body'."""
+
+    @get_body(None, required_fields=['name'])
+    def view(request, body=None):
+        return JsonResponse(body)
+
+    return view
+
+
+@pytest.mark.django_db
+def test_get_body_success_model_injection(rf, mock_view_get_body_with_model):
+    payload = {'title': 'The Matrix', 'year': 1999}
+    request = rf.post('/', data=json.dumps(payload), content_type='application/json')
+
+    response = mock_view_get_body_with_model(request)
+    data = json.loads(response.content)
+
+    assert response.status_code == HTTPStatus.OK
+    assert data['title'] == 'The Matrix'
+    assert data['year'] == 1999
+
+
+@pytest.mark.django_db
+def test_get_body_success_dictionary_injection(rf, mock_view_get_body_no_model):
+    payload = {'name': 'Inception'}
+    request = rf.post('/', data=json.dumps(payload), content_type='application/json')
+
+    response = mock_view_get_body_no_model(request)
+    data = json.loads(response.content)
+
+    assert response.status_code == HTTPStatus.OK
+    assert data['name'] == 'Inception'
+
+
+@pytest.mark.django_db
+def test_get_body_error_missing_fields(rf, mock_view_get_body_with_model):
+    payload = {'title': 'Interstellar'}
+    request = rf.post('/', data=json.dumps(payload), content_type='application/json')
+
+    response = mock_view_get_body_with_model(request)
+    data = json.loads(response.content)
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert data['error'] == 'Missing required fields'
+
+
+@pytest.mark.django_db
+def test_get_body_error_invalid_json(rf, mock_view_get_body_no_model):
+    request = rf.post('/', data='{"name": "Broken JSON', content_type='application/json')
+
+    response = mock_view_get_body_no_model(request)
+    data = json.loads(response.content)
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert data['error'] == 'Invalid JSON body'

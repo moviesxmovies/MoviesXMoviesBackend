@@ -10,3 +10,4 @@ class PersonAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     exclude = ['deleted_at']
     list_filter = ['country']
+    filter_horizontal = ['awards']
