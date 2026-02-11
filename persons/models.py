@@ -13,8 +13,8 @@ class Person(BaseModel):
         image (models.ImageField): A profile image of the person.
         country (models.CharField): The country of origin of the person.
     """
-    name = models.CharField(max_length=32)
-    slug = models.SlugField(max_length=32)
+    name = models.CharField(max_length=128)
+    slug = models.SlugField(max_length=128, unique=True)
     image = models.ImageField(upload_to='person', default='person/default.png')
     awards = models.ManyToManyField('awards.Award', related_name='persons', blank=True)
 
