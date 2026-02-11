@@ -24,7 +24,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self.api_key = config('TMDB_API_KEY')
+        self.api_key = config('TMDB_API_KEY', default='')
         self.headers = {'Authorization': f'Bearer {self.api_key}'}
         self.now = datetime.now().isoformat()
 
