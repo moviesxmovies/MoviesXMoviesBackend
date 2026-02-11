@@ -9,6 +9,5 @@ class PersonSerializer(BaseSerializer):
             'name': instance.name,
             'slug': instance.slug,
             'image': self.build_url(instance.image.url),
-            'country': instance.get_country_display(),
             'awards': AwardSerializer(instance.awards.all(), request=self.request).serialize(),
         }

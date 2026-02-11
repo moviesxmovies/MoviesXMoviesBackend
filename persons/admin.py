@@ -5,9 +5,8 @@ from .models import Person
 
 @admin.register(Person)
 class PersonAdmin(admin.ModelAdmin):
-    list_display = ['name', 'country']
-    search_fields = ['name', 'country']
+    list_display = ['name']
+    search_fields = ['name']
     prepopulated_fields = {'slug': ('name',)}
     exclude = ['deleted_at']
-    list_filter = ['country']
     filter_horizontal = ['awards']

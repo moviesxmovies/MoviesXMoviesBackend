@@ -13,23 +13,9 @@ class Person(BaseModel):
         image (models.ImageField): A profile image of the person.
         country (models.CharField): The country of origin of the person.
     """
-
-    class Country(models.TextChoices):
-        """
-        Enumeration of supported countries for persons.
-
-        Values:
-            SPAIN: Represents Spain.
-            ENGLAND: Represents England.
-        """
-
-        SPAIN = 'ES', 'Spain'
-        ENGLAND = 'EN', 'England'
-
     name = models.CharField(max_length=32)
     slug = models.SlugField(max_length=32)
     image = models.ImageField(upload_to='person', default='person/default.png')
-    country = models.CharField(max_length=4, choices=Country)
     awards = models.ManyToManyField('awards.Award', related_name='persons', blank=True)
 
 
