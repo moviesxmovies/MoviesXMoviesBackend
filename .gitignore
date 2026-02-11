@@ -11,3 +11,4 @@ media/**
 staticfiles
 fixtures/movie_fixtures.json
 mediaapi/
+mediatest/
