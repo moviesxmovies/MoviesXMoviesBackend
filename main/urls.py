@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/movies-lists/', include('movielists.urls')),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/', include('users.urls')),
+    path('django-rq/', include('django_rq.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
