@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 import jwt
 import pytest
@@ -98,3 +99,11 @@ def auth_client(client, user_factory, generate_jwt):
     client.user = user
 
     return client
+
+
+@pytest.fixture(autouse=True)
+def disable_redis_jobs():
+    target = 'users.tasks.send_verification_email.delay'
+
+    with mock.patch(target, return_value=None) as mocked_job:
+        yield mocked_job
