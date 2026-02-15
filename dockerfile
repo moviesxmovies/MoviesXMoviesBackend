@@ -4,6 +4,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -26,7 +27,6 @@ RUN mkdir -p /app/staticfiles /app/media && \
 USER django_user
 
 EXPOSE 7996
+RUN python manage.py collectstatic --noinput
 
-RUN uv run python manage.py collectstatic --noinput
-
-CMD ["sh", "-c", "uv run python manage.py migrate && uv run uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
+CMD ["sh", "-c", "python manage.py migrate && uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
