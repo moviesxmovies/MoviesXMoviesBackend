@@ -4,6 +4,7 @@ from unittest import mock
 import jwt
 import pytest
 from django.conf import settings
+from django.core.cache import cache
 from pytest_factoryboy import register
 
 from factories import (
@@ -104,8 +105,16 @@ def auth_client(client, user_factory, generate_jwt):
 
 
 @pytest.fixture(autouse=True)
-def disable_redis_jobs():
-    target = 'users.tasks.send_verification_email.delay'
-
-    with mock.patch(target, return_value=None) as mocked_job:
-        yield mocked_job
+def use_fake_redis(settings):
+    settings.CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://127.0.0.1:6379/1',
+            'OPTIONS': {
+                'REDIS_CLIENT_CLASS': 'fakeredis.FakeRedis',
+            },
+        }
+    }
+    cache.clear()
+    yield
+    cache.clear()
