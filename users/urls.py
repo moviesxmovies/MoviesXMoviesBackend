@@ -16,6 +16,7 @@ urlpatterns = [
         name='token_refresh',
     ),
     path('auth/verify/', views.verify_user, name='verify_user'),
+    path('auth/resend-verification-email/', views.resend_verification_email, name='resend_verification_email'),
     path('oauth/', include('dj_rest_auth.urls')),
     path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
 ]
