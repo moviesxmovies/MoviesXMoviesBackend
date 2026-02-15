@@ -121,6 +121,16 @@ RQ_QUEUES = {
     },
 }
 
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': config('GOOGLE_CLIENT_ID'),
+            'secret': config('GOOGLE_SECRET'),
+            'key': ''
+        }
+    }
+}
+
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default='')
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
