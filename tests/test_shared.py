@@ -106,12 +106,12 @@ class TestGoogleLoginView:
 
     def test_callback_url_http_fallback(self):
         factory = APIRequestFactory()
-        request = factory.post('/api/auth/google/', HTTP_HOST='localhost:8000', secure=False)
+        request = factory.post('/api/auth/google/', HTTP_HOST='localhost:5173', secure=False)
 
         view = GoogleLogin()
         view.request = request
 
-        expected_url = 'http://localhost:8000/accounts/google/login/callback/'
+        expected_url = 'http://localhost:5173/accounts/google/login/callback/'
         assert view.callback_url == expected_url
 
 

@@ -9,7 +9,14 @@ from .serializers import CustomTokenObtainPairSerializer
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     client_class = OAuth2Client
-    callback_url = 'http://localhost:5173/accounts/google/login/callback/'
+
+    @property
+    def callback_url(self):
+        protocol = 'https' if self.request.is_secure() else 'http'
+        host = self.request.get_host() if self.request.is_secure() else 'localhost:5173'
+
+        return f'{protocol}://{host}/accounts/google/login/callback/'
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
