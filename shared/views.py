@@ -13,7 +13,7 @@ class GoogleLogin(SocialLoginView):
     @property
     def callback_url(self):
         protocol = 'https' if self.request.is_secure() else 'http'
-        host = self.request.get_host()
+        host = self.request.get_host() if self.request.is_secure() else 'localhost:5173'
 
         return f'{protocol}://{host}/accounts/google/login/callback/'
 
