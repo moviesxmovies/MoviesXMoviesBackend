@@ -5,14 +5,17 @@ from types import SimpleNamespace
 
 import jwt
 import pytest
-from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_PASSWORD, TEST_USER_USERNAME
+from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_PASSWORD, TEST_USER_USERNAME, VERIFY_USER_URL
 from django.conf import settings
+from django.core import mail
 from django.http import JsonResponse
+from django.template.loader import render_to_string
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
 from users.decorators import auth_required
 from users.serializers import UserSerializer
+from users.tasks import send_verification_email
 
 # =================================================================
 # AUTH
@@ -196,6 +199,17 @@ def test_user_factory_build(user_factory):
     user = user_factory.build()
     assert user.pk is None
 
+@pytest.mark.django_db
+def test_user_is_friend_self(user_factory):
+    user1 = user_factory()
+
+    assert not user1.is_friend(user1)
+
+@pytest.mark.django_db
+def test_user_is_friend_null(user_factory):
+    user1 = user_factory()
+
+    assert not user1.is_friend(None)
 
 # ===========================================================================
 # SERIALIZERS
@@ -317,3 +331,82 @@ def test_auth_malformed_token(rf, mock_view_auth_required):
     response = mock_view_auth_required(request)
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert json.loads(response.content)['error'] == 'Token is invalid or have an incorrect padding'
+
+
+# =================================================================
+# TASKS
+# =================================================================
+@pytest.mark.django_db
+def test_send_verification_email_logic(user_factory):
+    user = user_factory(username='testuser', email='test@example.com')
+
+    send_verification_email(user)
+
+    user.refresh_from_db()
+    assert user.verification_code is not None
+    assert 0 <= int(user.verification_code) <= 999999
+
+    assert len(mail.outbox) == 1
+    sent_email = mail.outbox[0]
+
+    assert sent_email.subject == f'Verificación de MoviesXMovies de {user.username}'
+    assert sent_email.to == [user.email]
+    assert sent_email.content_subtype == 'html'
+
+    expected_html = render_to_string('users/email/verification-email.html', {'user': user})
+    assert sent_email.body == expected_html
+
+
+# =================================================================
+# VIEWS
+# =================================================================
+@pytest.mark.django_db
+def test_verify_user_success(auth_client):
+    auth_client.user.verification_code = '000321'
+    auth_client.user.verified = False
+    auth_client.user.save()
+
+    payload = {'verification_code': '000321'}
+
+    url = VERIFY_USER_URL
+    response = auth_client.post(url, data=payload, content_type='application/json')
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] is True
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.verified is True
+
+@pytest.mark.django_db
+def test_verify_user_already_verified(auth_client):
+    auth_client.user.verification_code = '000321'
+    auth_client.user.verified = True
+    auth_client.user.save()
+
+    payload = {'verification_code': '000321'}
+
+    url = VERIFY_USER_URL
+    response = auth_client.post(url, data=payload, content_type='application/json')
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] is True
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.verified is True
+
+@pytest.mark.django_db
+def test_verify_user_incorrect_code(auth_client):
+    auth_client.user.verification_code = '000321'
+    auth_client.user.verified = False
+    auth_client.user.save()
+
+    payload = {'verification_code': '123456'}
+
+    url = VERIFY_USER_URL
+    response = auth_client.post(url, data=payload, content_type='application/json')
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['error'] == 'Verification code is incorrect'
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.verified is False

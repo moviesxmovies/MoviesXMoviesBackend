@@ -7,7 +7,7 @@ from django_rq import job
 
 @job
 def send_verification_email(user):
-    user.verification_code = random.randint(0, 999999)
+    user.verification_code = f'{random.randint(0, 999999):06d}'
     email = EmailMessage(
         subject=f'Verificación de MoviesXMovies de {user.username}',
         body=render_to_string('users/email/verification-email.html', {'user': user}),

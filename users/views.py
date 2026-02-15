@@ -26,9 +26,6 @@ def verify_user(request, body):
     user = request.user
     if user.verified:
         return JsonResponse({'status': True})
-    
-    print(user.verification_code)
-    print(body['verification_code'])
 
     if user.verification_code == body['verification_code']:
         user.verified = True

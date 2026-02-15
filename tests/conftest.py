@@ -39,6 +39,8 @@ MOVIE_LIST_SELF_URL = '/api/movies-lists/'
 MOVIE_LIST_USER_URL = '/api/movies-lists/{username}/'
 MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
 
+VERIFY_USER_URL = '/api/auth/verify/'
+
 
 # ===========================================
 # TEST USERS
