@@ -20,6 +20,6 @@ jobs:
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
                   cd ${{ secrets.SSH_TARGET }}
-                  docker compose down api
-                  docker compose up -d --no-deps api
+                  docker compose down api worker
+                  docker compose up -d --no-deps api worker
                   docker image prune -f

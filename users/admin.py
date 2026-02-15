@@ -9,7 +9,7 @@ class CustomUserAdmin(UserAdmin):
     model = User
 
     fieldsets = UserAdmin.fieldsets + (
-        (None, {'fields': ['bio', 'boarded', 'verified']}),
+        (None, {'fields': ['bio', 'boarded', 'verified','verification_code']}),
         ('Follow', {'fields': ['following_person', 'following']}),
         ('Platforms', {'fields': ['platforms']}),
     )
@@ -17,3 +17,12 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ['boarded', 'verified']
     search_fields = ['username', 'email']
     filter_horizontal = UserAdmin.filter_horizontal + ('following_person', 'following', 'platforms')
+    add_fieldsets = (
+        (
+            None,
+            {
+                'classes': ('wide',),
+                'fields': ('username', 'email', 'usable_password', 'password1', 'password2'),
+            },
+        ),
+    )

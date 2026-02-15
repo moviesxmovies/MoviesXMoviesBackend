@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 import jwt
 import pytest
@@ -37,6 +38,8 @@ REFRESH_URL = '/api/auth/refresh/'
 MOVIE_LIST_SELF_URL = '/api/movies-lists/'
 MOVIE_LIST_USER_URL = '/api/movies-lists/{username}/'
 MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
+
+VERIFY_USER_URL = '/api/auth/verify/'
 
 
 # ===========================================
@@ -98,3 +101,11 @@ def auth_client(client, user_factory, generate_jwt):
     client.user = user
 
     return client
+
+
+@pytest.fixture(autouse=True)
+def disable_redis_jobs():
+    target = 'users.tasks.send_verification_email.delay'
+
+    with mock.patch(target, return_value=None) as mocked_job:
+        yield mocked_job

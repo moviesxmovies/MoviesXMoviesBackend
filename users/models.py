@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
+
 class User(AbstractUser):
     """
     Custom user model extending Django's AbstractUser.
@@ -13,9 +14,11 @@ class User(AbstractUser):
     bio = models.TextField(blank=True, null=True)
     boarded = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
+    email = models.EmailField(unique=True)
     following_person = models.ManyToManyField('persons.Person', related_name='followers')
     following = models.ManyToManyField('users.User', related_name='followers')
     platforms = models.ManyToManyField('platforms.Platform', related_name='users')
+    verification_code = models.CharField(max_length=6,null=True, blank=True)
 
     def is_following(self, check_user):
         """Check if user is following check_user
@@ -52,3 +55,4 @@ class User(AbstractUser):
             return False
 
         return self.is_following(check_user) and self.is_followed_by(check_user)
+
