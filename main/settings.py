@@ -91,7 +91,7 @@ MIDDLEWARE = [
 ]
 RQ_QUEUES = {
     'default': {
-        'HOST': 'localhost' if config('DEBUG', default=True, cast=config.boolean) else 'redis',
+        'HOST': 'localhost' if config('DEBUG', default=False, cast=config.boolean) else 'redis',
         'PORT': 6379,
         'DB': 0,
     },
