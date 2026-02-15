@@ -2,12 +2,21 @@ import json
 from datetime import timezone
 from http import HTTPStatus
 from types import SimpleNamespace
+from unittest import mock
 
 import jwt
 import pytest
-from conftest import LOGIN_URL, REFRESH_URL, TEST_USER_PASSWORD, TEST_USER_USERNAME, VERIFY_USER_URL
+from conftest import (
+    LOGIN_URL,
+    REFRESH_URL,
+    RESEND_VERIFICATION_EMAIL_URL,
+    TEST_USER_PASSWORD,
+    TEST_USER_USERNAME,
+    VERIFY_USER_URL,
+)
 from django.conf import settings
 from django.core import mail
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
@@ -199,17 +208,20 @@ def test_user_factory_build(user_factory):
     user = user_factory.build()
     assert user.pk is None
 
+
 @pytest.mark.django_db
 def test_user_is_friend_self(user_factory):
     user1 = user_factory()
 
     assert not user1.is_friend(user1)
 
+
 @pytest.mark.django_db
 def test_user_is_friend_null(user_factory):
     user1 = user_factory()
 
     assert not user1.is_friend(None)
+
 
 # ===========================================================================
 # SERIALIZERS
@@ -377,6 +389,7 @@ def test_verify_user_success(auth_client):
     auth_client.user.refresh_from_db()
     assert auth_client.user.verified is True
 
+
 @pytest.mark.django_db
 def test_verify_user_already_verified(auth_client):
     auth_client.user.verification_code = '000321'
@@ -394,6 +407,7 @@ def test_verify_user_already_verified(auth_client):
     auth_client.user.refresh_from_db()
     assert auth_client.user.verified is True
 
+
 @pytest.mark.django_db
 def test_verify_user_incorrect_code(auth_client):
     auth_client.user.verification_code = '000321'
@@ -410,3 +424,32 @@ def test_verify_user_incorrect_code(auth_client):
 
     auth_client.user.refresh_from_db()
     assert auth_client.user.verified is False
+
+
+@pytest.mark.django_db
+def test_resend_verification_email_success_cooldown(auth_client):
+    url = RESEND_VERIFICATION_EMAIL_URL
+    auth_client.user.verified = False
+    auth_client.user.save()
+
+    if not hasattr(cache, 'ttl'):
+        cache.ttl = lambda x: 0
+
+    with mock.patch.object(cache, 'ttl', side_effect=[0, 60]):
+        response1 = auth_client.post(url)
+        assert response1.status_code == HTTPStatus.OK
+
+        response2 = auth_client.post(url)
+        assert response2.status_code == HTTPStatus.TOO_MANY_REQUESTS
+        assert 'You can resend the verification email in' in response2.json()['error']
+
+@pytest.mark.django_db
+def test_resend_verification_email_already_verified(auth_client):
+    url = RESEND_VERIFICATION_EMAIL_URL
+    auth_client.user.verified = True
+    auth_client.user.save()
+
+    response = auth_client.post(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] == 'User is already verified'
+

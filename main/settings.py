@@ -10,11 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import sys
 from datetime import timedelta
 from pathlib import Path
 
 from prettyconf import config
 
+TESTING = 'test' in sys.argv or 'pytest' in sys.modules
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -89,21 +91,35 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
 ]
+
+
+if TESTING:
+    REDIS_HOST = 'localhost'
+else:
+    REDIS_HOST = 'localhost' if config('DEBUG', default=False, cast=config.boolean) else 'redis'
+
+if TESTING:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake-for-tests',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:6379/1',
+        }
+    }
+
 RQ_QUEUES = {
     'default': {
-        'HOST': 'localhost' if config('DEBUG', default=False, cast=config.boolean) else 'redis',
+        'HOST': REDIS_HOST,
         'PORT': 6379,
         'DB': 0,
+        'ASYNC': not TESTING,
     },
-}
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{"localhost" if config("DEBUG", default=False, cast=config.boolean) else "redis"}:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-    }
 }
 
 EMAIL_HOST = config('EMAIL_HOST', default='')
