@@ -10,6 +10,7 @@ from conftest import (
     LOGIN_URL,
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
+    SUGGESTED_USERS_URL,
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
     VERIFY_USER_URL,
@@ -492,3 +493,63 @@ def test_resend_verification_email_already_verified(auth_client):
     response = auth_client.post(url)
     assert response.status_code == HTTPStatus.OK
     assert response.json()['status'] == 'User is already verified'
+
+
+@pytest.mark.django_db
+def test_suggest_friends_empty(auth_client):
+    url = SUGGESTED_USERS_URL
+    response = auth_client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['count'] == 0
+    assert response.json()['results'] == []
+    assert response.json()['current_page'] == 1
+    assert response.json()['total_pages'] == 1
+    assert not response.json()['has_next']
+    assert not response.json()['has_previous']
+
+
+@pytest.mark.django_db
+def test_suggest_friends_with_suggestions(auth_client, user_factory):
+    user1 = user_factory(username='user1')
+    user2 = user_factory(username='user2')
+    user3 = user_factory(username='user3')
+
+    auth_client.user.following.add(user1, user2)
+    user1.following.add(user3)
+    user2.following.add(user3)
+
+    url = SUGGESTED_USERS_URL
+    response = auth_client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['count'] == 1
+    assert len(response.json()['results']) == 1
+    assert response.json()['results'][0]['username'] == 'user3'
+    assert response.json()['current_page'] == 1
+    assert response.json()['total_pages'] == 1
+    assert not response.json()['has_next']
+    assert not response.json()['has_previous']
+
+
+@pytest.mark.django_db
+def test_suggest_friends_pagination(auth_client, user_factory):
+    targets = [user_factory(username=f'target{i}') for i in range(15)]
+
+    for i in range(5):
+        bridge_user = user_factory(username=f'bridge{i}')
+        auth_client.user.following.add(bridge_user)
+
+        bridge_user.following.add(*targets)
+
+    url = f'{SUGGESTED_USERS_URL}?page=2&limit=5'
+    response = auth_client.get(url)
+
+    data = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert data['count'] == 15
+    assert len(data['results']) == 5
+    assert data['current_page'] == 2
+    assert data['total_pages'] == 3
+    assert data['has_next']
+    assert data['has_previous']
+    assert data['results'][0]['username'] == 'target5'

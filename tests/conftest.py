@@ -42,6 +42,8 @@ MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
 VERIFY_USER_URL = '/api/auth/verify/'
 RESEND_VERIFICATION_EMAIL_URL = '/api/auth/resend-verification-email/'
 
+SUGGESTED_USERS_URL = '/api/users/suggested-users/'
+
 
 # ===========================================
 # TEST USERS
