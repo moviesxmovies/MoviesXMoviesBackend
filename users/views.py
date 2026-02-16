@@ -73,7 +73,7 @@ def suggested_users(request, page, limit):
 
     paginator = Paginator(suggested_users_query, limit)
     page_result = paginator.get_page(page)
-    serialized_users = [UserSerializer(user).serialize() for user in page_result.object_list]
+    serialized_users = [UserSerializer(user, request=request).serialize() for user in page_result.object_list]
     return JsonResponse(
         {
             'results': serialized_users,
