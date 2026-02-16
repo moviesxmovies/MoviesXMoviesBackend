@@ -10,6 +10,7 @@ from conftest import (
     LOGIN_URL,
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
+    SUGGESTED_USERS_URL,
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
     VERIFY_USER_URL,
@@ -17,12 +18,14 @@ from conftest import (
 from django.conf import settings
 from django.core import mail
 from django.core.cache import cache
+from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
 from users.decorators import auth_required
+from users.models import User
 from users.serializers import UserSerializer
 from users.tasks import send_verification_email
 
@@ -221,6 +224,43 @@ def test_user_is_friend_null(user_factory):
     user1 = user_factory()
 
     assert not user1.is_friend(None)
+
+
+@pytest.mark.django_db
+def test_suggest_friends_logic():
+    me = User.objects.create_user(username='me', email='me@test.com')
+
+    santi = User.objects.create_user(username='santi', email='santi@test.com')
+    elena = User.objects.create_user(username='elena', email='elena@test.com')
+    me.following.add(santi, elena)
+
+    pedro = User.objects.create_user(username='pedro', email='pedro@test.com')
+    santi.following.add(pedro)
+    elena.following.add(pedro)
+
+    maria = User.objects.create_user(username='maria', email='maria@test.com')
+    elena.following.add(maria)
+
+    juan = User.objects.create_user(username='juan', email='juan@test.com')
+    santi.following.add(juan)
+    me.following.add(juan)
+
+    suggestions = me.suggest_friends()
+
+    assert isinstance(suggestions, QuerySet)
+
+    assert me not in suggestions, 'Should not suggest self'
+    assert juan not in suggestions, 'Should not suggest already followed users'
+
+    pedro_sugg = suggestions.get(username='pedro')
+    maria_sugg = suggestions.get(username='maria')
+    assert pedro_sugg.common_friends_count == 2, 'Pedro should have 2 common friends'
+    assert maria_sugg.common_friends_count == 1, 'María should have 1 common friend'
+
+    assert suggestions[0] == pedro, 'Pedro should be first (most common friends)'
+    assert suggestions[1] == maria, 'María should be second (fewer common friends)'
+
+    assert suggestions.count() == 2, 'Should have exactly 2 unique suggestions'
 
 
 # ===========================================================================
@@ -443,6 +483,7 @@ def test_resend_verification_email_success_cooldown(auth_client):
         assert response2.status_code == HTTPStatus.TOO_MANY_REQUESTS
         assert 'You can resend the verification email in' in response2.json()['error']
 
+
 @pytest.mark.django_db
 def test_resend_verification_email_already_verified(auth_client):
     url = RESEND_VERIFICATION_EMAIL_URL
@@ -453,3 +494,62 @@ def test_resend_verification_email_already_verified(auth_client):
     assert response.status_code == HTTPStatus.OK
     assert response.json()['status'] == 'User is already verified'
 
+
+@pytest.mark.django_db
+def test_suggest_friends_empty(auth_client):
+    url = SUGGESTED_USERS_URL
+    response = auth_client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['count'] == 0
+    assert response.json()['results'] == []
+    assert response.json()['current_page'] == 1
+    assert response.json()['total_pages'] == 1
+    assert not response.json()['has_next']
+    assert not response.json()['has_previous']
+
+
+@pytest.mark.django_db
+def test_suggest_friends_with_suggestions(auth_client, user_factory):
+    user1 = user_factory(username='user1')
+    user2 = user_factory(username='user2')
+    user3 = user_factory(username='user3')
+
+    auth_client.user.following.add(user1, user2)
+    user1.following.add(user3)
+    user2.following.add(user3)
+
+    url = SUGGESTED_USERS_URL
+    response = auth_client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['count'] == 1
+    assert len(response.json()['results']) == 1
+    assert response.json()['results'][0]['username'] == 'user3'
+    assert response.json()['current_page'] == 1
+    assert response.json()['total_pages'] == 1
+    assert not response.json()['has_next']
+    assert not response.json()['has_previous']
+
+
+@pytest.mark.django_db
+def test_suggest_friends_pagination(auth_client, user_factory):
+    targets = [user_factory(username=f'target{i}') for i in range(15)]
+
+    for i in range(5):
+        bridge_user = user_factory(username=f'bridge{i}')
+        auth_client.user.following.add(bridge_user)
+
+        bridge_user.following.add(*targets)
+
+    url = f'{SUGGESTED_USERS_URL}?page=2&limit=5'
+    response = auth_client.get(url)
+
+    data = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert data['count'] == 15
+    assert len(data['results']) == 5
+    assert data['current_page'] == 2
+    assert data['total_pages'] == 3
+    assert data['has_next']
+    assert data['has_previous']
+    assert data['results'][0]['username'] == 'target5'

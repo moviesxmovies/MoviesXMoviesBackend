@@ -42,6 +42,8 @@ MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
 VERIFY_USER_URL = '/api/auth/verify/'
 RESEND_VERIFICATION_EMAIL_URL = '/api/auth/resend-verification-email/'
 
+SUGGESTED_USERS_URL = '/api/users/suggested-users/'
+
 
 # ===========================================
 # TEST USERS
@@ -105,8 +107,9 @@ def auth_client(client, user_factory, generate_jwt):
 
 
 @pytest.fixture(autouse=True)
-def disable_redis_jobs():
-    target = 'users.tasks.send_verification_email.delay'
+def disable_social_jobs():
+    signal_handler = 'users.signals.send_verification_email_on_created'
+    delay = 'users.tasks.send_verification_email.delay'
 
-    with mock.patch(target, return_value=None) as mocked_job:
-        yield mocked_job
+    with mock.patch(signal_handler) as mock_handler, mock.patch(delay) as mock_delay:
+        yield {'handler': mock_handler, 'delay': mock_delay}
