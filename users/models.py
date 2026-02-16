@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-
+from django.db.models import Count, Q
 
 
 class User(AbstractUser):
@@ -18,7 +18,7 @@ class User(AbstractUser):
     following_person = models.ManyToManyField('persons.Person', related_name='followers')
     following = models.ManyToManyField('users.User', related_name='followers')
     platforms = models.ManyToManyField('platforms.Platform', related_name='users')
-    verification_code = models.CharField(max_length=6,null=True, blank=True)
+    verification_code = models.CharField(max_length=6, null=True, blank=True)
 
     def is_following(self, check_user):
         """Check if user is following check_user
@@ -56,3 +56,20 @@ class User(AbstractUser):
 
         return self.is_following(check_user) and self.is_followed_by(check_user)
 
+    def suggest_friends(self):
+        """Suggest friends based on mutual followers.
+
+        Returns:
+            models.queryset: A queryset of suggested friends
+        """
+        following_ids = self.following.values_list('id', flat=True)
+
+        return (
+            User.objects.filter(followers__in=following_ids)
+            .exclude(Q(id=self.id) | Q(id__in=following_ids))
+            .annotate(
+                common_friends_count=Count('followers', filter=Q(followers__in=following_ids))
+            )
+            .order_by('-common_friends_count', 'id')
+            .distinct()
+        )
