@@ -57,10 +57,15 @@ class User(AbstractUser):
         return self.is_following(check_user) and self.is_followed_by(check_user)
 
     def suggest_friends(self):
-        """Suggest friends based on mutual followers.
+        """
+        Suggest friends based on users followed by people you follow (friends-of-friends).
+
+        The suggestions are users who are followed by your `following` set, excluding
+        yourself and users you already follow, ordered by how many of your followings
+        also follow them.
 
         Returns:
-            models.queryset: A queryset of suggested friends
+            models.QuerySet: A queryset of suggested users.
         """
         following_ids = self.following.values_list('id', flat=True)
 
