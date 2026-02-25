@@ -29,5 +29,5 @@ urlpatterns = [
     # USERS
     path('users/suggested-users/', views.suggested_users, name='suggested_users'),
     path('users/', views.self_user_detail, name='self_user_detail'),
-    path('users/<user:user>/', views.user_detail, name='user_detail'),
+    path('users/<user:user>/', views.user_detail, name='user-detail'),
 ]
