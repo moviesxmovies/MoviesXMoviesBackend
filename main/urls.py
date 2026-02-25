@@ -1,10 +1,21 @@
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, register_converter
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-handler404 = 'shared.handlers.handler404'
+from movielists.converters import MovieListConverter
+from users.converters import UserConverter
+# CONVERTERS
+register_converter(UserConverter, 'user')
+register_converter(MovieListConverter, 'movies-list')
+
+# HANDLERS
+handler404 = 'shared.handlers.custom_handler404'
+# URLS
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),

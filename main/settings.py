@@ -143,6 +143,7 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+
 REST_AUTH = {
     'USE_JWT': True,
     'JWT_SERIALIZER': 'shared.serializers.CustomTokenObtainPairSerializer',

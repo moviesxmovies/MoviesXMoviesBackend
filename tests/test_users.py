@@ -328,7 +328,7 @@ def test_auth_no_token_provided(rf, mock_view_auth_required):
 
     data = json.loads(response.content)
     assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert data['error'] == 'Token not provided'
+    assert data['error'] == 'You need to be authenticated'
 
 
 @pytest.mark.django_db

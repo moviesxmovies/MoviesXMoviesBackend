@@ -29,7 +29,7 @@ def auth_required(func):
                     )
 
                 return func(request, *args, **kwargs)
-            return JsonResponse({'error': 'Token not provided'}, status=HTTPStatus.UNAUTHORIZED)
+            return JsonResponse({'error': 'You need to be authenticated'}, status=HTTPStatus.UNAUTHORIZED)
 
         except jwt.exceptions.DecodeError:
             return JsonResponse(

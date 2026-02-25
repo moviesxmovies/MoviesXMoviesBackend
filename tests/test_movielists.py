@@ -108,7 +108,7 @@ def test_movies_list_self_view_no_auth(client):
     assert response.status_code == 401
     data = response.json()
     assert 'error' in data
-    assert data['error'] == 'Token not provided'
+    assert data['error'] == 'You need to be authenticated'
 
 
 # ===========================================================================
