@@ -3,13 +3,12 @@ from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import api_view
 
-
 from movies.models import Movie
 from movies.serializers import MovieSerializer
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_query_params, require_http_methods
+from shared.utils import get_paginated_response
 from users.decorators import auth_required
-
 
 
 @api_view(['GET'])
@@ -32,30 +31,8 @@ def movie_detail(request, movie: Movie):
 @auth_required
 @get_query_params('page', 'limit')
 def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10):
-    reviews_query = movie.reviews.all().order_by('-created_at')
-    if not page or not str(page).isdigit():
-        page = 1
-    else:
-        page = int(page)
-    if not limit or not str(limit).isdigit():
-        limit = 10
-    else:
-        limit = int(limit)
-
-    paginator = Paginator(reviews_query, limit)
-    page_result = paginator.get_page(page)
-    serialized_reviews = [
-        ReviewSerializer(review, request=request).serialize() for review in page_result.object_list
-    ]
-    return JsonResponse(
-        {
-            'results': serialized_reviews,
-            'total_pages': paginator.num_pages,
-            'count': paginator.count,
-            'has_next': page_result.has_next(),
-            'has_previous': page_result.has_previous(),
-            'current_page': page_result.number,
-        }
+    return get_paginated_response(
+        movie.reviews.all().order_by('-created_at'), ReviewSerializer, request, page, limit
     )
 
 
@@ -74,27 +51,4 @@ def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10):
 def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10):
     friends = request.user.friends.all()
     reviews_query = movie.reviews.filter(user__in=friends).order_by('-created_at')
-    if not page or not str(page).isdigit():
-        page = 1
-    else:
-        page = int(page)
-    if not limit or not str(limit).isdigit():
-        limit = 10
-    else:
-        limit = int(limit)
-
-    paginator = Paginator(reviews_query, limit)
-    page_result = paginator.get_page(page)
-    serialized_reviews = [
-        ReviewSerializer(review, request=request).serialize() for review in page_result.object_list
-    ]
-    return JsonResponse(
-        {
-            'results': serialized_reviews,
-            'total_pages': paginator.num_pages,
-            'count': paginator.count,
-            'has_next': page_result.has_next(),
-            'has_previous': page_result.has_previous(),
-            'current_page': page_result.number,
-        }
-    )
+    return get_paginated_response(reviews_query, ReviewSerializer, request, page, limit)
