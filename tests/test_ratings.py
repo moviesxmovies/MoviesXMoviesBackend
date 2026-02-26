@@ -1,3 +1,4 @@
+from django.urls import reverse
 import pytest
 from ratings.serializers import RatingSerializer
 
@@ -35,6 +36,6 @@ def test_rating_serializer(rating_factory):
     serialized = RatingSerializer(rating).serialize()
 
     assert serialized['id'] == rating.pk
-    assert serialized['user'] == rating.user.username
-    assert serialized['movie'] == rating.movie.slug
+    assert serialized['user'].endswith(reverse('user-detail', args=[rating.user]))
+    assert serialized['movie'].endswith(reverse('movies:movie-detail', args=[rating.movie]))
     assert serialized['rating'] == 5

@@ -8,8 +8,8 @@ class ReviewSerializer(BaseSerializer):
         return {
             'id': review.id,
             'title': review.title,
-            'movie': self.build_url(reverse('movies:movie-detail', kwargs={'slug': review.movie.slug})),
-            'user': self.build_url(reverse('user-detail', kwargs={'slug': review.user.slug})),
+            'movie': self.build_url(reverse('movies:movie-detail', args=[review.movie])),
+            'user': self.build_url(reverse('user-detail', args=[review.user])),
             'content': review.content,
             'is_positive': review.is_positive,
             'created_at': review.created_at.isoformat(),

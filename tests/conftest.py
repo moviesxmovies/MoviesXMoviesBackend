@@ -97,6 +97,9 @@ def auth_client(client, user_factory, generate_jwt):
     """
     user = user_factory()
 
+    user.verified = True
+    user.save()
+
     token = generate_jwt(user)
 
     client.defaults['HTTP_AUTHORIZATION'] = f'Bearer {token}'

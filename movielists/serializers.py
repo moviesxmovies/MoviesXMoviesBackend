@@ -10,7 +10,7 @@ class MovieListSerializer(BaseSerializer):
             'name': instance.name,
             'slug': instance.slug,
             'privacity': instance.privacity,
-            'user': self.build_url(reverse('user-detail', kwargs={'slug': instance.user.slug})),
+            'user': self.build_url(reverse('user-detail', args=[instance.user])),
             'movies': MovieSerializer(instance.movies.all(), request=self.request).serialize(),
             'created_at': instance.created_at.isoformat(),
             'updated_at': instance.updated_at.isoformat(),
