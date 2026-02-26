@@ -55,7 +55,7 @@ class User(AbstractUser):
             return False
 
         return self.is_following(check_user) and self.is_followed_by(check_user)
-
+    @property
     def friends(self):
         """Get all friends (mutual following) of the user
 

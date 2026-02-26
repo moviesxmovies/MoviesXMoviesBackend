@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view
 
 from movies.models import Movie
 from movies.serializers import MovieSerializer
+from ratings.serializers import RatingSerializer
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_query_params, require_http_methods
 from shared.utils import get_paginated_response
@@ -49,6 +50,5 @@ def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10):
 @auth_required
 @get_query_params('page', 'limit')
 def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10):
-    friends = request.user.friends.all()
-    reviews_query = movie.reviews.filter(user__in=friends).order_by('-created_at')
-    return get_paginated_response(reviews_query, ReviewSerializer, request, page, limit)
+    ratings_query = movie.ratings.filter(user__in=request.user.friends.all()).order_by('-created_at')
+    return get_paginated_response(ratings_query, RatingSerializer, request, page, limit)
