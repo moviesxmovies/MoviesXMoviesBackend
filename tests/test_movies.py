@@ -1,7 +1,7 @@
 import pytest
 
 from movies.serializers import MovieSerializer
-from tests.conftest import MOVIE_DETAIL_URL
+from tests.conftest import MOVIE_DETAIL_URL, MOVIE_FRIENDS_RATINGS_URL, MOVIE_REVIEWS_URL
 
 # ===========================================================================
 #  MODELS
@@ -115,3 +115,54 @@ def test_movie_detail_view(movie_factory, auth_client):
     assert response.status_code == 200
     data = response.json()
     assert data['title'] == 'Inception'
+
+
+@pytest.mark.django_db
+def test_movie_friends_ratings_view(movie_factory, user_factory, rating_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    user1 = user_factory()
+    user2 = user_factory()
+    rating_factory(movie=movie, user=user1, rating=4)
+    rating_factory(movie=movie, user=user2, rating=5)
+
+    user1.following.add(user2)
+    user2.following.add(user1)
+    auth_client.user.following.add(user1)
+    auth_client.user.following.add(user2)
+    user1.following.add(auth_client.user)
+    user2.following.add(auth_client.user)
+    
+
+
+    response = auth_client.get(MOVIE_FRIENDS_RATINGS_URL.format(movie_slug=movie.slug))
+    assert response.status_code == 200
+    data = response.json()
+    assert 'results' in data
+    assert len(data['results']) == 2
+
+@pytest.mark.django_db
+def test_movie_friends_ratings_view_no_friends(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    response = auth_client.get(MOVIE_FRIENDS_RATINGS_URL.format(movie_slug=movie.slug))
+    assert response.status_code == 200
+    data = response.json()
+    assert 'results' in data
+    assert len(data['results']) == 0
+
+@pytest.mark.django_db
+def test_movie_reviews_view(movie_factory, review_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    review_factory(movie=movie)
+    review_factory(movie=movie)
+    review_factory(movie=movie)
+
+    response = auth_client.get(MOVIE_REVIEWS_URL.format(movie_slug=movie.slug)+'?page=1&limit=2')
+    assert response.status_code == 200
+    data = response.json()
+    assert 'results' in data
+    assert len(data['results']) == 2
+    assert data['count'] == 3
+    assert data['has_next'] is True
+    assert data['has_previous'] is False
+    assert data['current_page'] == 1
+    assert data['total_pages'] == 2

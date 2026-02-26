@@ -8,8 +8,10 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from genres.models import Genre
+from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.serializers import BaseSerializer
+from shared.utils import get_paginated_response
 from shared.views import GoogleLogin
 
 
@@ -390,3 +392,34 @@ def test_get_body_error_invalid_json(rf, mock_view_get_body_no_model):
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert data['error'] == 'Invalid JSON body'
+
+
+# =================================================================
+#  GET PAGINATED RESPONSE
+# =================================================================
+
+
+@pytest.mark.django_db
+def test_get_paginated_response(movie_factory, auth_client, user_factory):
+    movie = movie_factory(title='Inception')
+    for i in range(15):
+        user = user_factory()
+        movie.reviews.create(
+            title=f'Review {i}', content='Great movie!', is_positive=True, user=user
+        )
+    response = get_paginated_response(
+        movie.reviews.all().order_by('-created_at'),
+        ReviewSerializer,
+        None,
+        page='1',
+        limit='10',
+    )
+    assert response.status_code == 200
+    data = json.loads(response.content)
+    assert 'results' in data
+    assert len(data['results']) == 10
+    assert data.get('count') == 15
+    assert data['has_next'] is True
+    assert data['has_previous'] is False
+    assert data['current_page'] == 1
+    assert data['total_pages'] == 2
