@@ -73,7 +73,9 @@ def suggested_users(request, page, limit):
 
     paginator = Paginator(suggested_users_query, limit)
     page_result = paginator.get_page(page)
-    serialized_users = [UserSerializer(user, request=request).serialize() for user in page_result.object_list]
+    serialized_users = [
+        UserSerializer(user, request=request).serialize() for user in page_result.object_list
+    ]
     return JsonResponse(
         {
             'results': serialized_users,
@@ -84,3 +86,17 @@ def suggested_users(request, page, limit):
             'current_page': page_result.number,
         }
     )
+
+
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required
+def self_user_detail(request):
+    return UserSerializer(request.user, request=request).json_response()
+
+
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required
+def user_detail(request, user):
+    return UserSerializer(user, request=request).json_response()

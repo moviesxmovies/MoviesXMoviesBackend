@@ -3,5 +3,9 @@
         "Platform",
         "Person",
         "Auth"
-    ]
+    ],
+    "sonarlint.connectedMode.project": {
+        "connectionId": "https-sonarqube-jonaykb-com",
+        "projectKey": "MoviesXMoviesBackend"
+    }
 }

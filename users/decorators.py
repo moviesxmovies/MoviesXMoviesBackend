@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.urls import reverse
 import jwt
 from django.conf import settings
 from django.http import JsonResponse
@@ -27,9 +28,15 @@ def auth_required(func):
                     return JsonResponse(
                         {'error': 'Token is invalid'}, status=HTTPStatus.UNAUTHORIZED
                     )
+                if not request.user.verified and request.path not in [reverse('verify_user'), reverse('resend_verification_email')]:
+                    return JsonResponse(
+                        {'error': 'User account is not verified'}, status=HTTPStatus.UNAUTHORIZED
+                    )
 
                 return func(request, *args, **kwargs)
-            return JsonResponse({'error': 'Token not provided'}, status=HTTPStatus.UNAUTHORIZED)
+            return JsonResponse(
+                {'error': 'You need to be authenticated'}, status=HTTPStatus.UNAUTHORIZED
+            )
 
         except jwt.exceptions.DecodeError:
             return JsonResponse(

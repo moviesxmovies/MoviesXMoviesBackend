@@ -1,17 +1,15 @@
 from django.http import JsonResponse
 
 
-def handler404(request, exception):
-    message = 'Not found'
-    if not request:
-        return JsonResponse({'error': message}, status=404)
-
-    if exception:
-        msg = str(exception)
-        if 'No ' in msg and ' matches' in msg:
-            model_name = msg.split(' ')[1]
-            message = f'{model_name} not found'
-        else:
-            message = msg
-
-    return JsonResponse({'error': message.capitalize()}, status=404)
+def custom_handler404(request,exception):
+    data = getattr(
+        exception,
+        'custom_data',
+        {
+            'error': 'Not Found',
+            'message': 'The requested resource was not found.',
+            'model': getattr(exception, 'model_name', 'unknown'),
+            'lookup_value': getattr(exception, 'lookup_value', 'unknown'),
+        },
+    )
+    return JsonResponse(data, status=404)

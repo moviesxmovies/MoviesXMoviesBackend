@@ -187,7 +187,7 @@ poedit app locale="es":
 # Launch Django RQ worker (development) through watchdog
 [group('redis')]
 rq:
-    uv run watchmedo auto-restart --pattern=tasks.py --recursive -- ./manage.py rqworker 
+    uv run ./manage.py rqworker 
 
 # Generate coverage reports and open HTML report in browser
 [group('testing')]

@@ -1,6 +1,6 @@
 [project]
 name = "moviesxmoviesbackend"
-version = "0.15.0"
+version = "0.16.0"
 requires-python = ">=3.14"
 dependencies = [
     "cryptography>=46.0.4",
@@ -27,4 +27,6 @@ dev = [
     "pytest-rich>=0.2.0",
     "factory-boy>=3.3.3",
     "pytest-factoryboy>=2.8.1",
+    "mypy>=1.19.1",
 ]
+

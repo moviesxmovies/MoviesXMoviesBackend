@@ -10,9 +10,11 @@ from conftest import (
     LOGIN_URL,
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
+    SELF_USER_DETAIL_URL,
     SUGGESTED_USERS_URL,
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
+    USER_DETAIL_URL,
     VERIFY_USER_URL,
 )
 from django.conf import settings
@@ -309,7 +311,7 @@ def mock_view_auth_required():
 
 @pytest.mark.django_db
 def test_auth_success(rf, user_factory, generate_jwt, mock_view_auth_required):
-    user = user_factory()
+    user = user_factory(verified=True)
     token = generate_jwt(user)
 
     request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -328,7 +330,7 @@ def test_auth_no_token_provided(rf, mock_view_auth_required):
 
     data = json.loads(response.content)
     assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert data['error'] == 'Token not provided'
+    assert data['error'] == 'You need to be authenticated'
 
 
 @pytest.mark.django_db
@@ -553,3 +555,21 @@ def test_suggest_friends_pagination(auth_client, user_factory):
     assert data['has_next']
     assert data['has_previous']
     assert data['results'][0]['username'] == 'target5'
+
+
+@pytest.mark.django_db
+def test_self_user_detail(auth_client):
+    response = auth_client.get(SELF_USER_DETAIL_URL)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['username'] == auth_client.user.username
+    assert data['id'] == auth_client.user.id
+
+@pytest.mark.django_db
+def test_user_detail(auth_client, user_factory):
+    user = user_factory(username='otheruser')
+    response = auth_client.get(USER_DETAIL_URL.format(username=user.username))
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['username'] == user.username
+    assert data['id'] == user.id

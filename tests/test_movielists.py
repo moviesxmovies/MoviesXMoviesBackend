@@ -1,3 +1,4 @@
+from django.urls import reverse
 import pytest
 from conftest import MOVIE_LIST_DETAIL_URL, MOVIE_LIST_SELF_URL, MOVIE_LIST_USER_URL
 
@@ -62,7 +63,7 @@ def test_movielist_serializer(movie_list_factory):
     assert serialized['name'] == 'My Movie List'
     assert serialized['slug'] == 'my-movie-list'
     assert serialized['privacity'] == movie_list.privacity
-    assert serialized['user']['username'] == movie_list.user.username
+    assert serialized['user'].endswith(reverse('user-detail', args=[movie_list.user]))
     assert isinstance(serialized['movies'], list)
     assert serialized['created_at'] == movie_list.created_at.isoformat()
     assert serialized['updated_at'] == movie_list.updated_at.isoformat()
@@ -108,7 +109,7 @@ def test_movies_list_self_view_no_auth(client):
     assert response.status_code == 401
     data = response.json()
     assert 'error' in data
-    assert data['error'] == 'Token not provided'
+    assert data['error'] == 'You need to be authenticated'
 
 
 # ===========================================================================

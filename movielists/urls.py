@@ -1,14 +1,8 @@
-from django.urls import path, register_converter
-
-from users.converters import UserConverter
+from django.urls import path
 
 from . import views
-from .converters import MovieListConverter
 
 app_name = 'movie_lists'
-
-register_converter(MovieListConverter, 'movies-list')
-register_converter(UserConverter, 'user')
 
 
 urlpatterns = [

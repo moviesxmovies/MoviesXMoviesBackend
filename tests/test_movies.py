@@ -1,5 +1,8 @@
 import pytest
+
 from movies.serializers import MovieSerializer
+from tests.conftest import MOVIE_DETAIL_URL
+
 # ===========================================================================
 #  MODELS
 # ===========================================================================
@@ -53,13 +56,13 @@ def test_movie_with_extracted_relations(
     assert movie.genres.first().name == 'Sci-Fi'
     assert movie.awards.count() == 1
     assert movie.awards.first().name == 'Prime'
-    
 
 
 @pytest.mark.django_db
 def test_movie_str(movie_factory):
     movie = movie_factory(title='Inception')
     assert str(movie) == 'inception'
+
 
 # ===========================================================================
 #  SERIALIZERS
@@ -98,3 +101,17 @@ def test_movie_serializer(movie_factory, person_factory, genre_factory, platform
     assert isinstance(serialized['platforms'], list)
     assert len(serialized['platforms']) == 1
     assert serialized['platforms'][0]['name'] == 'Netflix'
+
+
+# ===========================================================================
+# VIEWS
+# ===========================================================================
+
+
+@pytest.mark.django_db
+def test_movie_detail_view(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    response = auth_client.get(MOVIE_DETAIL_URL.format(movie_slug=movie.slug))
+    assert response.status_code == 200
+    data = response.json()
+    assert data['title'] == 'Inception'

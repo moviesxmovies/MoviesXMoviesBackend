@@ -1,3 +1,4 @@
+from django.urls import reverse
 import pytest
 from reviews.serializers import ReviewSerializer
 
@@ -38,8 +39,8 @@ def test_review_serializer(review_factory):
 
     assert serialized['id'] == review.pk
     assert serialized['title'] == 'Great movie!'
-    assert serialized['movie'] == review.movie.slug
-    assert serialized['user'] == review.user.username
+    assert serialized['user'].endswith(reverse('user-detail', args=[review.user]))
+    assert serialized['movie'].endswith(reverse('movies:movie-detail', args=[review.movie]))
     assert serialized['content'] == 'I really enjoyed it.'
     assert serialized['is_positive'] is True
     assert serialized['created_at'] == review.created_at.isoformat()
