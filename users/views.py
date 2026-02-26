@@ -3,7 +3,7 @@ from http import HTTPStatus
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
@@ -21,6 +21,7 @@ class VerifyUserSerializer(serializers.Serializer):
     request=VerifyUserSerializer,
     responses={200: None, 400: None},
     description='Verify an user account by a code sent via email',
+    
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
@@ -61,7 +62,14 @@ def resend_verification_email(request):
     cache.set(cache_key, True, timeout=60)
     return JsonResponse({'status': 'Verification email resent'})
 
-
+@extend_schema(
+    responses={200: UserSerializer, 400: None, 404: None},
+    description='Get a list of suggested users to follow based on mutual friends',
+    parameters=[
+        OpenApiParameter(name='page', description='Page number', required=False, type=int),
+        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+    ],
+)
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
