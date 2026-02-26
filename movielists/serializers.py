@@ -11,7 +11,10 @@ class MovieListSerializer(BaseSerializer):
             'slug': instance.slug,
             'privacity': instance.privacity,
             'user': self.build_url(reverse('user-detail', args=[instance.user])),
-            'movies': MovieSerializer(instance.movies.all(), request=self.request).serialize(),
+            'movies': [
+                self.build_url(reverse('movies:movie-detail', args=[movie]))
+                for movie in instance.movies.all()
+            ],
             'created_at': instance.created_at.isoformat(),
             'updated_at': instance.updated_at.isoformat(),
         }
