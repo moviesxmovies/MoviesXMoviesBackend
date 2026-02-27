@@ -9,12 +9,21 @@ from rest_framework.decorators import api_view
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
 from users.decorators import auth_required
+from users.models import User
 from users.serializers import UserSerializer
 from users.tasks import send_verification_email
 
 
 class VerifyUserSerializer(serializers.Serializer):
     verification_code = serializers.CharField(required=True, help_text='Verification code')
+
+
+class SignupUserSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, help_text='User email')
+    username = serializers.CharField(required=True, help_text='User username')
+    first_name = serializers.CharField(required=True, help_text='User first name')
+    last_name = serializers.CharField(required=True, help_text='User last name')
+    password = serializers.CharField(required=True, help_text='User password')
 
 
 @extend_schema(
@@ -91,4 +100,18 @@ def self_user_detail(request):
 @require_http_methods(['GET'])
 @auth_required
 def user_detail(request, user):
+    return UserSerializer(user, request=request).json_response()
+
+
+@extend_schema(
+    responses={200: UserSerializer, 400: None, 404: None},
+    description='Signup a user',
+    request=SignupUserSerializer,
+)
+@api_view(['POST'])
+@require_http_methods(['POST'])
+@get_body(User, ['email', 'username', 'first_name', 'last_name'])
+def user_signup(request, user: User):
+    user.set_password(user.password)
+    user.save()
     return UserSerializer(user, request=request).json_response()
