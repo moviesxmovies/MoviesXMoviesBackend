@@ -34,6 +34,7 @@ register(MovieListFactory)
 # ===========================================
 
 LOGIN_URL = '/api/auth/login/'
+SIGNUP_URL = '/api/auth/signup/'
 REFRESH_URL = '/api/auth/refresh/'
 MOVIE_LIST_SELF_URL = '/api/movies-lists/'
 MOVIE_LIST_USER_URL = '/api/movies-lists/{username}/'

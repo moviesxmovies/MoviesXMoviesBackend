@@ -17,6 +17,7 @@ urlpatterns = [
         TokenRefreshView.as_view(),
         name='token_refresh',
     ),
+    path('auth/signup/', views.user_signup, name='signup'),
     # OAUTH
     path('auth/verify/', views.verify_user, name='verify_user'),
     path(
@@ -30,5 +31,4 @@ urlpatterns = [
     path('users/suggested-users/', views.suggested_users, name='suggested_users'),
     path('users/', views.self_user_detail, name='self_user_detail'),
     path('users/<user:user>/', views.user_detail, name='user-detail'),
-    
 ]

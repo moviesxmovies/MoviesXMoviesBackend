@@ -11,6 +11,7 @@ from conftest import (
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
     SELF_USER_DETAIL_URL,
+    SIGNUP_URL,
     SUGGESTED_USERS_URL,
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
@@ -573,3 +574,18 @@ def test_user_detail(auth_client, user_factory):
     data = response.json()
     assert data['username'] == user.username
     assert data['id'] == user.id
+
+@pytest.mark.django_db
+def test_user_signup(auth_client):
+    payload={
+        'email':'test@example.com',
+        'username':'test',
+        'first_name':'test',
+        'last_name':'test'
+    }
+
+    response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['id'] == 2
+    assert response.json()['username'] == 'test'
+
