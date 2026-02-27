@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.core.cache import cache
+from django.forms import ValidationError
 from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -112,6 +113,10 @@ def user_detail(request, user):
 @require_http_methods(['POST'])
 @get_body(User, ['email', 'username', 'first_name', 'last_name'])
 def user_signup(request, user: User):
-    user.set_password(user.password)
-    user.save()
-    return UserSerializer(user, request=request).json_response()
+    try:
+        user.set_password(user.password)
+        user.full_clean()
+        user.save()
+        return UserSerializer(user, request=request).json_response()
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)

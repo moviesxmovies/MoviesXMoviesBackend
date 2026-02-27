@@ -589,3 +589,15 @@ def test_user_signup(auth_client):
     assert response.json()['id'] == 2
     assert response.json()['username'] == 'test'
 
+@pytest.mark.django_db
+def test_user_signup_exception(auth_client):
+    payload={
+        'email':'testexample.com',
+        'username':'test',
+        'first_name':'test',
+        'last_name':'test'
+    }
+
+    response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['email'] == ['Enter a valid email address.']
