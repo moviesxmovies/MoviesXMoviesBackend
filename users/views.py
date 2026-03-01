@@ -140,7 +140,7 @@ def user_signup(request, user: User):
 
 # REVIEWS
 @extend_schema(
-    responses={200: None, 400: None, 404: None},
+    responses={200: ReviewSerializer.get_paginated_schema(), 400: None, 404: None},
     description='Get paginated reviews of a specific user',
     parameters=[
         OpenApiParameter(name='page', description='Page number', required=False, type=int),

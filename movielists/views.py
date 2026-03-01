@@ -33,7 +33,7 @@ def movies_list_self(request):
 
 @extend_schema(
     responses={200: MovieListSerializer.get_schema(), 404: None},
-    description='Get a specific movie list of the authenticated user',
+    description='Get a specific movie list of a user',
     operation_id='get_self_movie_list_detail',
 )
 @api_view()
