@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
-
+from django.contrib.auth.password_validation import validate_password
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
@@ -122,15 +122,18 @@ def user_detail(request, user):
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
-@get_body(User, ['email', 'username', 'first_name', 'last_name'])
+@get_body(User, ['email', 'username', 'first_name', 'last_name', 'password'])
 def user_signup(request, user: User):
     try:
-        user.set_password(user.password)
+        raw_password = user.password
         user.full_clean()
+        validate_password(raw_password, user=user)
+        user.set_password(raw_password)
         user.save()
         return UserSerializer(user, request=request).json_response()
     except ValidationError as e:
-        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
+        errors = getattr(e, 'message_dict', {'error': e.messages})
+        return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
 
 
 # REVIEWS
