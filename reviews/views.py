@@ -39,9 +39,9 @@ class ReviewUpdateSerializer(serializers.Serializer):
 def review_wrapper(request, review: Review):
     match request.method:
         case 'PUT':
-            edit_review(request, review)
+            return edit_review(request, review)
         case 'DELETE':
-            delete_review(request, review)
+            return delete_review(request, review)
 
 
 @require_http_methods(['PUT'])
