@@ -75,9 +75,9 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
 def movie_review_wrapper(request, movie: Movie):
     match request.method:
         case 'POST':
-            save_movie(request, movie)
+            return save_movie(request, movie)
         case 'GET':
-            movie_reviews(request, movie)
+            return movie_reviews(request, movie)
 
 
 @require_http_methods(['GET'])
