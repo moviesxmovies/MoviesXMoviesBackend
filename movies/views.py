@@ -55,12 +55,12 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
 # REVIEWS
 @extend_schema(
     methods=['GET'],
-    description='Get reviews specific movie',
+    description='Get reviews specific movie paginated',
     parameters=[
         OpenApiParameter(name='page', description='Page number', required=False, type=int),
         OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
     ],
-    responses={200: ReviewSerializer.get_schema(), 404: None},
+    responses={200: ReviewSerializer.get_paginated_schema(), 404: None},
     operation_id='get_movie_reviews',
 )
 @extend_schema(
@@ -75,7 +75,7 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
 def movie_review_wrapper(request, movie: Movie):
     match request.method:
         case 'POST':
-            return save_movie(request, movie)
+            return save_movie_review(request, movie)
         case 'GET':
             return movie_reviews(request, movie)
 
@@ -90,8 +90,10 @@ def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10):
 
 @require_http_methods(['POST'])
 @get_body(Review, ['is_positive', 'title', 'content'])
-def save_movie(request, movie: Movie, review: Review):
+def save_movie_review(request, movie: Movie, review: Review):
     review.user = request.user
     review.movie = movie
     review.save()
-    return ReviewSerializer(review, request=request).json_response()
+    response = ReviewSerializer(review, request=request).json_response()
+    response.status_code = 201
+    return response
