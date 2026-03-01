@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.forms import ValidationError
 from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import api_view
@@ -155,9 +156,13 @@ def get_self_movie_rating(request, movie: Movie):
 @get_body(Rating, ['rating'])
 def create_movie_rating(request, movie: Movie, rating: Rating):
     if movie.ratings.filter(user=request.user).exists():
-        return JsonResponse({'error': 'Rating already exists'}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse({'error': 'You have already rated this movie'}, status=HTTPStatus.BAD_REQUEST)
     rating.user = request.user
     rating.movie = movie
+    try:
+        rating.full_clean()
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
     rating.save()
     response = RatingSerializer(rating, request=request).json_response()
     response.status_code = 201
@@ -170,7 +175,10 @@ def update_movie_rating(request, movie: Movie, rating: Rating):
     try:
         existing_rating = movie.ratings.get(user=request.user)
         existing_rating.rating = rating.rating
+        existing_rating.full_clean()
         existing_rating.save()
         return RatingSerializer(existing_rating, request=request).json_response()
     except Rating.DoesNotExist:
         return JsonResponse({'error': 'Rating not found'}, status=HTTPStatus.NOT_FOUND)
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
