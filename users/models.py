@@ -15,9 +15,9 @@ class User(AbstractUser):
     boarded = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
     email = models.EmailField(unique=True)
-    following_person = models.ManyToManyField('persons.Person', related_name='followers')
-    following = models.ManyToManyField('users.User', related_name='followers')
-    platforms = models.ManyToManyField('platforms.Platform', related_name='users')
+    following_person = models.ManyToManyField('persons.Person', related_name='followers', blank=True)
+    following = models.ManyToManyField('users.User', related_name='followers', blank=True)
+    platforms = models.ManyToManyField('platforms.Platform', related_name='users', blank=True)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
 
     def is_following(self, check_user):

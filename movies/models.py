@@ -20,7 +20,7 @@ class Movie(BaseModel):
     """
 
     title = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True, allow_unicode=True)
     synopsis = models.TextField()
     release_date = models.DateField()
     cover = models.ImageField(upload_to='movies/covers', default='movies/covers/no-movie.png')

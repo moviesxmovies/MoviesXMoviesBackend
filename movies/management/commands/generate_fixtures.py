@@ -10,31 +10,44 @@ from prettyconf import config
 
 
 class Command(BaseCommand):
-    help = 'Genera una fixture de Django consumiendo la API de TMDB con descarga de imágenes'
+    help = (
+        'Generates fixture data for movies, genres, platforms, and persons by fetching from TMDB API. '
+        'Usage: python manage.py generate_fixtures --pages <number_of_pages> --output <output_file.json>'
+    )
 
     BASE_URL = 'https://api.themoviedb.org/3'
-    MEDIA_ROOT = 'mediatest'
+    MEDIA_ROOT = 'media'
     MOVIE_SUBDIR = 'movies/covers'
     PERSON_SUBDIR = 'person'
 
     def add_arguments(self, parser):
-        parser.add_argument('--pages', type=int, default=1, help='Número de páginas a extraer')
         parser.add_argument(
-            '--output', type=str, default='movie_fixtures_test.json', help='Archivo de salida'
+            '--pages',
+            type=int,
+            default=1,
+            help='Number of pages to fetch from TMDB (20 movies per page)',
+        )
+        parser.add_argument(
+            '--output',
+            type=str,
+            default='movie_fixtures_test.json',
+            help='Exit path for the generated fixture file',
         )
 
     def handle(self, *args, **options):
         self.api_key = config('TMDB_API_KEY', default='')
         self.headers = {'Authorization': f'Bearer {self.api_key}'}
-        self.now = datetime.now().isoformat()
 
+        self.now = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        self.processed_movie_ids = set()
         self.pks = {'movie': 1, 'person': {}, 'genre': {}, 'platform': {}}
         self.fixtures = {'genres': [], 'persons': [], 'platforms': [], 'movies': []}
 
         self.setup_directories()
 
         pages = options['pages']
-        self.stdout.write(self.style.NOTICE(f'Iniciando extracción de {pages} páginas...'))
+        self.stdout.write(self.style.NOTICE(f'Starting extraction of {pages} pages...'))
 
         for page in range(1, pages + 1):
             self.process_page(page)
@@ -50,18 +63,16 @@ class Command(BaseCommand):
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
         self.stdout.write(
-            self.style.SUCCESS(f'Extraction completed. File: {options["output"]}')
+            self.style.SUCCESS(
+                f'Generation of fixtures completed: {len(self.fixtures["movies"])} movies'
+            )
         )
 
-    # --- Utility Functions ---
-
     def setup_directories(self):
-        """Create the necessary folder structure."""
         for subdir in [self.MOVIE_SUBDIR, self.PERSON_SUBDIR]:
             os.makedirs(os.path.join(self.MEDIA_ROOT, subdir), exist_ok=True)
 
     def download_image(self, path, subdir):
-        """Download the image and return the path for the database."""
         if not path:
             return f'{subdir}/no-image.png'
 
@@ -78,32 +89,31 @@ class Command(BaseCommand):
                         for chunk in res.iter_content(1024):
                             f.write(chunk)
             except Exception as e:
-                self.stdout.write(self.style.WARNING(f'Image error {path}: {e}'))
                 return f'{subdir}/no-image.png'
         return db_path
 
-    # --- Entity Processors ---
-
     def process_page(self, page):
-        """Get the list of movies from a page and process them."""
         url = f'{self.BASE_URL}/movie/popular?language=es-ES&page={page}'
         try:
-            results = requests.get(url, headers=self.headers).json().get('results', [])
+            response = requests.get(url, headers=self.headers)
+            results = response.json().get('results', [])
             for item in results:
                 self.process_movie_detail(item['id'])
                 time.sleep(0.05)
+            print(f'Page {page} processed successfully.')
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error on page {page}: {e}'))
+            self.stdout.write(self.style.ERROR(f'Error en página {page}: {e}'))
 
     def process_movie_detail(self, movie_id):
-        """Extract detailed information of a single movie."""
+        if movie_id in self.processed_movie_ids:
+            return
+
         url = f'{self.BASE_URL}/movie/{movie_id}?append_to_response=credits,watch/providers&language=es-ES'
         m = requests.get(url, headers=self.headers).json()
 
         if 'title' not in m:
             return
 
-        # Modular execution of each part of the model creation
         genre_ids = self.get_or_create_genres(m.get('genres', []))
         platform_ids = self.get_or_create_platforms(m.get('watch/providers', {}))
         dir_ids, act_ids = self.get_or_create_persons(m.get('credits', {}))
@@ -116,7 +126,7 @@ class Command(BaseCommand):
                 'pk': self.pks['movie'],
                 'fields': {
                     'title': m['title'],
-                    'slug': f'{m["id"]}-{slugify(m["title"])}'[:100],
+                    'slug': f'{m["id"]}-{slugify(m["title"], allow_unicode=True)}'[:100],
                     'synopsis': m['overview'],
                     'release_date': m.get('release_date') or '2000-01-01',
                     'cover': cover_path,
@@ -129,6 +139,7 @@ class Command(BaseCommand):
                 },
             }
         )
+        self.processed_movie_ids.add(movie_id)
         self.pks['movie'] += 1
         self.stdout.write(f'Processed: {m["title"]}')
 
@@ -181,7 +192,6 @@ class Command(BaseCommand):
         dir_ids, act_ids = [], []
         crew = credits.get('crew', [])
         cast = credits.get('cast', [])
-
         people = [(p, 'dir') for p in crew if p['job'] == 'Director'] + [
             (p, 'act') for p in cast[:5]
         ]
@@ -198,7 +208,7 @@ class Command(BaseCommand):
                         'pk': pk,
                         'fields': {
                             'name': name,
-                            'slug': slugify(name),
+                            'slug': slugify(name, allow_unicode=True) + f'-{pk}',
                             'image': photo,
                             'created_at': self.now,
                             'updated_at': self.now,
