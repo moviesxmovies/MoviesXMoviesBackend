@@ -87,6 +87,7 @@ class Command(BaseCommand):
                         for chunk in res.iter_content(1024):
                             f.write(chunk)
             except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Error downloading image {url}: {e}'))
                 return f'{subdir}/no-image.png'
         return db_path
 
