@@ -1,8 +1,13 @@
+from http import HTTPStatus
+
+from django.forms import ValidationError
+from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import api_view
 
 from movies.models import Movie
 from movies.serializers import MovieSerializer
+from ratings.models import Rating
 from ratings.serializers import RatingSerializer
 from reviews.models import Review
 from reviews.serializers import ReviewSerializer
@@ -18,6 +23,12 @@ class ReviewSaveSerializer(serializers.Serializer):
     )
     title = serializers.CharField(required=True, help_text='Title of review')
     content = serializers.CharField(required=True, help_text='Content of review')
+
+
+class RatingSaveSerializer(serializers.Serializer):
+    rating = serializers.IntegerField(
+        required=True, help_text='Rating value between 1 and 5', min_value=1, max_value=5
+    )
 
 
 @extend_schema(
@@ -97,3 +108,77 @@ def save_movie_review(request, movie: Movie, review: Review):
     response = ReviewSerializer(review, request=request).json_response()
     response.status_code = 201
     return response
+
+
+# RATINGS
+@extend_schema(
+    methods=['GET'],
+    description='Get self rating for a specific movie',
+    responses={200: RatingSerializer.get_schema(), 404: None},
+    operation_id='get_movie_rating',
+)
+@extend_schema(
+    methods=['POST'],
+    description='Create self rating for a specific movie',
+    request=RatingSaveSerializer,
+    responses={201: RatingSerializer.get_schema(), 400: None, 404: None},
+    operation_id='create_movie_rating',
+)
+@extend_schema(
+    methods=['PUT'],
+    description='Update self rating for a specific movie',
+    request=RatingSaveSerializer,
+    responses={200: RatingSerializer.get_schema(), 400: None, 404: None},
+    operation_id='update_movie_rating',
+)
+@api_view(['GET', 'POST', 'PUT'])
+@auth_required
+def movie_rating_wrapper(request, movie: Movie):
+    match request.method:
+        case 'GET':
+            return get_self_movie_rating(request, movie)
+        case 'POST':
+            return create_movie_rating(request, movie)
+        case 'PUT':
+            return update_movie_rating(request, movie)
+
+
+@require_http_methods(['GET'])
+def get_self_movie_rating(request, movie: Movie):
+    try:
+        rating = movie.ratings.get(user=request.user)
+        return RatingSerializer(rating, request=request).json_response()
+    except Rating.DoesNotExist:
+        return JsonResponse({'error': 'Rating not found'}, status=HTTPStatus.NOT_FOUND)
+
+
+@require_http_methods(['POST'])
+@get_body(Rating, ['rating'])
+def create_movie_rating(request, movie: Movie, rating: Rating):
+    if movie.ratings.filter(user=request.user).exists():
+        return JsonResponse({'error': 'You have already rated this movie'}, status=HTTPStatus.BAD_REQUEST)
+    rating.user = request.user
+    rating.movie = movie
+    try:
+        rating.full_clean()
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
+    rating.save()
+    response = RatingSerializer(rating, request=request).json_response()
+    response.status_code = 201
+    return response
+
+
+@require_http_methods(['PUT'])
+@get_body(Rating, ['rating'])
+def update_movie_rating(request, movie: Movie, rating: Rating):
+    try:
+        existing_rating = movie.ratings.get(user=request.user)
+        existing_rating.rating = rating.rating
+        existing_rating.full_clean()
+        existing_rating.save()
+        return RatingSerializer(existing_rating, request=request).json_response()
+    except Rating.DoesNotExist:
+        return JsonResponse({'error': 'Rating not found'}, status=HTTPStatus.NOT_FOUND)
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)

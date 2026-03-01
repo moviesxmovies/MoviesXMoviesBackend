@@ -3,7 +3,12 @@ import json
 import pytest
 
 from movies.serializers import MovieSerializer
-from tests.conftest import MOVIE_DETAIL_URL, MOVIE_FRIENDS_RATINGS_URL, MOVIE_REVIEWS_URL
+from tests.conftest import (
+    MOVIE_DETAIL_URL,
+    MOVIE_FRIENDS_RATINGS_URL,
+    MOVIE_REVIEWS_URL,
+    MOVIE_SELF_RATING_URL,
+)
 
 # ===========================================================================
 #  MODELS
@@ -133,14 +138,13 @@ def test_movie_friends_ratings_view(movie_factory, user_factory, rating_factory,
     auth_client.user.following.add(user2)
     user1.following.add(auth_client.user)
     user2.following.add(auth_client.user)
-    
-
 
     response = auth_client.get(MOVIE_FRIENDS_RATINGS_URL.format(movie_slug=movie.slug))
     assert response.status_code == 200
     data = response.json()
     assert 'results' in data
     assert len(data['results']) == 2
+
 
 @pytest.mark.django_db
 def test_movie_friends_ratings_view_no_friends(movie_factory, auth_client):
@@ -151,6 +155,7 @@ def test_movie_friends_ratings_view_no_friends(movie_factory, auth_client):
     assert 'results' in data
     assert len(data['results']) == 0
 
+
 @pytest.mark.django_db
 def test_movie_reviews_view(movie_factory, review_factory, auth_client):
     movie = movie_factory(title='Inception')
@@ -158,7 +163,7 @@ def test_movie_reviews_view(movie_factory, review_factory, auth_client):
     review_factory(movie=movie)
     review_factory(movie=movie)
 
-    response = auth_client.get(MOVIE_REVIEWS_URL.format(movie_slug=movie.slug)+'?page=1&limit=2')
+    response = auth_client.get(MOVIE_REVIEWS_URL.format(movie_slug=movie.slug) + '?page=1&limit=2')
     assert response.status_code == 200
     data = response.json()
     assert 'results' in data
@@ -168,6 +173,7 @@ def test_movie_reviews_view(movie_factory, review_factory, auth_client):
     assert data['has_previous'] is False
     assert data['current_page'] == 1
     assert data['total_pages'] == 2
+
 
 @pytest.mark.django_db
 def test_save_movie_review_view(movie_factory, auth_client):
@@ -179,9 +185,157 @@ def test_save_movie_review_view(movie_factory, auth_client):
         'is_positive': True,
     }
 
-    response = auth_client.post(MOVIE_REVIEWS_URL.format(movie_slug=movie.slug), data=json.dumps(review_data), content_type='application/json')
+    response = auth_client.post(
+        MOVIE_REVIEWS_URL.format(movie_slug=movie.slug),
+        data=json.dumps(review_data),
+        content_type='application/json',
+    )
     assert response.status_code == 201
     data = response.json()
     assert data['title'] == 'Great movie!'
     assert data['content'] == 'I really enjoyed it.'
     assert data['is_positive'] is True
+
+
+@pytest.mark.django_db
+def test_movie_rating_view(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    rating_data = {
+        'rating': 4,
+    }
+
+    response = auth_client.post(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(rating_data),
+        content_type='application/json',
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data['rating'] == 4
+
+
+@pytest.mark.django_db
+def test_movie_rating_view_invalid_rating(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    rating_data_above = {
+        'rating': 7,
+    }
+
+    response = auth_client.post(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(rating_data_above),
+        content_type='application/json',
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert 'rating' in data
+    assert 'Ensure this value is less than or equal to 5.' in str(data['rating'])
+
+    rating_data_below = {
+        'rating': 0,
+    }
+    response = auth_client.post(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(rating_data_below),
+        content_type='application/json',
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert 'rating' in data
+    assert 'Ensure this value is greater than or equal to 1.' in str(data['rating'])
+
+@pytest.mark.django_db
+def test_movie_rating_view_already_exists(movie_factory, auth_client, rating_factory):
+    movie = movie_factory(title='Inception')
+    rating_factory(movie=movie, user=auth_client.user, rating=4)
+
+    rating_data = {
+        'rating': 5,
+    }
+
+    response = auth_client.post(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(rating_data),
+        content_type='application/json',
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == 'You have already rated this movie'
+
+@pytest.mark.django_db
+def test_movie_rating_view_update(movie_factory, auth_client, rating_factory):
+    movie = movie_factory(title='Inception')
+    rating_factory(movie=movie, user=auth_client.user, rating=4)
+
+    # Update rating
+    updated_rating_data = {
+        'rating': 5,
+    }
+    response = auth_client.put(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(updated_rating_data),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['rating'] == 5
+
+@pytest.mark.django_db
+def test_movie_rating_view_update_invalid(movie_factory, auth_client, rating_factory):
+    movie = movie_factory(title='Inception')
+    rating_factory(movie=movie, user=auth_client.user, rating=4)
+
+    # Update rating with invalid value
+    updated_rating_data = {
+        'rating': 0,
+    }
+    response = auth_client.put(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(updated_rating_data),
+        content_type='application/json',
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert 'rating' in data
+    assert 'Ensure this value is greater than or equal to 1.' in str(data['rating'])
+
+@pytest.mark.django_db
+def test_movie_rating_view_update_not_exists(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    # Update rating that does not exist
+    updated_rating_data = {
+        'rating': 5,
+    }
+    response = auth_client.put(
+        MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug),
+        data=json.dumps(updated_rating_data),
+        content_type='application/json',
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == 'Rating not found'
+
+@pytest.mark.django_db
+def test_movie_rating_get_view(movie_factory, rating_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    rating_factory(movie=movie, user=auth_client.user, rating=4)
+
+    response = auth_client.get(MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug))
+    assert response.status_code == 200
+    data = response.json()
+    assert data['rating'] == 4
+
+@pytest.mark.django_db
+def test_movie_rating_get_view_not_exists(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    response = auth_client.get(MOVIE_SELF_RATING_URL.format(movie_slug=movie.slug))
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == 'Rating not found'

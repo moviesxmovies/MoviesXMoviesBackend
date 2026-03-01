@@ -620,7 +620,6 @@ def test_user_reviews(auth_client, user_factory, review_factory, movie_factory):
     response = auth_client.get(USER_REVIEWS_URL.format(username=user.username))
     assert response.status_code == HTTPStatus.OK
     data = response.json()
-    print(data)
     assert data['count'] == 2
     assert 'results' in data
 
