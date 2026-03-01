@@ -47,6 +47,10 @@ def review_wrapper(request, review: Review):
 @require_http_methods(['PUT'])
 @get_body(None, ['is_positive', 'title', 'content'])
 def edit_review(request, review: Review, body):
+    if review.user != request.user:
+        return JsonResponse(
+            {'error': 'You can only edit your own reviews'}, status=HTTPStatus.FORBIDDEN
+        )
     review.is_positive = body['is_positive']
     review.title = body['title']
     review.content = body['content']
@@ -56,5 +60,9 @@ def edit_review(request, review: Review, body):
 
 @require_http_methods(['DELETE'])
 def delete_review(request, review: Review):
+    if review.user != request.user:
+        return JsonResponse(
+            {'error': 'You can only delete your own reviews'}, status=HTTPStatus.FORBIDDEN
+        )
     review.delete()
     return JsonResponse({'status': True}, status=HTTPStatus.NO_CONTENT)

@@ -51,6 +51,8 @@ SUGGESTED_USERS_URL = '/api/users/suggested-users/'
 SELF_USER_DETAIL_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
 
+EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'
+
 
 # ===========================================
 # TEST USERS
