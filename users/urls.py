@@ -31,6 +31,8 @@ urlpatterns = [
     path('users/suggested-users/', views.suggested_users, name='suggested_users'),
     path('users/', views.self_user_detail, name='self_user_detail'),
     path('users/<user:user>/', views.user_detail, name='user-detail'),
+    path('users/<user:user>/follow/', views.follow_user_wrapper, name='follow-user-wrapper'),
+
 
     # REVIEWS
     path('users/<user:user>/reviews/', views.user_reviews, name='user-reviews'),

@@ -7,6 +7,7 @@ from unittest import mock
 import jwt
 import pytest
 from conftest import (
+    FOLLOW_USER_URL,
     LOGIN_URL,
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
@@ -608,6 +609,7 @@ def test_user_signup_exception(auth_client):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['email'] == ['Enter a valid email address.']
 
+
 @pytest.mark.django_db
 def test_user_signup_duplicate_email(auth_client, user_factory):
     existing_user = user_factory(
@@ -629,6 +631,7 @@ def test_user_signup_duplicate_email(auth_client, user_factory):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['email'] == ['User with this Email already exists.']
 
+
 @pytest.mark.django_db
 def test_user_signup_invalid_password(auth_client):
     payload = {
@@ -641,7 +644,12 @@ def test_user_signup_invalid_password(auth_client):
 
     response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()['error'] == ['This password is too short. It must contain at least 10 characters.', 'This password is too common.', 'This password is entirely numeric.']
+    assert response.json()['error'] == [
+        'This password is too short. It must contain at least 10 characters.',
+        'This password is too common.',
+        'This password is entirely numeric.',
+    ]
+
 
 @pytest.mark.django_db
 def test_user_reviews(auth_client, user_factory, review_factory, movie_factory):
@@ -662,3 +670,29 @@ def test_user_reviews(auth_client, user_factory, review_factory, movie_factory):
     review_ids = {review['id'] for review in data['results']}
     assert review1.id in review_ids
     assert review2.id in review_ids
+
+
+@pytest.mark.django_db
+def test_follow_user(auth_client, user_factory):
+    user_to_follow = user_factory(username='followed_user')
+
+    response = auth_client.post(FOLLOW_USER_URL.format(username=user_to_follow.username))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['following'] is True
+
+    auth_client.user.refresh_from_db()
+    assert user_to_follow in auth_client.user.following.all()
+
+@pytest.mark.django_db
+def test_unfollow_user(auth_client, user_factory):
+    user_to_unfollow = user_factory(username='unfollowed_user')
+    auth_client.user.following.add(user_to_unfollow)
+
+    response = auth_client.delete(FOLLOW_USER_URL.format(username=user_to_unfollow.username))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['following'] is False
+
+    auth_client.user.refresh_from_db()
+    assert user_to_unfollow not in auth_client.user.following.all()

@@ -57,6 +57,7 @@ SUGGESTED_USERS_URL = '/api/users/suggested-users/'
 SELF_USER_DETAIL_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
 USER_REVIEWS_URL = '/api/users/{username}/reviews/'
+FOLLOW_USER_URL = '/api/users/{username}/follow/'
 
 # REVIEWS
 EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'
