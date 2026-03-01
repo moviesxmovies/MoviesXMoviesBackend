@@ -585,6 +585,7 @@ def test_user_signup(auth_client):
         'username': 'test',
         'first_name': 'test',
         'last_name': 'test',
+        'password': 'testpassword',
     }
 
     response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
@@ -600,12 +601,47 @@ def test_user_signup_exception(auth_client):
         'username': 'test',
         'first_name': 'test',
         'last_name': 'test',
+        'password': 'testpassword',
     }
 
     response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['email'] == ['Enter a valid email address.']
 
+@pytest.mark.django_db
+def test_user_signup_duplicate_email(auth_client, user_factory):
+    existing_user = user_factory(
+        email='test@example.com',
+        username='existinguser',
+        first_name='Existing',
+        last_name='User',
+    )
+
+    payload = {
+        'email': existing_user.email,
+        'username': 'newuser',
+        'first_name': 'New',
+        'last_name': 'User',
+        'password': 'testpassword',
+    }
+
+    response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['email'] == ['User with this Email already exists.']
+
+@pytest.mark.django_db
+def test_user_signup_invalid_password(auth_client):
+    payload = {
+        'email': 'test@example.com',
+        'username': 'test',
+        'first_name': 'test',
+        'last_name': 'test',
+        'password': '123456789',  # Invalid: too short , only numeric, and common
+    }
+
+    response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['error'] == ['This password is too short. It must contain at least 10 characters.', 'This password is too common.', 'This password is entirely numeric.']
 
 @pytest.mark.django_db
 def test_user_reviews(auth_client, user_factory, review_factory, movie_factory):
