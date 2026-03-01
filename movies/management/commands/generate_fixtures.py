@@ -63,9 +63,7 @@ class Command(BaseCommand):
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f'Generation of fixtures completed: {len(self.fixtures["movies"])} movies'
-            )
+            self.style.SUCCESS(f'Extraction completed: {len(self.fixtures["movies"])} movies')
         )
 
     def setup_directories(self):
@@ -100,9 +98,9 @@ class Command(BaseCommand):
             for item in results:
                 self.process_movie_detail(item['id'])
                 time.sleep(0.05)
-            print(f'Page {page} processed successfully.')
+            self.stdout.write(self.style.SUCCESS(f'Page {page} processed successfully.'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error en página {page}: {e}'))
+            self.stdout.write(self.style.ERROR(f'Error on page {page}: {e}'))
 
     def process_movie_detail(self, movie_id):
         if movie_id in self.processed_movie_ids:
@@ -141,7 +139,7 @@ class Command(BaseCommand):
         )
         self.processed_movie_ids.add(movie_id)
         self.pks['movie'] += 1
-        self.stdout.write(f'Processed: {m["title"]}')
+        self.stdout.write(self.style.SUCCESS(f'Movie "{m["title"]}" processed.'))
 
     def get_or_create_genres(self, genres_data):
         ids = []
