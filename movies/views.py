@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import api_view
 
 from movies.models import Movie
@@ -20,6 +20,11 @@ class ReviewSaveSerializer(serializers.Serializer):
     content = serializers.CharField(required=True, help_text='Content of review')
 
 
+@extend_schema(
+    responses={200: MovieSerializer.get_schema(), 404: None},
+    description='Get details of a specific movie',
+    operation_id='get_movie_detail',
+)
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
@@ -27,16 +32,9 @@ def movie_detail(request, movie: Movie):
     return MovieSerializer(movie, request=request).json_response()
 
 
+# RATINGS
 @extend_schema(
-    responses={200: None, 400: None},
-    description='Get paginated reviews for a specific movie',
-    parameters=[
-        OpenApiParameter(name='page', description='Page number', required=False, type=int),
-        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
-    ],
-)
-@extend_schema(
-    responses={200: None, 400: None, 404: None},
+    responses={200: RatingSerializer.get_paginated_schema(), 400: None, 404: None},
     description='Get ratings of friends for a specific movie',
     parameters=[
         OpenApiParameter(name='page', description='Page number', required=False, type=int),
@@ -62,12 +60,13 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
         OpenApiParameter(name='page', description='Page number', required=False, type=int),
         OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
     ],
+    responses={200: ReviewSerializer.get_schema(), 404: None},
     operation_id='get_movie_reviews',
 )
 @extend_schema(
     methods=['POST'],
     description='Create Review of a movie',
-    responses={201: ReviewSerializer},
+    responses={201: ReviewSerializer.get_schema(), 400: None},
     request=ReviewSaveSerializer,
     operation_id='create_movie_review',
 )
@@ -95,4 +94,4 @@ def save_movie(request, movie: Movie, review: Review):
     review.user = request.user
     review.movie = movie
     review.save()
-    return ReviewSerializer(review, request=request)
+    return ReviewSerializer(review, request=request).json_response()

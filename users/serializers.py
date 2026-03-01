@@ -3,6 +3,7 @@ from rest_framework import serializers
 from shared.serializers import BaseSerializer
 
 from .models import User
+from rest_framework import serializers
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -17,5 +18,16 @@ class UserSerializer(BaseSerializer):
             'id': instance.pk,
             'username': instance.username,
             'bio': instance.bio,
-            'following': instance.is_followed_by(self.request.user) if self.request and self.request.user else None,
+            'following': instance.is_followed_by(self.request.user)
+            if self.request and self.request.user
+            else None,
+        }
+
+    @staticmethod
+    def get_fields_dict():
+        return {
+            'id': serializers.IntegerField(),
+            'username': serializers.CharField(),
+            'bio': serializers.CharField(),
+            'following': serializers.BooleanField(allow_null=True),
         }

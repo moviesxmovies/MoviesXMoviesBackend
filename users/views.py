@@ -7,6 +7,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
+from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
 from users.decorators import auth_required
@@ -73,7 +74,7 @@ def resend_verification_email(request):
 
 
 @extend_schema(
-    responses={200: UserSerializer, 400: None, 404: None},
+    responses={200: UserSerializer.get_paginated_schema(), 400: None, 404: None},
     description='Get a list of suggested users to follow based on mutual friends',
     parameters=[
         OpenApiParameter(name='page', description='Page number', required=False, type=int),
@@ -90,6 +91,11 @@ def suggested_users(request, page, limit):
     )
 
 
+@extend_schema(
+    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    description='Retrieve the details of the authenticated user',
+    operation_id='get_self_user_detail',
+)
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
@@ -97,6 +103,11 @@ def self_user_detail(request):
     return UserSerializer(request.user, request=request).json_response()
 
 
+@extend_schema(
+    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    description='Retrieve the details of a specific user by their identifier',
+    operation_id='get_user_detail',
+)
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
@@ -105,7 +116,7 @@ def user_detail(request, user):
 
 
 @extend_schema(
-    responses={200: UserSerializer, 400: None, 404: None},
+    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
     description='Signup a user',
     request=SignupUserSerializer,
 )
@@ -120,3 +131,21 @@ def user_signup(request, user: User):
         return UserSerializer(user, request=request).json_response()
     except ValidationError as e:
         return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
+
+
+# REVIEWS
+@extend_schema(
+    responses={200: None, 400: None, 404: None},
+    description='Get paginated reviews of a specific user',
+    parameters=[
+        OpenApiParameter(name='page', description='Page number', required=False, type=int),
+        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+    ],
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required
+@get_query_params('page', 'limit')
+def user_reviews(request, user: User, page: int = 1, limit: int = 10):
+    reviews_query = user.reviews.order_by('-created_at')
+    return get_paginated_response(reviews_query, ReviewSerializer, request, page, limit)

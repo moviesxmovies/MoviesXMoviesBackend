@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from shared.serializers import BaseSerializer
+from rest_framework import serializers
 
 
 class ReviewSerializer(BaseSerializer):
@@ -13,4 +14,16 @@ class ReviewSerializer(BaseSerializer):
             'content': review.content,
             'is_positive': review.is_positive,
             'created_at': review.created_at.isoformat(),
+        }
+    
+    @staticmethod
+    def get_fields_dict():
+        return {
+            'id': serializers.IntegerField(),
+            'title': serializers.CharField(),
+            'movie': serializers.URLField(),
+            'user': serializers.URLField(),
+            'content': serializers.CharField(),
+            'is_positive': serializers.BooleanField(),
+            'created_at': serializers.DateTimeField(),
         }

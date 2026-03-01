@@ -10,5 +10,4 @@ class MovieConverter:
         return get_object_or_json_404(Movie, slug=slug)
 
     def to_url(self, movie: Movie) -> str:
-
         return movie.slug
