@@ -19,6 +19,8 @@ class ReviewUpdateSerializer(serializers.Serializer):
     title = serializers.CharField(required=True, help_text='Title of review')
     content = serializers.CharField(required=True, help_text='Content of review')
 
+class ReviewDeleteSerializer(serializers.Serializer):
+    status = serializers.BooleanField(required=True, help_text='Status of the review deletion')
 
 # REVIEWS WITH ID
 @extend_schema(
@@ -30,7 +32,7 @@ class ReviewUpdateSerializer(serializers.Serializer):
 )
 @extend_schema(
     methods=['DELETE'],
-    responses={204: None, 404: None},
+    responses={204: ReviewDeleteSerializer, 404: None},
     description='Delete a review for a specific movie',
     operation_id='delete_movie_review',
 )

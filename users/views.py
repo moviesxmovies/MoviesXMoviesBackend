@@ -19,6 +19,8 @@ from users.tasks import send_verification_email
 class VerifyUserSerializer(serializers.Serializer):
     verification_code = serializers.CharField(required=True, help_text='Verification code')
 
+class FollowResponse(serializers.Serializer):
+    following = serializers.BooleanField(help_text='Indicates if the authenticated user is following the target user')
 
 class SignupUserSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, help_text='User email')
@@ -138,7 +140,7 @@ def user_signup(request, user: User):
 
 # REVIEWS
 @extend_schema(
-    responses={200: None, 400: None, 404: None},
+    responses={200: ReviewSerializer.get_paginated_schema(), 400: None, 404: None},
     description='Get paginated reviews of a specific user',
     parameters=[
         OpenApiParameter(name='page', description='Page number', required=False, type=int),
@@ -152,3 +154,26 @@ def user_signup(request, user: User):
 def user_reviews(request, user: User, page: int = 1, limit: int = 10):
     reviews_query = user.reviews.order_by('-created_at')
     return get_paginated_response(reviews_query, ReviewSerializer, request, page, limit)
+
+
+# FOLLOW
+@extend_schema(
+    responses={200: FollowResponse, 400: None, 404: None},
+    methods=['POST'],
+    description='Follow a user',
+)
+@extend_schema(
+    responses={200: FollowResponse, 400: None, 404: None},
+    methods=['DELETE'],
+    description='Unfollow a user',
+)
+@api_view(['POST', 'DELETE'])
+@require_http_methods(['POST', 'DELETE'])
+@auth_required
+def follow_user_wrapper(request, user: User):
+    if request.method == 'POST':
+        request.user.follow(user)
+        return JsonResponse({'following': request.user.is_following(user)})
+    else:
+        request.user.unfollow(user)
+        return JsonResponse({'following': request.user.is_following(user)})

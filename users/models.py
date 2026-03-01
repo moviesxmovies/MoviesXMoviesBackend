@@ -15,7 +15,9 @@ class User(AbstractUser):
     boarded = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
     email = models.EmailField(unique=True)
-    following_person = models.ManyToManyField('persons.Person', related_name='followers', blank=True)
+    following_person = models.ManyToManyField(
+        'persons.Person', related_name='followers', blank=True
+    )
     following = models.ManyToManyField('users.User', related_name='followers', blank=True)
     platforms = models.ManyToManyField('platforms.Platform', related_name='users', blank=True)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
@@ -55,6 +57,7 @@ class User(AbstractUser):
             return False
 
         return self.is_following(check_user) and self.is_followed_by(check_user)
+
     @property
     def friends(self):
         """Get all friends (mutual following) of the user
@@ -86,3 +89,21 @@ class User(AbstractUser):
             .order_by('-common_friends_count', 'id')
             .distinct()
         )
+
+    def follow(self, other_user):
+        """Follow another user
+
+        Args:
+            other_user (User): The user to follow
+        """
+        if other_user and other_user != self:
+            self.following.add(other_user)
+
+    def unfollow(self, other_user):
+        """Unfollow another user
+
+        Args:
+            other_user (User): The user to unfollow
+        """
+        if other_user and other_user != self:
+            self.following.remove(other_user)
