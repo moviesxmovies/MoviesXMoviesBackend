@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from movies.serializers import MovieSerializer
@@ -166,3 +168,20 @@ def test_movie_reviews_view(movie_factory, review_factory, auth_client):
     assert data['has_previous'] is False
     assert data['current_page'] == 1
     assert data['total_pages'] == 2
+
+@pytest.mark.django_db
+def test_save_movie_review_view(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    review_data = {
+        'title': 'Great movie!',
+        'content': 'I really enjoyed it.',
+        'is_positive': True,
+    }
+
+    response = auth_client.post(MOVIE_REVIEWS_URL.format(movie_slug=movie.slug), data=json.dumps(review_data), content_type='application/json')
+    assert response.status_code == 201
+    data = response.json()
+    assert data['title'] == 'Great movie!'
+    assert data['content'] == 'I really enjoyed it.'
+    assert data['is_positive'] is True

@@ -31,8 +31,8 @@ def get_paginated_response(queryset, serializer_class, request, page, limit):
     Returns:
         django.http.JsonResponse: JsonResponse with paginated results and metadata
     """
-    page = int(page) if page and page.isdigit() else 1
-    limit = int(limit) if limit and limit.isdigit() else 10
+    page = int(page) if page and str(page).isdigit() else 1
+    limit = int(limit) if limit and str(limit).isdigit() else 10
 
     paginator = Paginator(queryset, limit)
     page_result = paginator.get_page(page)

@@ -3,6 +3,8 @@ from abc import ABC
 from typing import Iterable
 
 from django.http import HttpRequest, JsonResponse
+from drf_spectacular.utils import inline_serializer
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
@@ -51,3 +53,34 @@ class BaseSerializer(ABC):
 
     def json_response(self) -> JsonResponse:
         return JsonResponse(self.serialize(), safe=False)
+
+    @classmethod
+    def get_schema(cls, name: str = None):
+        return inline_serializer(name=name or cls.__name__, fields=cls.get_fields_schema())
+
+    @classmethod
+    def get_fields_schema(cls, many=False) -> dict | serializers.ListSerializer:
+        fields = cls.get_fields_dict()
+
+        if many:
+            return serializers.ListSerializer(
+                child=inline_serializer(name=f'{cls.__name__}Item', fields=fields)
+            )
+        return fields
+    @classmethod
+    def get_fields_dict(cls) -> dict:
+        raise NotImplementedError
+
+    @classmethod
+    def get_paginated_schema(cls, name: str = None):
+        return inline_serializer(
+            name=f'Paginated{name or cls.__name__}',
+            fields={
+                'results': cls.get_fields_schema(many=True),
+                'total_pages': serializers.IntegerField(),
+                'count': serializers.IntegerField(),
+                'has_next': serializers.BooleanField(),
+                'has_previous': serializers.BooleanField(),
+                'current_page': serializers.IntegerField(),
+            },
+        )

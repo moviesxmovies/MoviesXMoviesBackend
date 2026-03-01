@@ -16,6 +16,7 @@ from conftest import (
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
     USER_DETAIL_URL,
+    USER_REVIEWS_URL,
     VERIFY_USER_URL,
 )
 from django.conf import settings
@@ -566,6 +567,7 @@ def test_self_user_detail(auth_client):
     assert data['username'] == auth_client.user.username
     assert data['id'] == auth_client.user.id
 
+
 @pytest.mark.django_db
 def test_user_detail(auth_client, user_factory):
     user = user_factory(username='otheruser')
@@ -575,13 +577,14 @@ def test_user_detail(auth_client, user_factory):
     assert data['username'] == user.username
     assert data['id'] == user.id
 
+
 @pytest.mark.django_db
 def test_user_signup(auth_client):
-    payload={
-        'email':'test@example.com',
-        'username':'test',
-        'first_name':'test',
-        'last_name':'test'
+    payload = {
+        'email': 'test@example.com',
+        'username': 'test',
+        'first_name': 'test',
+        'last_name': 'test',
     }
 
     response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
@@ -589,15 +592,38 @@ def test_user_signup(auth_client):
     assert response.json()['id'] == 2
     assert response.json()['username'] == 'test'
 
+
 @pytest.mark.django_db
 def test_user_signup_exception(auth_client):
-    payload={
-        'email':'testexample.com',
-        'username':'test',
-        'first_name':'test',
-        'last_name':'test'
+    payload = {
+        'email': 'testexample.com',
+        'username': 'test',
+        'first_name': 'test',
+        'last_name': 'test',
     }
 
     response = auth_client.post(SIGNUP_URL, data=payload, content_type='application/json')
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['email'] == ['Enter a valid email address.']
+
+
+@pytest.mark.django_db
+def test_user_reviews(auth_client, user_factory, review_factory, movie_factory):
+    user = user_factory(username='reviewer')
+
+    movie1 = movie_factory(title='Movie 1')
+    movie2 = movie_factory(title='Movie 2')
+
+    review1 = review_factory(user=user, movie=movie1)
+    review2 = review_factory(user=user, movie=movie2)
+
+    response = auth_client.get(USER_REVIEWS_URL.format(username=user.username))
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    print(data)
+    assert data['count'] == 2
+    assert 'results' in data
+
+    review_ids = {review['id'] for review in data['results']}
+    assert review1.id in review_ids
+    assert review2.id in review_ids

@@ -33,23 +33,32 @@ register(MovieListFactory)
 # URLS
 # ===========================================
 
+# AUTH
 LOGIN_URL = '/api/auth/login/'
 SIGNUP_URL = '/api/auth/signup/'
 REFRESH_URL = '/api/auth/refresh/'
+VERIFY_USER_URL = '/api/auth/verify/'
+RESEND_VERIFICATION_EMAIL_URL = '/api/auth/resend-verification-email/'
+
+
+# MOVIE LISTS
 MOVIE_LIST_SELF_URL = '/api/movies-lists/'
 MOVIE_LIST_USER_URL = '/api/movies-lists/{username}/'
 MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
 
+# MOVIES
 MOVIE_DETAIL_URL = '/api/movies/{movie_slug}/'
 MOVIE_REVIEWS_URL = '/api/movies/{movie_slug}/reviews/'
 MOVIE_FRIENDS_RATINGS_URL = '/api/movies/{movie_slug}/friends-ratings/'
 
-VERIFY_USER_URL = '/api/auth/verify/'
-RESEND_VERIFICATION_EMAIL_URL = '/api/auth/resend-verification-email/'
-
+# USERS
 SUGGESTED_USERS_URL = '/api/users/suggested-users/'
 SELF_USER_DETAIL_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
+USER_REVIEWS_URL = '/api/users/{username}/reviews/'
+
+# REVIEWS
+EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'
 
 
 # ===========================================

@@ -1,6 +1,6 @@
-from movies.serializers import MovieSerializer
 from shared.serializers import BaseSerializer
 from django.urls import reverse
+from rest_framework import serializers
 
 
 class MovieListSerializer(BaseSerializer):
@@ -17,4 +17,16 @@ class MovieListSerializer(BaseSerializer):
             ],
             'created_at': instance.created_at.isoformat(),
             'updated_at': instance.updated_at.isoformat(),
+        }
+    @staticmethod
+    def get_fields_dict():
+        return {
+            'id': serializers.IntegerField(),
+            'name': serializers.CharField(),
+            'slug': serializers.CharField(),
+            'privacity': serializers.CharField(),
+            'user': serializers.URLField(),
+            'movies': serializers.ListField(child=serializers.URLField()),
+            'created_at': serializers.DateTimeField(),
+            'updated_at': serializers.DateTimeField(),
         }
