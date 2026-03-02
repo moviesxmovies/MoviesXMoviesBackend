@@ -23,16 +23,12 @@ class User(AbstractUser):
     boarded = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
     email = models.EmailField(unique=True)
-    picture = models.ImageField(upload_to="users", default="users/default.png")
+    picture = models.ImageField(upload_to='users', default='users/default.png')
     following_person = models.ManyToManyField(
-        "persons.Person", related_name="followers", blank=True
+        'persons.Person', related_name='followers', blank=True
     )
-    following = models.ManyToManyField(
-        "users.User", related_name="followers", blank=True
-    )
-    platforms = models.ManyToManyField(
-        "platforms.Platform", related_name="users", blank=True
-    )
+    following = models.ManyToManyField('users.User', related_name='followers', blank=True)
+    platforms = models.ManyToManyField('platforms.Platform', related_name='users', blank=True)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
 
     def is_following(self, check_user):
@@ -91,17 +87,15 @@ class User(AbstractUser):
         Returns:
             models.QuerySet: A queryset of suggested users.
         """
-        following_ids = self.following.values_list("id", flat=True)
+        following_ids = self.following.values_list('id', flat=True)
 
         return (
             User.objects.filter(followers__in=following_ids)
             .exclude(Q(id=self.id) | Q(id__in=following_ids))
             .annotate(
-                common_friends_count=Count(
-                    "followers", filter=Q(followers__in=following_ids)
-                )
+                common_friends_count=Count('followers', filter=Q(followers__in=following_ids))
             )
-            .order_by("-common_friends_count", "id")
+            .order_by('-common_friends_count', 'id')
             .distinct()
         )
 

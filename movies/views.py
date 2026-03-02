@@ -3,6 +3,7 @@ from http import HTTPStatus
 from django.forms import ValidationError
 from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import serializers
 from rest_framework.decorators import api_view
 
 from movies.models import Movie
@@ -14,7 +15,6 @@ from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
 from users.decorators import auth_required
-from rest_framework import serializers
 
 
 class ReviewSaveSerializer(serializers.Serializer):
@@ -156,7 +156,9 @@ def get_self_movie_rating(request, movie: Movie):
 @get_body(Rating, ['rating'])
 def create_movie_rating(request, movie: Movie, rating: Rating):
     if movie.ratings.filter(user=request.user).exists():
-        return JsonResponse({'error': 'You have already rated this movie'}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse(
+            {'error': 'You have already rated this movie'}, status=HTTPStatus.BAD_REQUEST
+        )
     rating.user = request.user
     rating.movie = movie
     try:

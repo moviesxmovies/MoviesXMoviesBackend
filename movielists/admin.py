@@ -1,5 +1,7 @@
 from django.contrib import admin
+
 from .models import MovieList
+
 
 @admin.register(MovieList)
 class MovieListAdmin(admin.ModelAdmin):

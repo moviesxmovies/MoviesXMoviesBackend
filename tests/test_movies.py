@@ -246,6 +246,7 @@ def test_movie_rating_view_invalid_rating(movie_factory, auth_client):
     assert 'rating' in data
     assert 'Ensure this value is greater than or equal to 1.' in str(data['rating'])
 
+
 @pytest.mark.django_db
 def test_movie_rating_view_already_exists(movie_factory, auth_client, rating_factory):
     movie = movie_factory(title='Inception')
@@ -265,6 +266,7 @@ def test_movie_rating_view_already_exists(movie_factory, auth_client, rating_fac
     assert 'error' in data
     assert data['error'] == 'You have already rated this movie'
 
+
 @pytest.mark.django_db
 def test_movie_rating_view_update(movie_factory, auth_client, rating_factory):
     movie = movie_factory(title='Inception')
@@ -282,6 +284,7 @@ def test_movie_rating_view_update(movie_factory, auth_client, rating_factory):
     assert response.status_code == 200
     data = response.json()
     assert data['rating'] == 5
+
 
 @pytest.mark.django_db
 def test_movie_rating_view_update_invalid(movie_factory, auth_client, rating_factory):
@@ -302,6 +305,7 @@ def test_movie_rating_view_update_invalid(movie_factory, auth_client, rating_fac
     assert 'rating' in data
     assert 'Ensure this value is greater than or equal to 1.' in str(data['rating'])
 
+
 @pytest.mark.django_db
 def test_movie_rating_view_update_not_exists(movie_factory, auth_client):
     movie = movie_factory(title='Inception')
@@ -320,6 +324,7 @@ def test_movie_rating_view_update_not_exists(movie_factory, auth_client):
     assert 'error' in data
     assert data['error'] == 'Rating not found'
 
+
 @pytest.mark.django_db
 def test_movie_rating_get_view(movie_factory, rating_factory, auth_client):
     movie = movie_factory(title='Inception')
@@ -329,6 +334,7 @@ def test_movie_rating_get_view(movie_factory, rating_factory, auth_client):
     assert response.status_code == 200
     data = response.json()
     assert data['rating'] == 4
+
 
 @pytest.mark.django_db
 def test_movie_rating_get_view_not_exists(movie_factory, auth_client):

@@ -4,10 +4,10 @@ from django.utils.text import slugify
 
 from movies.models import Movie
 
+from .awards import AwardFactory
 from .genres import GenreFactory
 from .persons import PersonFactory
 from .platforms import PlatformFactory
-from .awards import AwardFactory
 
 
 class MovieFactory(factory.django.DjangoModelFactory):

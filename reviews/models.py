@@ -23,6 +23,6 @@ class Review(BaseModel):
 
     class Meta:
         unique_together = ['user', 'movie']
-        
+
     def __str__(self):
         return self.title

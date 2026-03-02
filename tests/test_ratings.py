@@ -1,7 +1,7 @@
-from django.urls import reverse
 import pytest
-from ratings.serializers import RatingSerializer
+from django.urls import reverse
 
+from ratings.serializers import RatingSerializer
 
 # ===========================================================================
 #  MODELS
@@ -22,10 +22,12 @@ def test_rating_creation(rating_factory):
     assert rating.created_at is not None
     assert rating.updated_at is not None
 
+
 @pytest.mark.django_db
 def test_rating_str(rating_factory):
     rating = rating_factory(rating=5)
     assert str(rating) == f'{rating.user}: {rating.movie} | {rating.rating}'
+
 
 # ===========================================================================
 #  SERIALIZERS

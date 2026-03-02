@@ -67,6 +67,7 @@ class BaseSerializer(ABC):
                 child=inline_serializer(name=f'{cls.__name__}Item', fields=fields)
             )
         return fields
+
     @classmethod
     def get_fields_dict(cls) -> dict:
         raise NotImplementedError
