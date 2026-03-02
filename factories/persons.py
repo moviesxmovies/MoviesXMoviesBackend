@@ -18,7 +18,6 @@ class PersonFactory(factory.django.DjangoModelFactory):
 
     image = factory.django.ImageField(color='gray', width=200, height=200)
 
-
     @factory.post_generation
     def awards(self, create, extracted, **kwargs):
         if not create:

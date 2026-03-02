@@ -1,6 +1,6 @@
-from django.urls import reverse
 import pytest
 from conftest import MOVIE_LIST_DETAIL_URL, MOVIE_LIST_SELF_URL, MOVIE_LIST_USER_URL
+from django.urls import reverse
 
 from movielists.models import MovieList
 from movielists.serializers import MovieListSerializer

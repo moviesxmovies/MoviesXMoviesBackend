@@ -1,6 +1,5 @@
 import pytest
 
-from persons.models import Person
 from persons.serializers import PersonSerializer
 
 # ===========================================================================

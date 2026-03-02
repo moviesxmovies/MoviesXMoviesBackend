@@ -1,5 +1,6 @@
-from shared.serializers import BaseSerializer
 from rest_framework import serializers
+
+from shared.serializers import BaseSerializer
 
 
 class GenreSerializer(BaseSerializer):
@@ -9,6 +10,7 @@ class GenreSerializer(BaseSerializer):
             'name': instance.name,
             'slug': instance.slug,
         }
+
     @staticmethod
     def get_fields_dict():
         return {

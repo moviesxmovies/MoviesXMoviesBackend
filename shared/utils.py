@@ -1,6 +1,6 @@
+from django.core.paginator import Paginator
 from django.http import Http404, JsonResponse
 from django.shortcuts import _get_queryset
-from django.core.paginator import Paginator
 
 
 def get_object_or_json_404(klass, *args, **kwargs):

@@ -33,6 +33,7 @@ def test_review_str(review_factory):
     review = review_factory(title='Great movie!')
     assert str(review) == 'Great movie!'
 
+
 # ===========================================================================
 #  SERIALIZERS
 # ===========================================================================
@@ -54,17 +55,27 @@ def test_review_serializer(review_factory):
 #  VIEWS
 # ===========================================================================
 
+
 @pytest.mark.django_db
 def test_review_edit(review_factory, auth_client):
-    review = review_factory(title='Great movie!', content='I really enjoyed it.', is_positive=True, user=auth_client.user)
+    review = review_factory(
+        title='Great movie!',
+        content='I really enjoyed it.',
+        is_positive=True,
+        user=auth_client.user,
+    )
 
-    response = auth_client.put(EDIT_DELETE_REVIEW_URL.format(review_id=review.pk), data=json.dumps({
-        'title': 'Not so great',
-        'content': 'I changed my mind.',
-        'is_positive': False,
-    }), content_type='application/json')
-
-    
+    response = auth_client.put(
+        EDIT_DELETE_REVIEW_URL.format(review_id=review.pk),
+        data=json.dumps(
+            {
+                'title': 'Not so great',
+                'content': 'I changed my mind.',
+                'is_positive': False,
+            }
+        ),
+        content_type='application/json',
+    )
 
     assert response.status_code == 200
     assert response.json()['id'] == review.pk
@@ -79,15 +90,22 @@ def test_review_edit(review_factory, auth_client):
     assert review.created_at is not None
     assert review.updated_at is not None
 
+
 @pytest.mark.django_db
 def test_review_edit_forbidden(review_factory, auth_client):
     review = review_factory(title='Great movie!', content='I really enjoyed it.', is_positive=True)
 
-    response = auth_client.put(EDIT_DELETE_REVIEW_URL.format(review_id=review.pk), data=json.dumps({
-        'title': 'Not so great',
-        'content': 'I changed my mind.',
-        'is_positive': False,
-    }), content_type='application/json')
+    response = auth_client.put(
+        EDIT_DELETE_REVIEW_URL.format(review_id=review.pk),
+        data=json.dumps(
+            {
+                'title': 'Not so great',
+                'content': 'I changed my mind.',
+                'is_positive': False,
+            }
+        ),
+        content_type='application/json',
+    )
 
     assert response.status_code == 403
     review.refresh_from_db()
@@ -97,6 +115,7 @@ def test_review_edit_forbidden(review_factory, auth_client):
     assert review.deleted_at is None
     assert review.created_at is not None
     assert review.updated_at is not None
+
 
 @pytest.mark.django_db
 def test_review_delete(review_factory, auth_client):
@@ -108,6 +127,7 @@ def test_review_delete(review_factory, auth_client):
     review.refresh_from_db()
     assert review.deleted_at is not None
     assert not Review.objects.filter(pk=review.pk).exists()
+
 
 @pytest.mark.django_db
 def test_review_delete_forbidden(review_factory, auth_client):

@@ -1,7 +1,7 @@
 from django.urls import reverse
+from rest_framework import serializers
 
 from shared.serializers import BaseSerializer
-from rest_framework import serializers
 
 
 class RatingSerializer(BaseSerializer):
@@ -13,6 +13,7 @@ class RatingSerializer(BaseSerializer):
             'rating': instance.rating,
             'created_at': instance.created_at.isoformat(),
         }
+
     @staticmethod
     def get_fields_dict():
         return {

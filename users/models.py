@@ -9,12 +9,21 @@ class User(AbstractUser):
 
     Attributes:
         bio (models.TextField): A brief biography of the user.
+        boarded (models.BooleanField): Indicates if the user has completed onboarding.
+        verified (models.BooleanField): Indicates if the user's email is verified.
+        email (models.EmailField): The user's email address, must be unique.
+        picture (models.ImageField): The user's profile picture, with a default image.
+        following_person (models.ManyToManyField): A many-to-many relationship to Person model for following people.
+        following (models.ManyToManyField): A many-to-many relationship to other Users for following users.
+        platforms (models.ManyToManyField): A many-to-many relationship to Platform model for platforms the user is associated with.
+        verification_code (models.CharField): A code used for email verification, can be null or blank.
     """
 
     bio = models.TextField(blank=True, null=True)
     boarded = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
     email = models.EmailField(unique=True)
+    picture = models.ImageField(upload_to='users', default='users/default.png')
     following_person = models.ManyToManyField(
         'persons.Person', related_name='followers', blank=True
     )

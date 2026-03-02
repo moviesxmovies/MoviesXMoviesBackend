@@ -1,5 +1,6 @@
-from shared.serializers import BaseSerializer
 from rest_framework import serializers
+
+from shared.serializers import BaseSerializer
 
 
 class PlatformSerializer(BaseSerializer):

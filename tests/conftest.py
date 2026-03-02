@@ -54,7 +54,7 @@ MOVIE_SELF_RATING_URL = '/api/movies/{movie_slug}/ratings/'
 
 # USERS
 SUGGESTED_USERS_URL = '/api/users/suggested-users/'
-SELF_USER_DETAIL_URL = '/api/users/'
+SELF_USER_WRAPPER_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
 USER_REVIEWS_URL = '/api/users/{username}/reviews/'
 FOLLOW_USER_URL = '/api/users/{username}/follow/'

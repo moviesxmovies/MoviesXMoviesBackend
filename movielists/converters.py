@@ -1,5 +1,3 @@
-
-
 from shared.utils import get_object_or_json_404
 
 from .models import MovieList

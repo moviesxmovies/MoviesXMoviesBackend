@@ -1,15 +1,14 @@
 from http import HTTPStatus
 
 from django.http import JsonResponse
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
+from rest_framework.decorators import api_view
 
 from reviews.models import Review
-from users.decorators import auth_required
-from rest_framework.decorators import api_view
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from shared.decorators import get_body, require_http_methods
 from reviews.serializers import ReviewSerializer
-
-from rest_framework import serializers
+from shared.decorators import get_body, require_http_methods
+from users.decorators import auth_required
 
 
 class ReviewUpdateSerializer(serializers.Serializer):
@@ -19,8 +18,10 @@ class ReviewUpdateSerializer(serializers.Serializer):
     title = serializers.CharField(required=True, help_text='Title of review')
     content = serializers.CharField(required=True, help_text='Content of review')
 
+
 class ReviewDeleteSerializer(serializers.Serializer):
     status = serializers.BooleanField(required=True, help_text='Status of the review deletion')
+
 
 # REVIEWS WITH ID
 @extend_schema(

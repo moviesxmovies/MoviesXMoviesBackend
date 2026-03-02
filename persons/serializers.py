@@ -1,6 +1,7 @@
+from rest_framework import serializers
+
 from awards.serializers import AwardSerializer
 from shared.serializers import BaseSerializer
-from rest_framework import serializers
 
 
 class PersonSerializer(BaseSerializer):
@@ -12,7 +13,7 @@ class PersonSerializer(BaseSerializer):
             'image': self.build_url(instance.image.url),
             'awards': AwardSerializer(instance.awards.all(), request=self.request).serialize(),
         }
-    
+
     @staticmethod
     def get_fields_dict():
         return {

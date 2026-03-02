@@ -2,13 +2,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, register_converter
+from django.urls.converters import get_converters
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from movielists.converters import MovieListConverter
+from movies.converters import MovieConverter
 from reviews.converters import ReviewConverter
 from users.converters import UserConverter
-from movies.converters import MovieConverter
-from django.urls.converters import get_converters
 
 # CONVERTERS
 CUSTOM_CONVERTERS = {

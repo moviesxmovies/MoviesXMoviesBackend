@@ -14,5 +14,5 @@ def send_verification_email(user):
         to=[user.email],
     )
     email.content_subtype = 'html'
-    email.send()
     user.save()
+    email.send()

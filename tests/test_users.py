@@ -11,7 +11,7 @@ from conftest import (
     LOGIN_URL,
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
-    SELF_USER_DETAIL_URL,
+    SELF_USER_WRAPPER_URL,
     SIGNUP_URL,
     SUGGESTED_USERS_URL,
     TEST_USER_PASSWORD,
@@ -306,7 +306,8 @@ def mock_view_auth_required():
     @auth_required
     def view(request):
         return JsonResponse(
-            {'username': request.user.username, 'user_id': request.user.id}, status=HTTPStatus.OK
+            {'username': request.user.username, 'user_id': request.user.id},
+            status=HTTPStatus.OK,
         )
 
     return view
@@ -562,7 +563,7 @@ def test_suggest_friends_pagination(auth_client, user_factory):
 
 @pytest.mark.django_db
 def test_self_user_detail(auth_client):
-    response = auth_client.get(SELF_USER_DETAIL_URL)
+    response = auth_client.get(SELF_USER_WRAPPER_URL)
     assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert data['username'] == auth_client.user.username
@@ -684,6 +685,7 @@ def test_follow_user(auth_client, user_factory):
     auth_client.user.refresh_from_db()
     assert user_to_follow in auth_client.user.following.all()
 
+
 @pytest.mark.django_db
 def test_unfollow_user(auth_client, user_factory):
     user_to_unfollow = user_factory(username='unfollowed_user')
@@ -696,3 +698,83 @@ def test_unfollow_user(auth_client, user_factory):
 
     auth_client.user.refresh_from_db()
     assert user_to_unfollow not in auth_client.user.following.all()
+
+
+@pytest.mark.django_db
+def test_edit_user(auth_client):
+    payload = {
+        'bio': 'This is my new bio',
+    }
+
+    response = auth_client.put(SELF_USER_WRAPPER_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['bio'] == 'This is my new bio'
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.bio == 'This is my new bio'
+
+
+@pytest.mark.django_db
+def test_edit_user_invalid_field(auth_client):
+    payload = {
+        'invalid_field': 'This field does not exist',
+    }
+
+    response = auth_client.put(SELF_USER_WRAPPER_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json().get('invalid_field') is None
+
+
+@pytest.mark.django_db
+def test_edit_user_empty_field(auth_client):
+    auth_client.user.bio = 'Existing bio'
+    auth_client.user.save()
+    payload = {
+        'bio': '',
+    }
+
+    response = auth_client.put(SELF_USER_WRAPPER_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['bio'] == 'Existing bio'
+
+
+@pytest.mark.django_db
+def test_edit_user_invalid_password(auth_client):
+    payload = {
+        'password': '123456789',  # Invalid: too short , only numeric, and common
+    }
+
+    response = auth_client.put(SELF_USER_WRAPPER_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['error'] == [
+        'This password is too short. It must contain at least 10 characters.',
+        'This password is too common.',
+        'This password is entirely numeric.',
+    ]
+
+
+@pytest.mark.django_db
+def test_edit_user_password_success(auth_client):
+    payload = {
+        'password': 'NewStrongPassword123',
+    }
+
+    response = auth_client.put(SELF_USER_WRAPPER_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.OK
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.check_password('NewStrongPassword123')
+
+
+@pytest.mark.django_db
+def test_edit_user_email_change(auth_client):
+    payload = {
+        'email': 'new_email@mail.com',
+    }
+
+    response = auth_client.put(SELF_USER_WRAPPER_URL, data=payload, content_type='application/json')
+    assert response.status_code == HTTPStatus.OK
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.email == 'new_email@mail.com'
+    assert auth_client.user.verified is False

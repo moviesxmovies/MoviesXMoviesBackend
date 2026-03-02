@@ -1,5 +1,6 @@
-from http import HTTPStatus
 import json
+from http import HTTPStatus
+
 from django.http import JsonResponse
 
 

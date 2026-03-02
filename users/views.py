@@ -1,12 +1,13 @@
 from http import HTTPStatus
 
+from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.forms import ValidationError
 from django.http import JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
-from django.contrib.auth.password_validation import validate_password
+
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
@@ -19,8 +20,12 @@ from users.tasks import send_verification_email
 class VerifyUserSerializer(serializers.Serializer):
     verification_code = serializers.CharField(required=True, help_text='Verification code')
 
+
 class FollowResponse(serializers.Serializer):
-    following = serializers.BooleanField(help_text='Indicates if the authenticated user is following the target user')
+    following = serializers.BooleanField(
+        help_text='Indicates if the authenticated user is following the target user'
+    )
+
 
 class SignupUserSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, help_text='User email')
@@ -28,6 +33,16 @@ class SignupUserSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=True, help_text='User first name')
     last_name = serializers.CharField(required=True, help_text='User last name')
     password = serializers.CharField(required=True, help_text='User password')
+
+
+class UserUpdateSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False, help_text='User email')
+    username = serializers.CharField(required=False, help_text='User username')
+    first_name = serializers.CharField(required=False, help_text='User first name')
+    last_name = serializers.CharField(required=False, help_text='User last name')
+    password = serializers.CharField(required=False, help_text='User password')
+    picture = serializers.ImageField(required=False, help_text='User profile picture')
+    bio = serializers.CharField(required=False, help_text='User bio', allow_blank=True)
 
 
 @extend_schema(
@@ -96,13 +111,68 @@ def suggested_users(request, page, limit):
 @extend_schema(
     responses={200: UserSerializer.get_schema(), 400: None, 404: None},
     description='Retrieve the details of the authenticated user',
+    methods=['GET'],
     operation_id='get_self_user_detail',
 )
-@api_view(['GET'])
-@require_http_methods(['GET'])
+@extend_schema(
+    request=UserUpdateSerializer,
+    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    description='Update the details of the authenticated user',
+    methods=['PUT'],
+    operation_id='update_self_user',
+)
+@api_view(['GET', 'PUT'])
+@require_http_methods(['GET', 'PUT'])
 @auth_required
+def self_user_wrapper(request):
+    match request.method:
+        case 'GET':
+            return self_user_detail(request)
+        case 'PUT':
+            return update_user(request, request.user)
+
+
+@require_http_methods(['GET'])
 def self_user_detail(request):
     return UserSerializer(request.user, request=request).json_response()
+
+
+@require_http_methods(['PUT'])
+def update_user(request, user):
+    data = request.data
+    for field in [
+        'username',
+        'first_name',
+        'last_name',
+        'picture',
+        'bio',
+    ]:
+        if (
+            field in data
+            and getattr(user, field) != data[field]
+            and data[field] is not None
+            and data[field].strip() != ''
+        ):
+            setattr(user, field, data[field])
+    if 'password' in data:
+        raw_password = data['password']
+        try:
+            validate_password(raw_password, user=user)
+            user.set_password(raw_password)
+        except ValidationError as e:
+            errors = getattr(e, 'message_dict', {'error': e.messages})
+            return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
+    if 'email' in data and user.email != data['email']:
+        user.email = data['email']
+        user.verified = False
+        send_verification_email.delay(user)
+    try:
+        user.full_clean()
+        user.save()
+        return UserSerializer(user, request=request).json_response()
+    except ValidationError as e:
+        errors = getattr(e, 'message_dict', {'error': e.messages})
+        return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
 
 
 @extend_schema(
