@@ -39,6 +39,7 @@ SIGNUP_URL = '/api/auth/signup/'
 REFRESH_URL = '/api/auth/refresh/'
 VERIFY_USER_URL = '/api/auth/verify/'
 RESEND_VERIFICATION_EMAIL_URL = '/api/auth/resend-verification-email/'
+FORGOT_PASSWORD_URL = '/api/auth/forgot-password/'
 
 
 # MOVIE LISTS
