@@ -24,6 +24,7 @@ urlpatterns = [
         views.resend_verification_email,
         name='resend_verification_email',
     ),
+    path('auth/forgot-password/', views.forgot_password_wrapper, name='forgot_password'),
     path('oauth/', include('dj_rest_auth.urls')),
     path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
     # USERS

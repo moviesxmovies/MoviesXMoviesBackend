@@ -8,6 +8,7 @@ import jwt
 import pytest
 from conftest import (
     FOLLOW_USER_URL,
+    FORGOT_PASSWORD_URL,
     LOGIN_URL,
     REFRESH_URL,
     RESEND_VERIFICATION_EMAIL_URL,
@@ -32,7 +33,7 @@ from rest_framework_simplejwt.tokens import UntypedToken
 from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
-from users.tasks import send_verification_email
+from users.tasks import send_password_reset_email, send_verification_email
 
 # =================================================================
 # AUTH
@@ -415,6 +416,30 @@ def test_send_verification_email_logic(user_factory):
     assert sent_email.body == expected_html
 
 
+@pytest.mark.django_db
+def test_send_password_reset_email_logic(user_factory):
+    user = user_factory(username='testuser', email='test@example.com')
+
+    send_password_reset_email(user)
+
+    user.refresh_from_db()
+    assert user.forgot_password_code is not None
+    assert 0 <= int(user.forgot_password_code) <= 999999
+
+    assert len(mail.outbox) == 1
+    sent_email = mail.outbox[0]
+
+    assert (
+        sent_email.subject
+        == f'Restablecimiento de contraseña de MoviesXMovies de {user.username}'
+    )
+    assert sent_email.to == [user.email]
+    assert sent_email.content_subtype == 'html'
+
+    expected_html = render_to_string('users/email/password-reset-email.html', {'user': user})
+    assert sent_email.body == expected_html
+
+
 # =================================================================
 # VIEWS
 # =================================================================
@@ -778,3 +803,83 @@ def test_edit_user_email_change(auth_client):
     auth_client.user.refresh_from_db()
     assert auth_client.user.email == 'new_email@mail.com'
     assert auth_client.user.verified is False
+
+
+@pytest.mark.django_db
+def test_forgot_password(client, user_factory):
+    user = user_factory(email='testuser@mail.com')
+    response = client.get(
+        FORGOT_PASSWORD_URL + '?email=' + user.email,
+        content_type='application/json',
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] == 'Password reset email sent'
+
+
+@pytest.mark.django_db
+def test_forgot_password_nonexistent_email(client):
+    response = client.get(
+        FORGOT_PASSWORD_URL + '?email=' + 'nonexistent@mail.com',
+    )
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json()['error'] == 'User not found'
+
+
+@pytest.mark.django_db
+def test_forgot_password_validation(client, user_factory):
+    user = user_factory(email='testuser@mail.com', forgot_password_code='valid_code')
+    response = client.post(
+        FORGOT_PASSWORD_URL,
+        data={
+            'forgot_password_code': 'valid_code',
+            'new_password': 'NewPassword123',
+            'email': user.email,
+        },
+        content_type='application/json',
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] == 'Password reset successful'
+
+@pytest.mark.django_db
+def test_forgot_password_validation_invalid_code(client, user_factory):
+    user = user_factory(email='testuser@mail.com', forgot_password_code='valid_code')
+    response = client.post(
+        FORGOT_PASSWORD_URL,
+        data={
+            'forgot_password_code': 'invalid_code',
+            'new_password': 'NewPassword123',
+            'email': user.email,
+        },
+        content_type='application/json',
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['error'] == 'Invalid verification code'
+
+@pytest.mark.django_db
+def test_forgot_password_validation_nonexistent_email(client):
+    response = client.post(
+        FORGOT_PASSWORD_URL,
+        data={
+            'forgot_password_code': 'some_code',
+            'new_password': 'NewPassword123',
+            'email': 'nonexistent@mail.com',
+        },
+        content_type='application/json',
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['error'] == 'Invalid verification code'
+
+@pytest.mark.django_db
+def test_forgot_password_validation_weak_password(client, user_factory):
+    user = user_factory(email='testuser@mail.com', forgot_password_code='valid_code')
+    response = client.post(
+        FORGOT_PASSWORD_URL,
+        data={
+            'forgot_password_code': 'valid_code',
+            'new_password': 'weak',
+            'email': user.email,
+        },
+        content_type='application/json',
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['error'] == ['This password is too short. It must contain at least 10 characters.']

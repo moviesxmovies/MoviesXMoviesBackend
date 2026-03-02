@@ -44,7 +44,7 @@ def get_body(model_class, required_fields):
                 return JsonResponse({'error': 'Invalid JSON body'}, status=HTTPStatus.BAD_REQUEST)
 
             clean_data = {}
-
+        
             for field in required_fields:
                 if field not in body_data:
                     return JsonResponse(

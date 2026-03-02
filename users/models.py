@@ -30,6 +30,7 @@ class User(AbstractUser):
     following = models.ManyToManyField('users.User', related_name='followers', blank=True)
     platforms = models.ManyToManyField('platforms.Platform', related_name='users', blank=True)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
+    forgot_password_code = models.CharField(max_length=6, null=True, blank=True)
 
     def is_following(self, check_user):
         """Check if user is following check_user
