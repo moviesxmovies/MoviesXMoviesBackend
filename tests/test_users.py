@@ -431,7 +431,7 @@ def test_send_password_reset_email_logic(user_factory):
 
     assert (
         sent_email.subject
-        == f'Restablecimiento de contraseña de MoviesXMovies para {user.username}'
+        == f'Restablecimiento de contraseña de MoviesXMovies de {user.username}'
     )
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'

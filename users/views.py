@@ -210,7 +210,6 @@ def update_user(request, user):
 @api_view(['POST', 'GET'])
 @require_http_methods(['POST', 'GET'])
 def forgot_password_wrapper(request):
-    print(f'Handling forgot password request with method: {request.method}')
     match request.method:
         case 'GET':
             return forgot_password(request)
