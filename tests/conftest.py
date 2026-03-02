@@ -34,42 +34,42 @@ register(MovieListFactory)
 # ===========================================
 
 # AUTH
-LOGIN_URL = '/api/auth/login/'
-SIGNUP_URL = '/api/auth/signup/'
-REFRESH_URL = '/api/auth/refresh/'
-VERIFY_USER_URL = '/api/auth/verify/'
-RESEND_VERIFICATION_EMAIL_URL = '/api/auth/resend-verification-email/'
+LOGIN_URL = "/api/auth/login/"
+SIGNUP_URL = "/api/auth/signup/"
+REFRESH_URL = "/api/auth/refresh/"
+VERIFY_USER_URL = "/api/auth/verify/"
+RESEND_VERIFICATION_EMAIL_URL = "/api/auth/resend-verification-email/"
 
 
 # MOVIE LISTS
-MOVIE_LIST_SELF_URL = '/api/movies-lists/'
-MOVIE_LIST_USER_URL = '/api/movies-lists/{username}/'
-MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
+MOVIE_LIST_SELF_URL = "/api/movies-lists/"
+MOVIE_LIST_USER_URL = "/api/movies-lists/{username}/"
+MOVIE_LIST_DETAIL_URL = "/api/movies-lists/{username}/{movies_list_slug}/"
 
 # MOVIES
-MOVIE_DETAIL_URL = '/api/movies/{movie_slug}/'
-MOVIE_REVIEWS_URL = '/api/movies/{movie_slug}/reviews/'
-MOVIE_FRIENDS_RATINGS_URL = '/api/movies/{movie_slug}/friends-ratings/'
-MOVIE_SELF_RATING_URL = '/api/movies/{movie_slug}/ratings/'
+MOVIE_DETAIL_URL = "/api/movies/{movie_slug}/"
+MOVIE_REVIEWS_URL = "/api/movies/{movie_slug}/reviews/"
+MOVIE_FRIENDS_RATINGS_URL = "/api/movies/{movie_slug}/friends-ratings/"
+MOVIE_SELF_RATING_URL = "/api/movies/{movie_slug}/ratings/"
 
 # USERS
-SUGGESTED_USERS_URL = '/api/users/suggested-users/'
-SELF_USER_DETAIL_URL = '/api/users/'
-USER_DETAIL_URL = '/api/users/{username}/'
-USER_REVIEWS_URL = '/api/users/{username}/reviews/'
-FOLLOW_USER_URL = '/api/users/{username}/follow/'
+SUGGESTED_USERS_URL = "/api/users/suggested-users/"
+SELF_USER_WRAPPER_URL = "/api/users/"
+USER_DETAIL_URL = "/api/users/{username}/"
+USER_REVIEWS_URL = "/api/users/{username}/reviews/"
+FOLLOW_USER_URL = "/api/users/{username}/follow/"
 
 # REVIEWS
-EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'
+EDIT_DELETE_REVIEW_URL = "/api/reviews/{review_id}/"
 
 
 # ===========================================
 # TEST USERS
 # ===========================================
 
-TEST_USER_USERNAME = 'testuser'
-TEST_USER_PASSWORD = 'testpassword123'
-TEST_USER_EMAIL = 'test@mail.es'
+TEST_USER_USERNAME = "testuser"
+TEST_USER_PASSWORD = "testpassword123"
+TEST_USER_EMAIL = "test@mail.es"
 
 
 # ===========================================
@@ -79,9 +79,9 @@ TEST_USER_EMAIL = 'test@mail.es'
 
 @pytest.fixture(autouse=True)
 def disable_drf_throttling(settings):
-    settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
-        'anon': None,
-        'user': None,
+    settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+        "anon": None,
+        "user": None,
     }
 
 
@@ -97,13 +97,13 @@ def create_test_user(db):
 def generate_jwt():
     def _generate_jwt(user):
         payload = {
-            'user_id': user.id,
-            'token_type': 'access',
-            'exp': datetime.now(timezone.utc) + timedelta(days=1),
-            'iat': datetime.now(timezone.utc),
-            'jti': str(user.id) + '-' + str(datetime.now(timezone.utc).timestamp()),
+            "user_id": user.id,
+            "token_type": "access",
+            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "iat": datetime.now(timezone.utc),
+            "jti": str(user.id) + "-" + str(datetime.now(timezone.utc).timestamp()),
         }
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
     return _generate_jwt
 
@@ -120,7 +120,7 @@ def auth_client(client, user_factory, generate_jwt):
 
     token = generate_jwt(user)
 
-    client.defaults['HTTP_AUTHORIZATION'] = f'Bearer {token}'
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
     client.user = user
 
@@ -129,8 +129,8 @@ def auth_client(client, user_factory, generate_jwt):
 
 @pytest.fixture(autouse=True)
 def disable_social_jobs():
-    signal_handler = 'users.signals.send_verification_email_on_created'
-    delay = 'users.tasks.send_verification_email.delay'
+    signal_handler = "users.signals.send_verification_email_on_created"
+    delay = "users.tasks.send_verification_email.delay"
 
     with mock.patch(signal_handler) as mock_handler, mock.patch(delay) as mock_delay:
-        yield {'handler': mock_handler, 'delay': mock_delay}
+        yield {"handler": mock_handler, "delay": mock_delay}
