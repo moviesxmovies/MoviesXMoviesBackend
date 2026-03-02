@@ -32,7 +32,7 @@ from rest_framework_simplejwt.tokens import UntypedToken
 from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
-from users.tasks import send_verification_email
+from users.tasks import send_password_reset_email, send_verification_email
 
 # =================================================================
 # AUTH
@@ -412,6 +412,30 @@ def test_send_verification_email_logic(user_factory):
     assert sent_email.content_subtype == 'html'
 
     expected_html = render_to_string('users/email/verification-email.html', {'user': user})
+    assert sent_email.body == expected_html
+
+
+@pytest.mark.django_db
+def test_send_password_reset_email_logic(user_factory):
+    user = user_factory(username='testuser', email='test@example.com')
+
+    send_password_reset_email(user)
+
+    user.refresh_from_db()
+    assert user.forgot_password_code is not None
+    assert 0 <= int(user.forgot_password_code) <= 999999
+
+    assert len(mail.outbox) == 1
+    sent_email = mail.outbox[0]
+
+    assert (
+        sent_email.subject
+        == f'Restablecimiento de contraseña de MoviesXMovies para {user.username}'
+    )
+    assert sent_email.to == [user.email]
+    assert sent_email.content_subtype == 'html'
+
+    expected_html = render_to_string('users/email/password-reset-email.html', {'user': user})
     assert sent_email.body == expected_html
 
 
