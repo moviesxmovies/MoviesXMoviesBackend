@@ -16,6 +16,12 @@ from users.models import User
 from users.serializers import UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
 
+EMAIL_HELPER = 'User email'
+USERNAME_HELPER = 'User username'
+FIRST_NAME_HELPER = 'User first name'
+LAST_NAME_HELPER = 'User last name'
+USER_PASSWORD_HELPER = 'User password'
+
 
 class VerifyUserSerializer(serializers.Serializer):
     verification_code = serializers.CharField(required=True, help_text='Verification code')
@@ -28,19 +34,19 @@ class FollowResponse(serializers.Serializer):
 
 
 class SignupUserSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True, help_text='User email')
-    username = serializers.CharField(required=True, help_text='User username')
-    first_name = serializers.CharField(required=True, help_text='User first name')
-    last_name = serializers.CharField(required=True, help_text='User last name')
-    password = serializers.CharField(required=True, help_text='User password')
+    email = serializers.EmailField(required=True, help_text=EMAIL_HELPER)
+    username = serializers.CharField(required=True, help_text=USERNAME_HELPER)
+    first_name = serializers.CharField(required=True, help_text=FIRST_NAME_HELPER)
+    last_name = serializers.CharField(required=True, help_text=LAST_NAME_HELPER)
+    password = serializers.CharField(required=True, help_text=USER_PASSWORD_HELPER)
 
 
 class UserUpdateSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=False, help_text='User email')
-    username = serializers.CharField(required=False, help_text='User username')
-    first_name = serializers.CharField(required=False, help_text='User first name')
-    last_name = serializers.CharField(required=False, help_text='User last name')
-    password = serializers.CharField(required=False, help_text='User password')
+    email = serializers.EmailField(required=False, help_text=EMAIL_HELPER)
+    username = serializers.CharField(required=False, help_text=USERNAME_HELPER)
+    first_name = serializers.CharField(required=False, help_text=FIRST_NAME_HELPER)
+    last_name = serializers.CharField(required=False, help_text=LAST_NAME_HELPER)
+    password = serializers.CharField(required=False, help_text=USER_PASSWORD_HELPER)
     picture = serializers.ImageField(required=False, help_text='User profile picture')
     bio = serializers.CharField(required=False, help_text='User bio', allow_blank=True)
 
