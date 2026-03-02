@@ -14,7 +14,7 @@ from shared.utils import get_paginated_response
 from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
-from users.tasks import send_verification_email
+from users.tasks import send_password_reset_email, send_verification_email
 
 
 class VerifyUserSerializer(serializers.Serializer):
@@ -43,6 +43,18 @@ class UserUpdateSerializer(serializers.Serializer):
     password = serializers.CharField(required=False, help_text='User password')
     picture = serializers.ImageField(required=False, help_text='User profile picture')
     bio = serializers.CharField(required=False, help_text='User bio', allow_blank=True)
+
+
+class ForgotPasswordResponse(serializers.Serializer):
+    status = serializers.CharField(
+        help_text='Status message indicating the result of the forgot password request'
+    )
+
+
+class ForgotPasswordValidationSerializer(serializers.Serializer):
+    forgot_password_code = serializers.CharField(required=True, help_text='Forgot password code')
+    new_password = serializers.CharField(required=True, help_text='New password')
+    email = serializers.EmailField(required=True, help_text='User email')
 
 
 @extend_schema(
@@ -170,6 +182,62 @@ def update_user(request, user):
         user.full_clean()
         user.save()
         return UserSerializer(user, request=request).json_response()
+    except ValidationError as e:
+        errors = getattr(e, 'message_dict', {'error': e.messages})
+        return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
+
+
+@extend_schema(
+    responses={200: ForgotPasswordResponse, 404: None},
+    description='Initiate the forgot password process for a user account',
+    methods=['GET'],
+    parameters=[
+        OpenApiParameter(name='email', description='Email of the user to reset password for')
+    ],
+)
+@extend_schema(
+    responses={200: bool, 400: None},
+    description='Validate the forgot password code for a user account',
+    methods=['POST'],
+    request=ForgotPasswordValidationSerializer,
+)
+@api_view(['POST', 'GET'])
+@require_http_methods(['POST', 'GET'])
+def forgot_password_wrapper(request):
+    match request.method:
+        case 'GET':
+            return forgot_password(request)
+        case 'POST':
+            return forgot_password_validation(request)
+
+
+@require_http_methods(['GET'])
+@get_query_params('email')
+def forgot_password(request, email):
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=HTTPStatus.NOT_FOUND)
+    send_password_reset_email.delay(user)
+    return JsonResponse({'status': 'Password reset email sent'})
+
+
+@require_http_methods(['POST'])
+@get_body(None, ['forgot_password_code', 'new_password', 'email'])
+def forgot_password_validation(request, body):
+    try:
+        user = User.objects.get(email=body['email'])
+        if user.forgot_password_code != body['forgot_password_code']:
+            return JsonResponse(
+                {'error': 'Invalid verification code'}, status=HTTPStatus.BAD_REQUEST
+            )
+        validate_password(body['new_password'], user=user)
+        user.set_password(body['new_password'])
+        user.password_reset_code = None
+        user.save()
+        return JsonResponse({'status': 'Password reset successful'})
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Invalid verification code'}, status=HTTPStatus.BAD_REQUEST)
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)

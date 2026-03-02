@@ -131,6 +131,10 @@ def auth_client(client, user_factory, generate_jwt):
 def disable_social_jobs():
     signal_handler = 'users.signals.send_verification_email_on_created'
     delay = 'users.tasks.send_verification_email.delay'
-
-    with mock.patch(signal_handler) as mock_handler, mock.patch(delay) as mock_delay:
-        yield {'handler': mock_handler, 'delay': mock_delay}
+    delay2 = 'users.tasks.send_forgot_password_email.delay'
+    with (
+        mock.patch(signal_handler) as mock_handler,
+        mock.patch(delay) as mock_delay,
+        mock.patch(delay2) as mock_delay2,
+    ):
+        yield {'handler': mock_handler, 'delay': mock_delay, 'delay2': mock_delay2}

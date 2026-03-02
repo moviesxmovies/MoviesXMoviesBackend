@@ -16,3 +16,16 @@ def send_verification_email(user):
     email.content_subtype = 'html'
     user.save()
     email.send()
+
+
+@job
+def send_password_reset_email(user):
+    user.forgot_password_code = f'{secrets.randbelow(1000000):06d}'
+    email = EmailMessage(
+        subject=f'Restablecimiento de contraseña de MoviesXMovies de {user.username}',
+        body=render_to_string('users/email/password-reset-email.html', {'user': user}),
+        to=[user.email],
+    )
+    email.content_subtype = 'html'
+    user.save()
+    email.send()
