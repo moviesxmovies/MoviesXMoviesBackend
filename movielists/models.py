@@ -4,6 +4,7 @@ from django.db import models
 
 from movies.models import Movie
 from shared.models import BaseModel
+from django.db.models import Q
 
 
 class MovieList(BaseModel):
@@ -134,6 +135,6 @@ class MovieList(BaseModel):
 
         user_platforms = self.user.platforms.values_list('slug', flat=True)
         if user_platforms:
-            qs = qs.filter(platforms__slug__in=user_platforms)
+            qs = qs.filter(Q(platforms__slug__in=user_platforms) | Q(platforms__isnull=True))
 
         return qs.distinct()[:300]

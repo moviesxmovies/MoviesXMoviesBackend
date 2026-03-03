@@ -51,6 +51,62 @@ def test_movie_list_str(movie_list_factory):
     assert str(movie_list) == 'my-movie-list'
 
 
+@pytest.mark.django_db
+def test_movie_list_intelligent_fill_no_filters(
+    movie_list_factory, user_factory, movie_factory, rating_factory, platform_factory
+):
+    netflix = platform_factory(slug='netflix')
+    user = user_factory()
+    user.platforms.add(netflix)
+
+    movie_watched = movie_factory(title='Watched Movie')
+    rating_factory(movie=movie_watched, user=user, rating=5)
+
+    movie_unseen = movie_factory(title='Unseen Movie')
+    user.unseen_movies.add(movie_unseen)
+
+    movie_recommendation = movie_factory(title='Recommended Movie')
+    movie_recommendation.platforms.add(netflix)
+
+    movie_list = movie_list_factory(user=user, name='Intelligent List')
+
+    movie_list.intelligent_fill()
+
+    assert movie_list.movies.count() > 0
+    assert movie_list.movies.filter(id=movie_recommendation.id).exists()
+
+
+@pytest.mark.django_db
+def test_movie_list_intelligent_fill_with_scoring_filters(
+    movie_list_factory, user_factory, movie_factory, person_factory, rating_factory, award_factory
+):
+    user = user_factory()
+    user.platforms.clear() 
+
+    friend = user_factory(username='best_friend')
+    user.following.add(friend)
+    friend.following.add(user)
+
+    actor = person_factory(slug='leo-dicaprio')
+    winner = movie_factory(title='The Perfect Movie')
+    winner.actors.add(actor)
+
+    award = award_factory(name='Best Picture')
+    winner.awards.add(award)
+
+    rating_factory(movie=winner, user=friend, rating=5)
+
+    neutral_movie = movie_factory(title='Meh Movie')
+
+    movie_list = movie_list_factory(user=user, name='Scored List')
+
+    movie_list.intelligent_fill(celebrities=['leo-dicaprio'], friends=['best_friend'])
+
+    movies = list(movie_list.movies.all())
+    assert len(movies) >= 2
+    assert movies[0] == winner  
+
+
 # ===========================================================================
 #  SERIALIZERS
 # ===========================================================================
@@ -94,7 +150,6 @@ def test_movies_list_self_view(auth_client, movie_list_factory):
 
     assert response.status_code == 200
     data = response.json()
-    print(data)
 
     assert data['count'] == 3
     names = [list_item['name'] for list_item in data['results']]
