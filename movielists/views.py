@@ -100,51 +100,65 @@ def movies_list_self(request, page: int = 1, limit: int = 10):
 
 @get_body(MovieList, ['name', 'description', 'privacity'])
 @get_query_params('intelligent')
-def save_movie_list_self(
-    request,
-    movielist: MovieList,
-    intelligent: bool = False,
-):
-    """Create a movie list for the authenticated user
-
-    Args:
-        request (django.request): All about the request
-
-    Returns:
-        django.http.JsonResponse: The serialized movie list
-    """
+def save_movie_list_self(request, movielist: MovieList, intelligent: bool = False):
     genres = request.GET.getlist('genres')
     celebrities = request.GET.getlist('celebrities')
     friends = request.GET.getlist('friends')
+
     movielist.user = request.user
     movielist.slug = slugify(movielist.name)
+
     try:
         movielist.full_clean()
+
+        if intelligent:
+            error_response = _validate_intelligent_params(
+                request.user, genres, celebrities, friends
+            )
+            if error_response:
+                return error_response
+
         movielist.save()
 
         if intelligent:
-            for genre in genres:
-                if not Genre.objects.filter(slug=genre).exists():
-                    return JsonResponse(
-                        {'error': f'Genre `{genre}` does not exist'},
-                        status=HTTPStatus.BAD_REQUEST,
-                    )
-            for celebrity in celebrities:
-                if not Person.objects.filter(slug=celebrity).exists():
-                    return JsonResponse(
-                        {'error': f'Celebrity `{celebrity}` does not exist'},
-                        status=HTTPStatus.BAD_REQUEST,
-                    )
-            for friend in friends:
-                if not request.user.friends.filter(username=friend).exists():
-                    return JsonResponse(
-                        {'error': f'Friend `{friend}` does not exist or is not your friend'},
-                        status=HTTPStatus.BAD_REQUEST,
-                    )
             movielist.intelligent_fill(genres=genres, celebrities=celebrities, friends=friends)
+
         return MovieListSerializer(movielist, request=request).json_response()
+
     except ValidationError as e:
         return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
+
+
+def _validate_intelligent_params(user, genres, celebrities, friends):
+    if genres:
+        existing_genres = set(Genre.objects.filter(slug__in=genres).values_list('slug', flat=True))
+        for g in genres:
+            if g not in existing_genres:
+                return JsonResponse(
+                    {'error': f'Genre `{g}` does not exist'}, status=HTTPStatus.BAD_REQUEST
+                )
+
+    if celebrities:
+        existing_celebs = set(
+            Person.objects.filter(slug__in=celebrities).values_list('slug', flat=True)
+        )
+        for c in celebrities:
+            if c not in existing_celebs:
+                return JsonResponse(
+                    {'error': f'Celebrity `{c}` does not exist'}, status=HTTPStatus.BAD_REQUEST
+                )
+
+    if friends:
+        existing_friends = set(
+            user.friends.filter(username__in=friends).values_list('username', flat=True)
+        )
+        for f in friends:
+            if f not in existing_friends:
+                return JsonResponse(
+                    {'error': f'Friend `{f}` is not in your list'}, status=HTTPStatus.BAD_REQUEST
+                )
+
+    return None
 
 
 @extend_schema(
