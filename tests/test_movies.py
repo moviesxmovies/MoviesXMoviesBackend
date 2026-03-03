@@ -1,8 +1,12 @@
+from functools import cache
 import json
+import pickle
 
 import pytest
 
 from movies.serializers import MovieSerializer
+from movies.tasks import retrain_professional_model
+from ratings.models import Rating
 from tests.conftest import (
     MOVIE_DETAIL_URL,
     MOVIE_FRIENDS_RATINGS_URL,
@@ -345,3 +349,48 @@ def test_movie_rating_get_view_not_exists(movie_factory, auth_client):
     data = response.json()
     assert 'error' in data
     assert data['error'] == 'Rating not found'
+
+# ===========================================================================
+# TASKS
+# ===========================================================================
+
+@pytest.mark.django_db
+def test_retrain_professional_model_success(user_factory, movie_factory, rating_factory):
+    user_a = user_factory()
+    user_b = user_factory()
+    movie_1 = movie_factory()
+    movie_2 = movie_factory()
+
+    rating_factory(user=user_a, movie=movie_1, rating=5)
+    rating_factory(user=user_b, movie=movie_2, rating=4)
+    rating_factory(user=user_a, movie=movie_2, rating=2)
+
+    result = retrain_professional_model()
+
+    assert result == 'Modelo Implicit (ALS) entrenado exitosamente'
+    
+    raw_data = cache.get('movie_recommendation_model')
+    assert raw_data is not None
+    
+    data = pickle.loads(raw_data)
+    
+    assert 'model' in data
+    assert 'user_id_map' in data
+    assert 'movie_id_map' in data
+    assert 'user_items_matrix' in data
+    
+    assert user_a.id in data['user_id_map']
+    assert movie_1.id in data['movie_id_map']
+    
+    matrix = data['user_items_matrix']
+    assert matrix.shape == (2, 2)
+    assert matrix.sum() == 11.0 
+
+@pytest.mark.django_db
+def test_retrain_model_no_ratings():
+    Rating.objects.all().delete()
+    
+    result = retrain_professional_model()
+    
+    assert result == 'No hay ratings para entrenar.'
+    assert cache.get('movie_recommendation_model') is None
