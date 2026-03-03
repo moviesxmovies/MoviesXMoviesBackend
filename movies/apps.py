@@ -37,5 +37,5 @@ class MoviesConfig(AppConfig):
                     interval=86400,
                     repeat=None,
                 )
-            except ImportError, Exception:
+            except ImportError:
                 pass
