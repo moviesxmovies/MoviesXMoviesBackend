@@ -1,7 +1,6 @@
-from functools import cache
 import json
 import pickle
-
+from django.core.cache import cache
 import pytest
 
 from movies.serializers import MovieSerializer
@@ -391,6 +390,6 @@ def test_retrain_model_no_ratings():
     Rating.objects.all().delete()
     
     result = retrain_professional_model()
-    
-    assert result == 'No hay ratings para entrenar.'
+
+    assert result == 'No ratings to train the model'
     assert cache.get('movie_recommendation_model') is None

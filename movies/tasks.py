@@ -14,7 +14,7 @@ def retrain_professional_model():
     ratings_qs = Rating.objects.values_list('user_id', 'movie_id', 'rating')
 
     if not ratings_qs.exists():
-        return 'No hay ratings para entrenar.'
+        return 'No ratings to train the model'
 
     users_list = list(User.objects.values_list('id', flat=True))
     movies_list = list(Movie.objects.values_list('id', flat=True))
