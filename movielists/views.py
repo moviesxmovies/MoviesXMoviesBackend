@@ -122,8 +122,9 @@ def save_movie_list_self(request, movielist: MovieList, intelligent: bool = Fals
 
         if intelligent:
             movielist.intelligent_fill(genres=genres, celebrities=celebrities, friends=friends)
-
-        return MovieListSerializer(movielist, request=request).json_response()
+        response = MovieListSerializer(movielist, request=request).json_response()
+        response.status_code = HTTPStatus.CREATED
+        return response
 
     except ValidationError as e:
         return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)

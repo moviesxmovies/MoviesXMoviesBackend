@@ -81,7 +81,7 @@ def test_movie_list_intelligent_fill_with_scoring_filters(
     movie_list_factory, user_factory, movie_factory, person_factory, rating_factory, award_factory
 ):
     user = user_factory()
-    user.platforms.clear() 
+    user.platforms.clear()
 
     friend = user_factory(username='best_friend')
     user.following.add(friend)
@@ -104,7 +104,7 @@ def test_movie_list_intelligent_fill_with_scoring_filters(
 
     movies = list(movie_list.movies.all())
     assert len(movies) >= 2
-    assert movies[0] == winner  
+    assert movies[0] == winner
 
 
 # ===========================================================================
@@ -316,3 +316,62 @@ def test_movies_list_detail_view_self(auth_client, movie_list_factory):
     assert response.status_code == 200
     data = response.json()
     assert data['name'] == 'My Movie List'
+
+
+@pytest.mark.django_db
+def test_movies_list_save(auth_client):
+
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL,
+        data={
+            'name': 'My New Movie List',
+            'description': 'A description for my new movie list',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data['name'] == 'My New Movie List'
+    assert data['description'] == 'A description for my new movie list'
+    assert data['privacity'] == MovieList.Privacity.PUBLIC
+    assert data['user'].endswith(reverse('user-detail', args=[auth_client.user]))
+    assert data['movies'] == []
+
+
+@pytest.mark.django_db
+def test_movies_list_save_intelligent(
+    auth_client, user_factory, movie_factory, rating_factory, platform_factory
+):
+    netflix = platform_factory(slug='netflix')
+    user = auth_client.user
+    user.platforms.add(netflix)
+
+    movie_watched = movie_factory(title='Watched Movie')
+    rating_factory(movie=movie_watched, user=user, rating=5)
+
+    movie_unseen = movie_factory(title='Unseen Movie')
+    user.unseen_movies.add(movie_unseen)
+
+    movie_recommendation = movie_factory(title='Recommended Movie')
+    movie_recommendation.platforms.add(netflix)
+
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true',
+        data={
+            'name': 'My Intelligent Movie List',
+            'description': 'A description for my intelligent movie list',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data['name'] == 'My Intelligent Movie List'
+    assert data['description'] == 'A description for my intelligent movie list'
+    assert data['privacity'] == MovieList.Privacity.PUBLIC
+    assert data['user'].endswith(reverse('user-detail', args=[auth_client.user]))
+    assert len(data['movies']) > 0
+    assert any(movie.endswith(reverse('movies:movie-detail', args=[movie_recommendation])) for movie in data['movies'])
