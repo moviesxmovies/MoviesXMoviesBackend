@@ -1,5 +1,5 @@
 import pytest
-from conftest import MOVIE_LIST_DETAIL_URL, MOVIE_LIST_SELF_URL, MOVIE_LIST_USER_URL
+from conftest import MOVIE_LIST_DETAIL_URL, MOVIE_LIST_SELF_URL, MOVIE_LIST_USER_URL, auth_client
 from django.urls import reverse
 
 from movielists.models import MovieList
@@ -341,9 +341,7 @@ def test_movies_list_save(auth_client):
 
 
 @pytest.mark.django_db
-def test_movies_list_save_intelligent(
-    auth_client, user_factory, movie_factory, rating_factory, platform_factory
-):
+def test_movies_list_save_intelligent(auth_client, movie_factory, rating_factory, platform_factory):
     netflix = platform_factory(slug='netflix')
     user = auth_client.user
     user.platforms.add(netflix)
@@ -374,4 +372,48 @@ def test_movies_list_save_intelligent(
     assert data['privacity'] == MovieList.Privacity.PUBLIC
     assert data['user'].endswith(reverse('user-detail', args=[auth_client.user]))
     assert len(data['movies']) > 0
-    assert any(movie.endswith(reverse('movies:movie-detail', args=[movie_recommendation])) for movie in data['movies'])
+    assert any(
+        movie.endswith(reverse('movies:movie-detail', args=[movie_recommendation]))
+        for movie in data['movies']
+    )
+
+
+@pytest.mark.django_db
+def test_movie_list_save_intelligent_fill_with_scoring_filters(
+    movie_factory, person_factory, rating_factory, award_factory, auth_client, user_factory
+):
+    user = auth_client.user
+    user.platforms.clear()
+
+    friend = user_factory(username='best_friend')
+    user.following.add(friend)
+    friend.following.add(user)
+
+    actor = person_factory(slug='leo-dicaprio')
+    winner = movie_factory(title='The Perfect Movie')
+    winner.actors.add(actor)
+
+    award = award_factory(name='Best Picture')
+    winner.awards.add(award)
+
+    rating_factory(movie=winner, user=friend, rating=5)
+
+    neutral_movie = movie_factory(title='Meh Movie')
+
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true&celebrities=leo-dicaprio&friends=best_friend',
+        data={
+            'name': 'My Scored Intelligent Movie List',
+            'description': 'A description for my scored intelligent movie list',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data['name'] == 'My Scored Intelligent Movie List'
+    assert data['description'] == 'A description for my scored intelligent movie list'
+    assert data['privacity'] == MovieList.Privacity.PUBLIC
+    assert data['user'].endswith(reverse('user-detail', args=[auth_client.user]))
+    assert len(data['movies']) >= 2
+    assert data['movies'][0].endswith(reverse('movies:movie-detail', args=[winner]))
