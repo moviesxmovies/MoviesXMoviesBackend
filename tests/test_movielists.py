@@ -5,10 +5,12 @@ from conftest import (
     MOVIE_LIST_SELF_URL,
     MOVIE_LIST_USER_URL,
 )
+from django.core.cache import cache
 from django.urls import reverse
 
 from movielists.models import MovieList
 from movielists.serializers import MovieListSerializer
+from movies.tasks import retrain_professional_model
 
 # ===========================================================================
 #  MODELS
@@ -384,6 +386,57 @@ def test_movies_list_save_intelligent(auth_client, movie_factory, rating_factory
 
 
 @pytest.mark.django_db
+def test_movie_list_save_using_cache(auth_client, user_factory, movie_factory, rating_factory):
+    cache.clear()
+    user = auth_client.user
+    user.platforms.clear()
+
+    watched_movies = [movie_factory(slug=f'already-watched-movie-{i}') for i in range(3)]
+    unseen_movies = [movie_factory(slug=f'shiny-new-recommendation-{i}') for i in range(3)]
+
+    comunidad = [user_factory() for _ in range(3)]
+
+    for m in watched_movies:
+        rating_factory(user=user, movie=m, rating=5)
+
+    for u in comunidad:
+        for m in watched_movies + unseen_movies:
+            rating_factory(user=u, movie=m, rating=5)
+
+    retrain_professional_model()
+
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true',
+        data={
+            'name': 'AI Recommendation List',
+            'description': 'Testing Implicit ALS',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+
+    recommended_urls = data['movies']
+    assert len(recommended_urls) > 0, 'La IA no ha devuelto películas'
+
+    watched_slugs = [m.slug for m in watched_movies]
+    unseen_slugs = [m.slug for m in unseen_movies]
+
+    for url in recommended_urls:
+        for w_slug in watched_slugs:
+            assert w_slug not in url, f'La película vista {w_slug} se coló en la recomendación'
+
+    found_any_target = any(
+        any(u_slug in url for u_slug in unseen_slugs) for url in recommended_urls
+    )
+    assert found_any_target, f'No se encontró ninguna recomendación esperada en: {recommended_urls}'
+
+    cache.delete('movie_recommendation_model')
+
+
+@pytest.mark.django_db
 def test_movie_list_save_intelligent_fill_with_scoring_filters(
     movie_factory, person_factory, rating_factory, award_factory, auth_client, user_factory
 ):
@@ -482,8 +535,8 @@ def test_movie_list_save_intelligent_exception_friends(auth_client):
 def test_movie_list_add_movie(auth_client, movie_list_factory, movie_factory):
     user = auth_client.user
     movie_list = movie_list_factory(user=user)
-    movie_list.movies.clear() 
-    
+    movie_list.movies.clear()
+
     movie = movie_factory()
 
     response = auth_client.post(
@@ -497,9 +550,9 @@ def test_movie_list_add_movie(auth_client, movie_list_factory, movie_factory):
 
     assert response.status_code == 200
     data = response.json()
-    
+
     assert len(data['movies']) == 1
-    
+
     movie_url_part = reverse('movies:movie-detail', args=[movie])
     assert any(m.endswith(movie_url_part) for m in data['movies'])
 
@@ -507,12 +560,13 @@ def test_movie_list_add_movie(auth_client, movie_list_factory, movie_factory):
     assert movie_list.movies.count() == 1
     assert movie_list.movies.filter(id=movie.id).exists()
 
+
 @pytest.mark.django_db
 def test_movie_list_remove_movie(auth_client, movie_list_factory, movie_factory):
     user = auth_client.user
     movie_list = movie_list_factory(user=user)
-    movie_list.movies.clear() 
-    
+    movie_list.movies.clear()
+
     movie = movie_factory()
     movie_list.movies.add(movie)
 
@@ -525,7 +579,7 @@ def test_movie_list_remove_movie(auth_client, movie_list_factory, movie_factory)
         content_type='application/json',
     )
 
-    assert response.status_code == 200    
+    assert response.status_code == 200
 
     movie_list.refresh_from_db()
     assert movie_list.movies.count() == 0

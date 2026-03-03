@@ -80,9 +80,6 @@ class MovieList(BaseModel):
             if movie.awards.exists():
                 score += 0.7
 
-            if self._is_from_favorite_decade(movie):
-                score += 0.5
-
             scored_list.append((movie, score))
 
         return sorted(scored_list, key=lambda x: x[1], reverse=True)
@@ -96,12 +93,6 @@ class MovieList(BaseModel):
                 'movie_id', flat=True
             )
         )
-
-    def _is_from_favorite_decade(self, movie):
-        fav_decade = getattr(self.user, 'favorite_decade', None)
-        if movie.release_date and fav_decade:
-            return (movie.release_date.year // 10) * 10 == fav_decade
-        return False
 
     def _get_base_candidates(self, exclude_ids):
 
