@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, time, timedelta
+import sys
 
 from django.apps import AppConfig
 from django.utils import timezone
@@ -11,6 +12,8 @@ class MoviesConfig(AppConfig):
 
     def ready(self):
         if os.environ.get('RUN_MAIN') != 'true':
+            if 'test' in sys.argv or 'pytest' in sys.modules:
+                return
             try:
                 import django_rq
 

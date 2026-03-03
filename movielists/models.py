@@ -3,6 +3,7 @@ from django.core.cache import cache
 from django.db import models
 
 from movies.models import Movie
+from ratings.models import Rating
 from shared.models import BaseModel
 from django.db.models import Q
 
@@ -89,7 +90,6 @@ class MovieList(BaseModel):
     def _get_friends_favorites(self, friends_usernames):
         if not friends_usernames:
             return []
-        from ratings.models import Rating
 
         return list(
             Rating.objects.filter(user__username__in=friends_usernames, rating__gte=4).values_list(
