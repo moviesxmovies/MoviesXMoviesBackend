@@ -385,6 +385,8 @@ def test_retrain_professional_model_success(user_factory, movie_factory, rating_
     assert matrix.shape == (2, 2)
     assert matrix.sum() == 11.0 
 
+    cache.delete('movie_recommendation_model')
+
 @pytest.mark.django_db
 def test_retrain_model_no_ratings():
     Rating.objects.all().delete()
