@@ -94,9 +94,10 @@ def test_movies_list_self_view(auth_client, movie_list_factory):
 
     assert response.status_code == 200
     data = response.json()
+    print(data)
 
-    assert len(data) == 3
-    names = [list_item['name'] for list_item in data]
+    assert data['count'] == 3
+    names = [list_item['name'] for list_item in data['results']]
     assert 'My Movie List' in names
     assert 'My Movie List2' in names
     assert 'My Movie List3' in names
@@ -128,8 +129,8 @@ def test_movies_list_user_public_view(auth_client, movie_list_factory, user_fact
     response = auth_client.get(MOVIE_LIST_USER_URL.format(username=user.username))
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]['name'] == 'My Movie List2'
+    assert data['count'] == 1
+    assert data['results'][0]['name'] == 'My Movie List2'
 
 
 @pytest.mark.django_db
@@ -148,8 +149,8 @@ def test_movies_list_user_followers_view(auth_client, movie_list_factory, user_f
     response = auth_client.get(MOVIE_LIST_USER_URL.format(username=user.username))
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 2
-    names = [list_item['name'] for list_item in data]
+    assert data['count'] == 2
+    names = [list_item['name'] for list_item in data['results']]
     assert 'My Movie List2' in names
     assert 'My Movie List3' in names
 
