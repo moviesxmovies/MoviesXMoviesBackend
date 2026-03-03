@@ -1,5 +1,10 @@
 import pytest
-from conftest import MOVIE_LIST_DETAIL_URL, MOVIE_LIST_SELF_URL, MOVIE_LIST_USER_URL, auth_client
+from conftest import (
+    MOVIE_LIST_DETAIL_URL,
+    MOVIE_LIST_MOVIE_WRAPPER_URL,
+    MOVIE_LIST_SELF_URL,
+    MOVIE_LIST_USER_URL,
+)
 from django.urls import reverse
 
 from movielists.models import MovieList
@@ -417,3 +422,111 @@ def test_movie_list_save_intelligent_fill_with_scoring_filters(
     assert data['user'].endswith(reverse('user-detail', args=[auth_client.user]))
     assert len(data['movies']) >= 2
     assert data['movies'][0].endswith(reverse('movies:movie-detail', args=[winner]))
+
+
+@pytest.mark.django_db
+def test_movie_list_save_intelligent_exception_genre(auth_client):
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true&genres=nonexistentgenre',
+        data={
+            'name': 'My Intelligent Movie List',
+            'description': 'A description for my intelligent movie list',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == 'Genre `nonexistentgenre` does not exist'
+
+
+@pytest.mark.django_db
+def test_movie_list_save_intelligent_exception_celebrities(auth_client):
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true&celebrities=nonexistentcelebrity',
+        data={
+            'name': 'My Intelligent Movie List',
+            'description': 'A description for my intelligent movie list',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == 'Celebrity `nonexistentcelebrity` does not exist'
+
+
+@pytest.mark.django_db
+def test_movie_list_save_intelligent_exception_friends(auth_client):
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true&friends=nonexistentfriend',
+        data={
+            'name': 'My Intelligent Movie List',
+            'description': 'A description for my intelligent movie list',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == 'Friend `nonexistentfriend` is not in your list'
+
+
+@pytest.mark.django_db
+def test_movie_list_add_movie(auth_client, movie_list_factory, movie_factory):
+    user = auth_client.user
+    movie_list = movie_list_factory(user=user)
+    movie_list.movies.clear() 
+    
+    movie = movie_factory()
+
+    response = auth_client.post(
+        MOVIE_LIST_MOVIE_WRAPPER_URL.format(
+            username=user.username,
+            movies_list_slug=movie_list.slug,
+            movie_slug=movie.slug,
+        ),
+        content_type='application/json',
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    
+    assert len(data['movies']) == 1
+    
+    movie_url_part = reverse('movies:movie-detail', args=[movie])
+    assert any(m.endswith(movie_url_part) for m in data['movies'])
+
+    movie_list.refresh_from_db()
+    assert movie_list.movies.count() == 1
+    assert movie_list.movies.filter(id=movie.id).exists()
+
+@pytest.mark.django_db
+def test_movie_list_remove_movie(auth_client, movie_list_factory, movie_factory):
+    user = auth_client.user
+    movie_list = movie_list_factory(user=user)
+    movie_list.movies.clear() 
+    
+    movie = movie_factory()
+    movie_list.movies.add(movie)
+
+    response = auth_client.delete(
+        MOVIE_LIST_MOVIE_WRAPPER_URL.format(
+            username=user.username,
+            movies_list_slug=movie_list.slug,
+            movie_slug=movie.slug,
+        ),
+        content_type='application/json',
+    )
+
+    assert response.status_code == 200    
+
+    movie_list.refresh_from_db()
+    assert movie_list.movies.count() == 0
+    assert not movie_list.movies.filter(id=movie.id).exists()

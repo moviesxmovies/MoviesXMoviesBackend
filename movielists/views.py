@@ -246,10 +246,10 @@ def movies_list_detail(request, user, movies_list):
 @require_http_methods(['POST', 'DELETE'])
 @auth_required
 def movies_list_movie_wrapper(request, user, movies_list, movie):
-    if request.user != user:
+    if request.user != user or movies_list.user != user:
         return JsonResponse(
             {'error': "This movies list doesn't exist or you're not allowed to see it"},
-            status=HTTPStatus.NOT_FOUND,
+            status=HTTPStatus.FORBIDDEN,
         )
     match request.method:
         case 'POST':

@@ -14,6 +14,6 @@ urlpatterns = [
     path(
         '<user:user>/<movies-list:movies_list>/<movie:movie>/',
         views.movies_list_movie_wrapper,
-        name='movies-lists-user',
+        name='movies-lists-movie-wrapper',
     ),
 ]
