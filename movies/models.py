@@ -37,6 +37,10 @@ class Movie(BaseModel):
         language = models.CharField(max_length=2)
         title = models.CharField(max_length=100)
         synopsis = models.TextField()
+        image = models.ImageField(upload_to='movies/translations/covers', null=True, blank=True)
+
+        def __str__(self):
+            return f'{self.movie.title} ({self.language})'
 
     title = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True, allow_unicode=True)
@@ -69,3 +73,12 @@ class Movie(BaseModel):
         if translation:
             return translation.synopsis
         return self.synopsis
+
+    def translate_image(self, language):
+        try:
+            translation = self.translations.get(language=language)
+        except self.MovieTranslation.DoesNotExist:
+            translation = None
+        if translation and translation.image:
+            return translation.image.url
+        return self.cover.url

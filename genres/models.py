@@ -28,6 +28,8 @@ class Genre(BaseModel):
         genre = models.ForeignKey('Genre', related_name='translations', on_delete=models.CASCADE)
         language = models.CharField(max_length=2)
         name = models.CharField(max_length=32)
+        def __str__(self):
+            return f'{self.genre.name} ({self.language})'
 
     name = models.CharField(max_length=32, unique=True)
     slug = models.SlugField(max_length=32, unique=True)

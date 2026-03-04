@@ -15,7 +15,7 @@ class MovieSerializer(BaseSerializer):
             'slug': instance.slug,
             'release_date': instance.release_date.isoformat(),
             'synopsis': instance.translate_synopsis(self.request.user.preferred_language) if self.request else instance.synopsis,
-            'cover': self.build_url(instance.cover.url),
+            'cover': self.build_url(instance.translate_image(self.request.user.preferred_language) if self.request else instance.cover.url),
             'genres': GenreSerializer(instance.genres.all(), request=self.request).serialize(),
             'awards': AwardSerializer(instance.awards.all(), request=self.request).serialize(),
             'platforms': PlatformSerializer(
