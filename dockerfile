@@ -9,9 +9,12 @@ ENV PATH="/app/.venv/bin:$PATH"
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    gcc \
+    g++ \
     libjpeg-dev \
     zlib1g-dev \
-    gcc \
     libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
