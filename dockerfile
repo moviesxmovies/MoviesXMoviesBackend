@@ -32,4 +32,4 @@ USER django_user
 EXPOSE 7996
 RUN python manage.py collectstatic --noinput
 
-CMD ["sh", "-c", "python manage.py migrate && uvicorn main.asgi:application --host 0.0.0.0 --port 7996 --workers 4"]
+CMD ["sh", "-c", "python manage.py migrate && guvicorn main.wsgi:application --host 0.0.0.0 --port 7996 --workers 4"]
