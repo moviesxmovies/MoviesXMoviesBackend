@@ -12,6 +12,7 @@ dependencies = [
     "django-rq>=3.2.2",
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.29.0",
+    "gunicorn>=25.1.0",
     "implicit>=0.7.2",
     "pillow>=12.1.0",
     "prettyconf>=2.3.0",
@@ -19,7 +20,6 @@ dependencies = [
     "pyjwt>=2.11.0",
     "requests>=2.32.5",
     "rq-scheduler>=0.14.0",
-    "uvicorn[standard]>=0.34.0",
 ]
 
 [dependency-groups]
