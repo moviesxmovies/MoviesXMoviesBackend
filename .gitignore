@@ -13,3 +13,4 @@ fixtures/movie_fixtures.json
 mediaapi/
 mediatest/
 dump.rdb
+logs/

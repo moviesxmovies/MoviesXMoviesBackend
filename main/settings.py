@@ -219,6 +219,56 @@ SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+import os
+
+# Definir la carpeta de logs (asegúrate de que el usuario que corre Django tenga permisos)
+LOG_BASE_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOG_BASE_DIR):
+    os.makedirs(LOG_BASE_DIR)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_BASE_DIR, 'django_error.log'),
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+        },
+        'django': {
+            'handlers': [
+                'file',
+            ],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
+
 WSGI_APPLICATION = 'main.wsgi.application'
 
 
