@@ -89,6 +89,7 @@ class MovieTranslationFactory(factory.django.DjangoModelFactory):
     language = factory.Iterator(settings.SUPPORTED_LANGUAGES)
     title = factory.Faker('sentence', nb_words=3)
     synopsis = factory.Faker('paragraph', nb_sentences=5)
+    image = factory.django.ImageField(color='red', width=300, height=450)
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
