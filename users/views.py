@@ -53,7 +53,7 @@ class UserUpdateSerializer(serializers.Serializer):
 
 
 class ForgotPasswordResponse(serializers.Serializer):
-    status = serializers.CharField(
+    status = serializers.BooleanField(
         help_text='Status message indicating the result of the forgot password request'
     )
 
@@ -69,6 +69,10 @@ class ChangePreferredLanguageSerializer(serializers.Serializer):
         choices=settings.SUPPORTED_LANGUAGES, help_text='Preferred language code'
     )
 
+class ChangePreferredLanguageResponse(serializers.Serializer):
+    status = serializers.BooleanField(
+        help_text='Status message indicating the result of the change preferred language request'
+    )
 
 @extend_schema(
     request=VerifyUserSerializer,
@@ -290,7 +294,7 @@ def user_signup(request, user: User):
 
 
 @extend_schema(
-    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    responses={200: ChangePreferredLanguageResponse, 400: None, 404: None},
     description='Set preferred language for the authenticated user',
     methods=['POST'],
     request=ChangePreferredLanguageSerializer,
@@ -305,7 +309,7 @@ def set_preferred_language(request, body):
         return JsonResponse({'error': 'Invalid language code'}, status=HTTPStatus.BAD_REQUEST)
     request.user.preferred_language = preferred_language
     request.user.save()
-    return UserSerializer(request.user, request=request).json_response()
+    return JsonResponse({'status': True})
 
 
 # REVIEWS

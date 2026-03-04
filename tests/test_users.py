@@ -893,7 +893,7 @@ def test_set_preferred_language(auth_client):
 
     response = auth_client.post(USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json')
     assert response.status_code == HTTPStatus.OK
-    assert response.json()['preferred_language'] == 'es'
+    assert response.json()['status'] is True
 
     auth_client.user.refresh_from_db()
     assert auth_client.user.preferred_language == 'es'
