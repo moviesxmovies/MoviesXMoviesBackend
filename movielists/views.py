@@ -100,7 +100,7 @@ def movies_list_self(request, page: int = 1, limit: int = 10):
 
 @get_body(MovieList, ['name', 'description', 'privacity'])
 @get_query_params('intelligent')
-def save_movie_list_self(request, movielist: MovieList, intelligent: bool = False):
+def save_movie_list_self(request, movielist: MovieList, intelligent):
     genres = request.GET.getlist('genres')
     celebrities = request.GET.getlist('celebrities')
     friends = request.GET.getlist('friends')
@@ -108,10 +108,13 @@ def save_movie_list_self(request, movielist: MovieList, intelligent: bool = Fals
     movielist.user = request.user
     movielist.slug = slugify(movielist.name)
 
+    is_intelligent = bool(intelligent) and intelligent.lower() != 'false'
+
+
     try:
         movielist.full_clean()
 
-        if intelligent:
+        if is_intelligent:
             error_response = _validate_intelligent_params(
                 request.user, genres, celebrities, friends
             )
@@ -120,7 +123,7 @@ def save_movie_list_self(request, movielist: MovieList, intelligent: bool = Fals
 
         movielist.save()
 
-        if intelligent:
+        if is_intelligent:
             movielist.intelligent_fill(genres=genres, celebrities=celebrities, friends=friends)
         response = MovieListSerializer(movielist, request=request).json_response()
         response.status_code = HTTPStatus.CREATED
