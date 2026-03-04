@@ -32,7 +32,7 @@ class User(AbstractUser):
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     forgot_password_code = models.CharField(max_length=6, null=True, blank=True)
     unseen_movies = models.ManyToManyField('movies.Movie', related_name='users_unseen', blank=True)
-
+    preferred_language = models.CharField(max_length=2, default='en')
     def is_following(self, check_user):
         """Check if user is following check_user
 

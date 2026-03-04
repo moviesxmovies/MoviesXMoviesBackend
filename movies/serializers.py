@@ -11,10 +11,10 @@ class MovieSerializer(BaseSerializer):
     def serialize_instance(self, instance) -> dict:
         return {
             'id': instance.pk,
-            'title': instance.title,
+            'title': instance.translate_title(self.request.user.preferred_language) if self.request else instance.title,
             'slug': instance.slug,
             'release_date': instance.release_date.isoformat(),
-            'synopsis': instance.synopsis,
+            'synopsis': instance.translate_synopsis(self.request.user.preferred_language) if self.request else instance.synopsis,
             'cover': self.build_url(instance.cover.url),
             'genres': GenreSerializer(instance.genres.all(), request=self.request).serialize(),
             'awards': AwardSerializer(instance.awards.all(), request=self.request).serialize(),
