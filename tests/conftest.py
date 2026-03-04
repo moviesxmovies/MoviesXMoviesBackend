@@ -64,6 +64,7 @@ SELF_USER_WRAPPER_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
 USER_REVIEWS_URL = '/api/users/{username}/reviews/'
 FOLLOW_USER_URL = '/api/users/{username}/follow/'
+USER_CHANGE_PREFERRED_LANGUAGE_URL = '/api/users/preferred-language/'
 
 # REVIEWS
 EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'
