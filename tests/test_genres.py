@@ -1,4 +1,7 @@
+from unittest.mock import Mock
+
 import pytest
+from django.test import RequestFactory
 
 from genres.serializers import GenreSerializer
 
@@ -39,4 +42,18 @@ def test_genre_serializer(genre_factory):
 
     assert serialized['id'] == genre.pk
     assert serialized['name'] == 'Comedy'
+    assert serialized['slug'] == 'comedy'
+
+
+@pytest.mark.django_db
+def test_genre_serializer_with_translations(genre_factory, genre_translation_factory):
+    translation = genre_translation_factory(language='es', name='Comedia')
+    genre = genre_factory(name='Comedy', translations=[translation])
+    request = RequestFactory().get('/')
+    request.user = Mock(preferred_language='es')
+
+    serialized = GenreSerializer(genre, request=request).serialize()
+
+    assert serialized['id'] == genre.pk
+    assert serialized['name'] == translation.name
     assert serialized['slug'] == 'comedy'

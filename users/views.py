@@ -8,6 +8,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
+from main import settings
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
@@ -61,6 +62,12 @@ class ForgotPasswordValidationSerializer(serializers.Serializer):
     forgot_password_code = serializers.CharField(required=True, help_text='Forgot password code')
     new_password = serializers.CharField(required=True, help_text='New password')
     email = serializers.EmailField(required=True, help_text='User email')
+
+
+class ChangePreferredLanguageSerializer(serializers.Serializer):
+    preferred_language = serializers.ChoiceField(
+        choices=settings.SUPPORTED_LANGUAGES, help_text='Preferred language code'
+    )
 
 
 @extend_schema(
@@ -280,6 +287,25 @@ def user_signup(request, user: User):
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
+
+
+@extend_schema(
+    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    description='Set preferred language for the authenticated user',
+    methods=['POST'],
+    request=ChangePreferredLanguageSerializer,
+)
+@api_view(['POST'])
+@require_http_methods(['POST'])
+@auth_required
+@get_body(None, ['preferred_language'])
+def set_preferred_language(request, body):
+    preferred_language = body['preferred_language']
+    if preferred_language not in settings.SUPPORTED_LANGUAGES:
+        return JsonResponse({'error': 'Invalid language code'}, status=HTTPStatus.BAD_REQUEST)
+    request.user.preferred_language = preferred_language
+    request.user.save()
+    return UserSerializer(request.user, request=request).json_response()
 
 
 # REVIEWS

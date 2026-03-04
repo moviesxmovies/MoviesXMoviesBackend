@@ -7,7 +7,9 @@ class GenreSerializer(BaseSerializer):
     def serialize_instance(self, instance) -> dict:
         return {
             'id': instance.pk,
-            'name': instance.name,
+            'name': instance.translate_name(self.request.user.preferred_language)
+            if self.request
+            else instance.name,
             'slug': instance.slug,
         }
 

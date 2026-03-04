@@ -19,6 +19,29 @@ class Movie(BaseModel):
         platforms (models.ManyToManyField): A many-to-many relationship to the Platform model
     """
 
+    class MovieTranslation(models.Model):
+        """
+        A model representing the translation of a movie's title and synopsis.
+
+        Attributes:
+            movie (models.ForeignKey): A foreign key to the Movie model.
+            language (models.CharField): The language code for the translation.
+            title (models.CharField): The translated title of the movie.
+            synopsis (models.TextField): The translated synopsis of the movie.
+        """
+
+        class Meta:
+            unique_together = ('movie', 'language')
+
+        movie = models.ForeignKey('Movie', related_name='translations', on_delete=models.CASCADE)
+        language = models.CharField(max_length=2)
+        title = models.CharField(max_length=100)
+        synopsis = models.TextField()
+        image = models.ImageField(upload_to='movies/translations/covers', null=True, blank=True)
+
+        def __str__(self):
+            return f'{self.movie.title} ({self.language})'
+
     title = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True, allow_unicode=True)
     synopsis = models.TextField()
@@ -32,3 +55,30 @@ class Movie(BaseModel):
 
     def __str__(self):
         return self.slug
+
+    def translate_title(self, language):
+        try:
+            translation = self.translations.get(language=language)
+        except self.MovieTranslation.DoesNotExist:
+            translation = None
+        if translation:
+            return translation.title
+        return self.title
+
+    def translate_synopsis(self, language):
+        try:
+            translation = self.translations.get(language=language)
+        except self.MovieTranslation.DoesNotExist:
+            translation = None
+        if translation:
+            return translation.synopsis
+        return self.synopsis
+
+    def translate_image(self, language):
+        try:
+            translation = self.translations.get(language=language)
+        except self.MovieTranslation.DoesNotExist:
+            translation = None
+        if translation and translation.image:
+            return translation.image.url
+        return self.cover.url

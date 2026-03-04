@@ -8,6 +8,8 @@ from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 from prettyconf import config
 
+from main import settings
+
 
 class Command(BaseCommand):
     help = (
@@ -18,7 +20,10 @@ class Command(BaseCommand):
     BASE_URL = 'https://api.themoviedb.org/3'
     MEDIA_ROOT = 'media'
     MOVIE_SUBDIR = 'movies/covers'
+    MOVIE_TRANSLATION_SUBDIR = 'movies/translations/covers'
     PERSON_SUBDIR = 'person'
+
+    LANGUAGES = settings.SUPPORTED_LANGUAGES
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -41,8 +46,22 @@ class Command(BaseCommand):
         self.now = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
 
         self.processed_movie_ids = set()
-        self.pks = {'movie': 1, 'person': {}, 'genre': {}, 'platform': {}}
-        self.fixtures = {'genres': [], 'persons': [], 'platforms': [], 'movies': []}
+        self.pks = {
+            'movie': 1,
+            'movie_translation': 1,
+            'person': {},
+            'genre': {},
+            'genre_translation': 1,
+            'platform': {},
+        }
+        self.fixtures = {
+            'genres': [],
+            'genre_translations': [],
+            'persons': [],
+            'platforms': [],
+            'movies': [],
+            'movie_translations': [],
+        }
 
         self.setup_directories()
 
@@ -54,9 +73,11 @@ class Command(BaseCommand):
 
         final_data = (
             self.fixtures['genres']
+            + self.fixtures['genre_translations']
             + self.fixtures['persons']
             + self.fixtures['platforms']
             + self.fixtures['movies']
+            + self.fixtures['movie_translations']
         )
 
         with open(options['output'], 'w', encoding='utf-8') as f:
@@ -67,7 +88,7 @@ class Command(BaseCommand):
         )
 
     def setup_directories(self):
-        for subdir in [self.MOVIE_SUBDIR, self.PERSON_SUBDIR]:
+        for subdir in [self.MOVIE_SUBDIR, self.MOVIE_TRANSLATION_SUBDIR, self.PERSON_SUBDIR]:
             os.makedirs(os.path.join(self.MEDIA_ROOT, subdir), exist_ok=True)
 
     def download_image(self, path, subdir):
@@ -91,8 +112,17 @@ class Command(BaseCommand):
                 return f'{subdir}/no-image.png'
         return db_path
 
+    def fetch_movie_detail(self, movie_id, language):
+        """Fetch full movie detail for a given language."""
+        url = (
+            f'{self.BASE_URL}/movie/{movie_id}'
+            f'?append_to_response=credits,watch/providers&language={language}-{language.upper()}'
+        )
+        return requests.get(url, headers=self.headers).json()
+
     def process_page(self, page):
-        url = f'{self.BASE_URL}/movie/popular?language=es-ES&page={page}'
+        primary_lang = self.LANGUAGES[0]
+        url = f'{self.BASE_URL}/movie/popular?language={primary_lang}-{primary_lang.upper()}&page={page}'
         try:
             response = requests.get(url, headers=self.headers)
             results = response.json().get('results', [])
@@ -107,22 +137,29 @@ class Command(BaseCommand):
         if movie_id in self.processed_movie_ids:
             return
 
-        url = f'{self.BASE_URL}/movie/{movie_id}?append_to_response=credits,watch/providers&language=es-ES'
-        m = requests.get(url, headers=self.headers).json()
+        data_by_lang = {}
+        for lang in self.LANGUAGES:
+            data_by_lang[lang] = self.fetch_movie_detail(movie_id, lang)
+            time.sleep(0.05)
+
+        primary_lang = self.LANGUAGES[0]
+        m = data_by_lang[primary_lang]
 
         if 'title' not in m:
             return
 
-        genre_ids = self.get_or_create_genres(m.get('genres', []))
+        genre_ids = self.get_or_create_genres(m.get('genres', []), data_by_lang)
         platform_ids = self.get_or_create_platforms(m.get('watch/providers', {}))
         dir_ids, act_ids = self.get_or_create_persons(m.get('credits', {}))
 
         cover_path = self.download_image(m.get('poster_path'), self.MOVIE_SUBDIR)
 
+        movie_pk = self.pks['movie']
+
         self.fixtures['movies'].append(
             {
                 'model': 'movies.movie',
-                'pk': self.pks['movie'],
+                'pk': movie_pk,
                 'fields': {
                     'title': m['title'],
                     'slug': f'{m["id"]}-{slugify(m["title"], allow_unicode=True)}'[:100],
@@ -138,14 +175,51 @@ class Command(BaseCommand):
                 },
             }
         )
+
+        for lang in self.LANGUAGES:
+            lang_data = data_by_lang.get(lang, {})
+            title_translated = lang_data.get('title') or m['title']
+            synopsis_translated = lang_data.get('overview') or m['overview']
+
+            translated_poster_path = lang_data.get('poster_path')
+            translated_cover = self.download_image(
+                translated_poster_path, self.MOVIE_TRANSLATION_SUBDIR
+            )
+
+            self.fixtures['movie_translations'].append(
+                {
+                    'model': 'movies.movietranslation',
+                    'pk': self.pks['movie_translation'],
+                    'fields': {
+                        'movie': movie_pk,
+                        'language': lang,
+                        'title': title_translated,
+                        'synopsis': synopsis_translated,
+                        'image': translated_cover,
+                    },
+                }
+            )
+            self.pks['movie_translation'] += 1
+
         self.processed_movie_ids.add(movie_id)
         self.pks['movie'] += 1
         self.stdout.write(self.style.SUCCESS(f'Movie "{m["title"]}" processed.'))
 
-    def get_or_create_genres(self, genres_data):
+    def get_or_create_genres(self, genres_data, data_by_lang):
+        """
+        Create Genre fixtures from the primary language data,
+        then add GenreTranslation fixtures for every language.
+
+        TMDB genre IDs are stable across languages, so we match translations
+        by TMDB genre ID.
+        """
+        primary_lang = self.LANGUAGES[0]
         ids = []
+
         for g in genres_data:
             name = g['name']
+            tmdb_genre_id = g['id']
+
             if name not in self.pks['genre']:
                 pk = len(self.pks['genre']) + 1
                 self.pks['genre'][name] = pk
@@ -161,6 +235,30 @@ class Command(BaseCommand):
                         },
                     }
                 )
+
+                for lang in self.LANGUAGES:
+                    lang_genres = (
+                        data_by_lang.get(lang, {}).get('genres', [])
+                        if lang != primary_lang
+                        else genres_data
+                    )
+                    translated_name = next(
+                        (lg['name'] for lg in lang_genres if lg['id'] == tmdb_genre_id),
+                        name,
+                    )
+                    self.fixtures['genre_translations'].append(
+                        {
+                            'model': 'genres.genretranslation',
+                            'pk': self.pks['genre_translation'],
+                            'fields': {
+                                'genre': pk,
+                                'language': lang,
+                                'name': translated_name,
+                            },
+                        }
+                    )
+                    self.pks['genre_translation'] += 1
+
             ids.append(self.pks['genre'][name])
         return list(set(ids))
 
