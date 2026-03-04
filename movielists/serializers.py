@@ -10,6 +10,7 @@ class MovieListSerializer(BaseSerializer):
             'id': instance.pk,
             'name': instance.name,
             'slug': instance.slug,
+            'description': instance.description,
             'privacity': instance.privacity,
             'user': self.build_url(reverse('user-detail', args=[instance.user])),
             'movies': [
@@ -26,6 +27,7 @@ class MovieListSerializer(BaseSerializer):
             'id': serializers.IntegerField(),
             'name': serializers.CharField(),
             'slug': serializers.CharField(),
+            'description': serializers.CharField(),
             'privacity': serializers.CharField(),
             'user': serializers.URLField(),
             'movies': serializers.ListField(child=serializers.URLField()),

@@ -4,7 +4,7 @@ from movielists.models import MovieList
 
 from .movies import MovieFactory
 from .users import UserFactory
-
+from django.utils.text import slugify
 
 class MovieListFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -12,9 +12,7 @@ class MovieListFactory(factory.django.DjangoModelFactory):
 
     name = factory.Faker('sentence', nb_words=3)
 
-    @factory.lazy_attribute
-    def slug(self):
-        return self.name.lower().replace(' ', '-')
+    slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
 
     description = factory.Faker('paragraph')
     privacity = factory.Iterator(MovieList.Privacity.values)
