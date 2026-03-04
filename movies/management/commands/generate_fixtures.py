@@ -23,9 +23,6 @@ class Command(BaseCommand):
     MOVIE_TRANSLATION_SUBDIR = 'movies/translations/covers'
     PERSON_SUBDIR = 'person'
 
-    # Languages to fetch translations for.
-    # The first language is used as the primary (stored in the main model fields).
-    # All languages get a Translation record.
     LANGUAGES = settings.SUPPORTED_LANGUAGES
 
     def add_arguments(self, parser):
@@ -124,7 +121,6 @@ class Command(BaseCommand):
         return requests.get(url, headers=self.headers).json()
 
     def process_page(self, page):
-        # Discover popular movies using the primary language
         primary_lang = self.LANGUAGES[0]
         url = f'{self.BASE_URL}/movie/popular?language={primary_lang}-{primary_lang.upper()}&page={page}'
         try:
@@ -141,7 +137,6 @@ class Command(BaseCommand):
         if movie_id in self.processed_movie_ids:
             return
 
-        # Fetch data for all languages; primary language drives the main fields
         data_by_lang = {}
         for lang in self.LANGUAGES:
             data_by_lang[lang] = self.fetch_movie_detail(movie_id, lang)
@@ -181,13 +176,11 @@ class Command(BaseCommand):
             }
         )
 
-        # Create a MovieTranslation record for every language
         for lang in self.LANGUAGES:
             lang_data = data_by_lang.get(lang, {})
             title_translated = lang_data.get('title') or m['title']
             synopsis_translated = lang_data.get('overview') or m['overview']
 
-            # TMDB returns a language-specific poster_path when queried with that language
             translated_poster_path = lang_data.get('poster_path')
             translated_cover = self.download_image(
                 translated_poster_path, self.MOVIE_TRANSLATION_SUBDIR
@@ -224,8 +217,8 @@ class Command(BaseCommand):
         ids = []
 
         for g in genres_data:
-            name = g['name']  # primary language name
-            tmdb_genre_id = g['id']  # stable TMDB id used to match translations
+            name = g['name']
+            tmdb_genre_id = g['id']
 
             if name not in self.pks['genre']:
                 pk = len(self.pks['genre']) + 1
@@ -243,17 +236,15 @@ class Command(BaseCommand):
                     }
                 )
 
-                # Add a GenreTranslation for each language
                 for lang in self.LANGUAGES:
                     lang_genres = (
                         data_by_lang.get(lang, {}).get('genres', [])
                         if lang != primary_lang
                         else genres_data
                     )
-                    # Find the matching genre by TMDB id
                     translated_name = next(
                         (lg['name'] for lg in lang_genres if lg['id'] == tmdb_genre_id),
-                        name,  # fall back to primary name if not found
+                        name,
                     )
                     self.fixtures['genre_translations'].append(
                         {
