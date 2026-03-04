@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 import sys
 from datetime import timedelta
 from pathlib import Path
@@ -219,9 +220,7 @@ SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-import os
 
-# Definir la carpeta de logs (asegúrate de que el usuario que corre Django tenga permisos)
 LOG_BASE_DIR = os.path.join(BASE_DIR, 'logs')
 if not os.path.exists(LOG_BASE_DIR):
     os.makedirs(LOG_BASE_DIR)
