@@ -12,6 +12,8 @@ class MoviesConfig(AppConfig):
 
     def ready(self):
         if os.environ.get('RUN_MAIN') != 'true':
+            if 'collectstatic' in sys.argv:
+                return
             if 'test' in sys.argv or 'pytest' in sys.modules:
                 return
             try:
