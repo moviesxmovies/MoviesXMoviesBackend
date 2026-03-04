@@ -16,6 +16,8 @@ from factories import (
     RatingFactory,
     ReviewFactory,
     UserFactory,
+    GenreTranslationFactory,
+    MovieTranslationFactory,
 )
 from users.models import User
 
@@ -28,6 +30,8 @@ register(ReviewFactory)
 register(AwardFactory)
 register(PlatformFactory)
 register(MovieListFactory)
+register(MovieTranslationFactory)
+register(GenreTranslationFactory)
 
 # ===========================================
 # URLS

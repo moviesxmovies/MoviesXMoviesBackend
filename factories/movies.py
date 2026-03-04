@@ -2,6 +2,7 @@
 import factory
 from django.utils.text import slugify
 
+from main import settings
 from movies.models import Movie
 
 from .awards import AwardFactory
@@ -67,3 +68,28 @@ class MovieFactory(factory.django.DjangoModelFactory):
             self.awards.add(*extracted)
         else:
             self.awards.add(AwardFactory())
+
+    @factory.post_generation
+    def translations(self, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for translation in extracted:
+            translation.movie = self
+            translation.save()
+        first = extracted[0]
+        self.slug = slugify(first.title)
+        self.save(update_fields=['slug'])
+
+
+class MovieTranslationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Movie.MovieTranslation
+        exclude = ['_save']
+
+    language = factory.Iterator(settings.SUPPORTED_LANGUAGES)
+    title = factory.Faker('sentence', nb_words=3)
+    synopsis = factory.Faker('paragraph', nb_sentences=5)
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        return model_class(*args, **kwargs)

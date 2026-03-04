@@ -1,6 +1,8 @@
 import json
 import pickle
+from unittest.mock import Mock
 from django.core.cache import cache
+from django.test import RequestFactory
 import pytest
 
 from movies.serializers import MovieSerializer
@@ -97,6 +99,52 @@ def test_movie_serializer(movie_factory, person_factory, genre_factory, platform
     assert serialized['title'] == 'Inception'
     assert serialized['slug'] == 'inception'
     assert serialized['synopsis'] == movie.synopsis
+    assert serialized['release_date'] == movie.release_date.isoformat()
+    assert serialized['cover'] is not None
+    assert isinstance(serialized['genres'], list)
+    assert len(serialized['genres']) == 1
+    assert serialized['genres'][0]['name'] == 'Sci-Fi'
+    assert isinstance(serialized['actors'], list)
+    assert len(serialized['actors']) == 1
+    assert serialized['actors'][0]['name'] == 'Leonardo DiCaprio'
+    assert isinstance(serialized['directors'], list)
+    assert len(serialized['directors']) == 1
+    assert serialized['directors'][0]['name'] == 'Christopher Nolan'
+    assert isinstance(serialized['platforms'], list)
+    assert len(serialized['platforms']) == 1
+    assert serialized['platforms'][0]['name'] == 'Netflix'
+
+
+@pytest.mark.django_db
+def test_movie_serializer_with_translations(
+    movie_factory, person_factory, genre_factory, platform_factory, movie_translation_factory
+):
+    director = person_factory(name='Christopher Nolan')
+    genre = genre_factory(name='Sci-Fi')
+    actor = person_factory(name='Leonardo DiCaprio')
+    platform = platform_factory(name='Netflix')
+    translation = movie_translation_factory(
+        language='es',
+        title='El Origen',
+        synopsis='Una película sobre sueños dentro de sueños.',
+    )
+    movie = movie_factory(
+        title='Inception',
+        directors=[director],
+        genres=[genre],
+        actors=[actor],
+        platforms=[platform],
+        translations=[translation],
+    )
+
+    request = RequestFactory().get('/')
+    request.user = Mock(preferred_language='es')
+
+    serialized = MovieSerializer(movie, request=request).serialize()
+    assert serialized['id'] == movie.pk
+    assert serialized['title'] == translation.title
+    assert serialized['slug'] == 'el-origen'
+    assert serialized['synopsis'] == translation.synopsis
     assert serialized['release_date'] == movie.release_date.isoformat()
     assert serialized['cover'] is not None
     assert isinstance(serialized['genres'], list)
@@ -349,9 +397,11 @@ def test_movie_rating_get_view_not_exists(movie_factory, auth_client):
     assert 'error' in data
     assert data['error'] == 'Rating not found'
 
+
 # ===========================================================================
 # TASKS
 # ===========================================================================
+
 
 @pytest.mark.django_db
 def test_retrain_professional_model_success(user_factory, movie_factory, rating_factory):
@@ -367,30 +417,31 @@ def test_retrain_professional_model_success(user_factory, movie_factory, rating_
     result = retrain_professional_model()
 
     assert result == 'Modelo Implicit (ALS) entrenado exitosamente'
-    
+
     raw_data = cache.get('movie_recommendation_model')
     assert raw_data is not None
-    
+
     data = pickle.loads(raw_data)
-    
+
     assert 'model' in data
     assert 'user_id_map' in data
     assert 'movie_id_map' in data
     assert 'user_items_matrix' in data
-    
+
     assert user_a.id in data['user_id_map']
     assert movie_1.id in data['movie_id_map']
-    
+
     matrix = data['user_items_matrix']
     assert matrix.shape == (2, 2)
-    assert matrix.sum() == 11.0 
+    assert matrix.sum() == 11.0
 
     cache.delete('movie_recommendation_model')
+
 
 @pytest.mark.django_db
 def test_retrain_model_no_ratings():
     Rating.objects.all().delete()
-    
+
     result = retrain_professional_model()
 
     assert result == 'No ratings to train the model'
