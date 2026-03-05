@@ -155,6 +155,11 @@ REST_AUTH = {
     'JWT_AUTH_RETURN_EXPIRATION': True,
 }
 
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+SOCIALACCOUNT_ADAPTER = 'users.adapters.SocialAccountAdapter'
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
