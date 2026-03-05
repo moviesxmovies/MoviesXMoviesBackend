@@ -3,16 +3,33 @@ from scipy.sparse import csr_matrix
 from django.core.cache import cache
 from django_rq import job
 from implicit.als import AlternatingLeastSquares
-
 from ratings.models import Rating
 from movies.models import Movie
 from users.models import User
 
 
 @job
-def retrain_professional_model():
-    ratings_qs = Rating.objects.values_list('user_id', 'movie_id', 'rating')
+def retrain_professional_model() -> str:
+    """Retrain the ALS recommendation model and store it in the cache.
 
+    Fetches all user-item ratings from the database, builds a sparse
+    item-user interaction matrix, trains an ALS model via the Implicit
+    library, and serializes the resulting model and ID mappings into the
+    Django cache under the key ``'movie_recommendation_model'``.
+
+    The cached payload is a ``pickle``-serialized dict with the keys:
+
+    - ``model``: the fitted ``AlternatingLeastSquares`` instance.
+    - ``user_id_map``: mapping from original user PKs to contiguous indices.
+    - ``movie_id_map``: mapping from original movie PKs to contiguous indices.
+    - ``reverse_movie_map``: inverse of ``movie_id_map``.
+    - ``user_items_matrix``: transposed user-item ``csr_matrix``.
+
+    Returns:
+        str: ``'No ratings to train the model'`` if no ratings exist,
+        otherwise ``'Modelo Implicit (ALS) entrenado exitosamente'``.
+    """
+    ratings_qs = Rating.objects.values_list('user_id', 'movie_id', 'rating')
     if not ratings_qs.exists():
         return 'No ratings to train the model'
 
@@ -21,7 +38,6 @@ def retrain_professional_model():
 
     user_id_map = {old_id: new_id for new_id, old_id in enumerate(users_list)}
     movie_id_map = {old_id: new_id for new_id, old_id in enumerate(movies_list)}
-
     reverse_movie_map = {new_id: old_id for old_id, new_id in movie_id_map.items()}
 
     rows, cols, data = [], [], []
@@ -36,7 +52,6 @@ def retrain_professional_model():
     model = AlternatingLeastSquares(
         factors=100, regularization=0.05, iterations=20, calculate_training_loss=True
     )
-
     model.fit(item_user_matrix)
 
     trained_data = {
@@ -46,7 +61,6 @@ def retrain_professional_model():
         'reverse_movie_map': reverse_movie_map,
         'user_items_matrix': item_user_matrix.T.tocsr(),
     }
-
     cache.set(
         'movie_recommendation_model',
         pickle.dumps(trained_data),
