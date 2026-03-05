@@ -53,6 +53,7 @@ MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
 MOVIE_LIST_MOVIE_WRAPPER_URL = '/api/movies-lists/{username}/{movies_list_slug}/{movie_slug}/'
 
 # MOVIES
+MOVIE_RECOMMENDATIONS_URL = '/api/movies/'
 MOVIE_DETAIL_URL = '/api/movies/{movie_slug}/'
 MOVIE_REVIEWS_URL = '/api/movies/{movie_slug}/reviews/'
 MOVIE_FRIENDS_RATINGS_URL = '/api/movies/{movie_slug}/friends-ratings/'

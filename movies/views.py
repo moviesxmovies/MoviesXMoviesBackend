@@ -203,7 +203,7 @@ def update_movie_rating(request, movie: Movie, rating: Rating):
 @require_http_methods(['GET'])
 def get_movie_recommendations(request):
     """
-    Returns a paginated list of movie recommendations for the authenticated user.
+    Returns a list of movie recommendations for the authenticated user.
 
 
     Pipeline:
@@ -211,7 +211,7 @@ def get_movie_recommendations(request):
       2. Fetch ML candidates from cache, fall back to recency ordering
       3. Score + sort candidates
       4. Pad with algorithmic results if the model doesn't return enough
-      5. Return paginated response
+      5. Return response
     """
     user = request.user
 
