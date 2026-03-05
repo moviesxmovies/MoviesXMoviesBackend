@@ -1,19 +1,47 @@
 from http import HTTPStatus
-
 import jwt
 from django.conf import settings
 from django.http import JsonResponse
 from django.urls import reverse
-
 from users.models import User
 
 ACCESS_TYPE = 'access'
 
 
 def auth_required(func):
-    def wrapper(request, *args, **kwargs):
-        auth_header = request.headers.get('Authorization', '')
+    """Decorator that enforces JWT authentication on a view.
 
+    Extracts the Bearer token from the ``Authorization`` header, decodes
+    and validates it, resolves the corresponding ``User``, and attaches it
+    to ``request.user`` before delegating to the wrapped view.
+
+    Unverified users are only permitted to access ``verify_user`` and
+    ``resend_verification_email`` endpoints.
+
+    Args:
+        func (Callable): The view function to protect.
+
+    Returns:
+        Callable: The wrapped view function that performs authentication
+        before calling the original view.
+    """
+
+    def wrapper(request, *args, **kwargs):
+        """Validate the JWT token and attach the resolved user to the request.
+
+        Args:
+            request: The incoming HTTP request. Must include an
+                ``Authorization: Bearer <token>`` header.
+            *args: Positional arguments forwarded to the wrapped view.
+            **kwargs: Keyword arguments forwarded to the wrapped view.
+
+        Returns:
+            JsonResponse: A JSON error body with HTTP 400 if the token is
+            missing, malformed, or of an invalid type; HTTP 401 if the user
+            does not exist, the account is unverified, or no token is
+            provided; otherwise the response from the wrapped view.
+        """
+        auth_header = request.headers.get('Authorization', '')
         try:
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(' ')[1]
@@ -35,12 +63,10 @@ def auth_required(func):
                     return JsonResponse(
                         {'error': 'User account is not verified'}, status=HTTPStatus.UNAUTHORIZED
                     )
-
                 return func(request, *args, **kwargs)
             return JsonResponse(
                 {'error': 'You need to be authenticated'}, status=HTTPStatus.UNAUTHORIZED
             )
-
         except jwt.exceptions.DecodeError:
             return JsonResponse(
                 {'error': 'Token is invalid or have an incorrect padding'},

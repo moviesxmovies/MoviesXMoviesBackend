@@ -9,12 +9,13 @@ from django.db.models import Q
 
 
 class MovieList(BaseModel):
-    """
-    Model representing a list of movies created by a user.
+    """Model representing a list of movies created by a user.
 
     Attributes:
         name (models.CharField): The name of the movie list.
+        slug (models.SlugField): URL-friendly identifier, unique per user.
         description (models.TextField): A brief description of the movie list.
+        privacity (models.CharField): Visibility setting from ``Privacity``.
         user (models.ForeignKey): The user who created the movie list.
         movies (models.ManyToManyField): The movies included in the movie list.
     """
@@ -23,11 +24,12 @@ class MovieList(BaseModel):
         unique_together = ('slug', 'user')
 
     class Privacity(models.TextChoices):
-        """
-        Enumeration for the privacy settings of the movie list.
-        1. PUBLIC: The movie list is visible to everyone.
-        2. FOLLOWERS: The movie list is visible to the creator's followers.
-        3. PRIVATE: The movie list is only visible to the creator.
+        """Privacy settings controlling who can view a movie list.
+
+        Attributes:
+            PUBLIC: The movie list is visible to everyone.
+            FOLLOWERS: The movie list is visible to the creator's followers.
+            PRIVATE: The movie list is only visible to the creator.
         """
 
         PUBLIC = 'P', 'Public'
@@ -41,10 +43,35 @@ class MovieList(BaseModel):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='movies_lists')
     movies = models.ManyToManyField('movies.Movie', related_name='in_movie_lists', blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return the slug as the string representation of the list.
+
+        Returns:
+            str: The slug of the movie list.
+        """
         return self.slug
 
-    def intelligent_fill(self, genres=None, celebrities=None, friends=None):
+    def intelligent_fill(
+        self,
+        genres: list[str] | None = None,
+        celebrities: list[str] | None = None,
+        friends: list[str] | None = None,
+    ) -> None:
+        """Populate the movie list using a scored recommendation pipeline.
+
+        Excludes already watched or unseen-marked movies, applies hard
+        filters (genre, platform), scores candidates by celebrities,
+        friends' favourites, and awards, then sets the top 40 results
+        on ``self.movies``.
+
+        Args:
+            genres (list[str] | None): Genre slugs to filter candidates by.
+                Defaults to None.
+            celebrities (list[str] | None): Celebrity slugs used to boost
+                movies featuring those actors or directors. Defaults to None.
+            friends (list[str] | None): Friend usernames whose highly-rated
+                movies receive a score boost. Defaults to None.
+        """
         exclude_ids = self._get_exclude_ids()
         candidates_qs = self._get_base_candidates(exclude_ids)
 
@@ -55,12 +82,45 @@ class MovieList(BaseModel):
         final_movies = [m for m, score in scored_movies[:40]]
         self.movies.set(final_movies)
 
-    def _get_exclude_ids(self):
+    def _get_exclude_ids(self) -> set[int]:
+        """Return the set of movie PKs that should be excluded from recommendations.
+
+        Combines movies the user has already rated with movies the user has
+        explicitly marked as unseen.
+
+        Returns:
+            set[int]: Primary keys of movies to exclude.
+        """
         watched = self.user.ratings.values_list('movie_id', flat=True)
         unseen = self.user.unseen_movies.values_list('id', flat=True)
         return set(list(watched) + list(unseen))
 
-    def _score_candidates(self, candidates_qs, celebrities, friends):
+    def _score_candidates(
+        self,
+        candidates_qs,
+        celebrities: list[str] | None,
+        friends: list[str] | None,
+    ) -> list[tuple]:
+        """Score and rank candidate movies using a weighted heuristic.
+
+        Scoring weights applied per movie:
+
+        - Base score: ``1.0``
+        - Celebrity match (actor or director): ``+3.0``
+        - In friends' favourites (rating ≥ 4): ``+2.5``
+        - Has awards: ``+0.7``
+
+        Args:
+            candidates_qs: Queryset of candidate ``Movie`` instances to score.
+            celebrities (list[str] | None): Celebrity slugs to match against
+                each movie's actors and directors.
+            friends (list[str] | None): Friend usernames whose favourites
+                contribute to the score boost.
+
+        Returns:
+            list[tuple]: List of ``(Movie, float)`` tuples sorted by score
+            in descending order.
+        """
         friends_favs = self._get_friends_favorites(friends)
         scored_list = []
 
@@ -84,7 +144,16 @@ class MovieList(BaseModel):
 
         return sorted(scored_list, key=lambda x: x[1], reverse=True)
 
-    def _get_friends_favorites(self, friends_usernames):
+    def _get_friends_favorites(self, friends_usernames: list[str] | None) -> list[int]:
+        """Return the movie PKs rated 4 or higher by the specified friends.
+
+        Args:
+            friends_usernames (list[str] | None): Usernames of friends to
+                query ratings for. Returns an empty list if ``None`` or empty.
+
+        Returns:
+            list[int]: Primary keys of movies rated ≥ 4 by the given friends.
+        """
         if not friends_usernames:
             return []
 
@@ -94,8 +163,21 @@ class MovieList(BaseModel):
             )
         )
 
-    def _get_base_candidates(self, exclude_ids):
+    def _get_base_candidates(self, exclude_ids: set[int]):
+        """Return a queryset of candidate movies for recommendation.
 
+        Attempts to use the cached ALS model to generate personalised
+        candidates. Falls back to a recency-ordered queryset of all
+        non-excluded movies if the cache is empty, the user has no model
+        mapping, or deserialisation fails.
+
+        Args:
+            exclude_ids (set[int]): Primary keys of movies to exclude from
+                the candidate set.
+
+        Returns:
+            QuerySet: A ``Movie`` queryset of recommendation candidates.
+        """
         raw_data = cache.get('movie_recommendation_model')
 
         if raw_data:
@@ -118,7 +200,21 @@ class MovieList(BaseModel):
 
         return Movie.objects.exclude(id__in=exclude_ids).order_by('-release_date')
 
-    def _apply_hard_filters(self, queryset, genres):
+    def _apply_hard_filters(self, queryset, genres: list[str] | None):
+        """Apply mandatory filters to a candidate queryset.
+
+        Prefetches related data, optionally restricts to the given genres,
+        and filters by the user's subscribed platforms (including movies with
+        no platform assigned). Returns at most 300 distinct results.
+
+        Args:
+            queryset: The base ``Movie`` queryset to filter.
+            genres (list[str] | None): Genre slugs to restrict candidates to.
+                No genre filter is applied when ``None`` or empty.
+
+        Returns:
+            QuerySet: Filtered and prefetched ``Movie`` queryset capped at 300.
+        """
         qs = queryset.prefetch_related('actors', 'directors', 'awards', 'genres', 'platforms')
 
         if genres:

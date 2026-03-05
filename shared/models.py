@@ -3,6 +3,10 @@ from django.utils import timezone
 
 
 class SoftDeleteQuerySet(models.QuerySet):
+    """
+    A custom QuerySet that implements soft deletion by filtering out objects with a non-null 'deleted_at' field.
+    """
+
     def delete(self):
         return self.update(deleted_at=timezone.now())
 

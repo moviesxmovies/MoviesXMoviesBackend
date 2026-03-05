@@ -4,6 +4,17 @@ from django.shortcuts import _get_queryset
 
 
 def get_object_or_json_404(klass, *args, **kwargs):
+    """
+    Retrieves a single object from the database based on the provided model class and lookup parameters. If the object does not exist, it raises an Http404 exception with a custom error message.
+
+    Args:
+        klass (Model or QuerySet): The model class or queryset to query.
+        *args: Positional arguments to pass to the queryset's get() method.
+        **kwargs: Keyword arguments to pass to the queryset's get() method.
+
+    Returns:
+        Model instance: The retrieved object if it exists.
+    """
     queryset = _get_queryset(klass)
     try:
         return queryset.get(*args, **kwargs)

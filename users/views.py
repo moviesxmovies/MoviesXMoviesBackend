@@ -25,16 +25,40 @@ USER_PASSWORD_HELPER = 'User password'
 
 
 class VerifyUserSerializer(serializers.Serializer):
+    """Serializer for validating account verification payloads.
+
+    Attributes:
+        verification_code (serializers.CharField): The verification code
+            sent to the user via email.
+    """
+
     verification_code = serializers.CharField(required=True, help_text='Verification code')
 
 
 class FollowResponse(serializers.Serializer):
+    """Serializer for the follow/unfollow response payload.
+
+    Attributes:
+        following (serializers.BooleanField): Whether the authenticated user
+            is currently following the target user.
+    """
+
     following = serializers.BooleanField(
         help_text='Indicates if the authenticated user is following the target user'
     )
 
 
 class SignupUserSerializer(serializers.Serializer):
+    """Serializer for validating user signup payloads.
+
+    Attributes:
+        email (serializers.EmailField): User email address.
+        username (serializers.CharField): Desired username.
+        first_name (serializers.CharField): User first name.
+        last_name (serializers.CharField): User last name.
+        password (serializers.CharField): Desired password.
+    """
+
     email = serializers.EmailField(required=True, help_text=EMAIL_HELPER)
     username = serializers.CharField(required=True, help_text=USERNAME_HELPER)
     first_name = serializers.CharField(required=True, help_text=FIRST_NAME_HELPER)
@@ -43,6 +67,20 @@ class SignupUserSerializer(serializers.Serializer):
 
 
 class UserUpdateSerializer(serializers.Serializer):
+    """Serializer for validating user profile update payloads.
+
+    All fields are optional; only provided fields are updated.
+
+    Attributes:
+        email (serializers.EmailField): Updated email address.
+        username (serializers.CharField): Updated username.
+        first_name (serializers.CharField): Updated first name.
+        last_name (serializers.CharField): Updated last name.
+        password (serializers.CharField): Updated password.
+        picture (serializers.ImageField): Updated profile picture.
+        bio (serializers.CharField): Updated user bio.
+    """
+
     email = serializers.EmailField(required=False, help_text=EMAIL_HELPER)
     username = serializers.CharField(required=False, help_text=USERNAME_HELPER)
     first_name = serializers.CharField(required=False, help_text=FIRST_NAME_HELPER)
@@ -53,26 +91,56 @@ class UserUpdateSerializer(serializers.Serializer):
 
 
 class ForgotPasswordResponse(serializers.Serializer):
+    """Serializer for the forgot password initiation response.
+
+    Attributes:
+        status (serializers.BooleanField): Whether the reset email was sent.
+    """
+
     status = serializers.BooleanField(
         help_text='Status message indicating the result of the forgot password request'
     )
 
 
 class ForgotPasswordValidationSerializer(serializers.Serializer):
+    """Serializer for validating forgot password confirmation payloads.
+
+    Attributes:
+        forgot_password_code (serializers.CharField): The reset code sent
+            to the user via email.
+        new_password (serializers.CharField): The desired new password.
+        email (serializers.EmailField): The user's email address.
+    """
+
     forgot_password_code = serializers.CharField(required=True, help_text='Forgot password code')
     new_password = serializers.CharField(required=True, help_text='New password')
     email = serializers.EmailField(required=True, help_text='User email')
 
 
 class ChangePreferredLanguageSerializer(serializers.Serializer):
+    """Serializer for validating preferred language change payloads.
+
+    Attributes:
+        preferred_language (serializers.ChoiceField): A language code from
+            ``settings.SUPPORTED_LANGUAGES``.
+    """
+
     preferred_language = serializers.ChoiceField(
         choices=settings.SUPPORTED_LANGUAGES, help_text='Preferred language code'
     )
 
+
 class ChangePreferredLanguageResponse(serializers.Serializer):
+    """Serializer for the preferred language change response.
+
+    Attributes:
+        status (serializers.BooleanField): Whether the language was updated.
+    """
+
     status = serializers.BooleanField(
         help_text='Status message indicating the result of the change preferred language request'
     )
+
 
 @extend_schema(
     request=VerifyUserSerializer,
@@ -83,7 +151,21 @@ class ChangePreferredLanguageResponse(serializers.Serializer):
 @require_http_methods(['POST'])
 @auth_required
 @get_body(None, ['verification_code'])
-def verify_user(request, body):
+def verify_user(request, body: dict) -> JsonResponse:
+    """Verify the authenticated user's account using a code sent via email.
+
+    If the user is already verified, returns success immediately. Otherwise
+    compares the submitted code against the stored verification code.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        body (dict): Parsed request body containing ``'verification_code'``,
+            injected by ``get_body``.
+
+    Returns:
+        JsonResponse: ``{'status': True}`` with HTTP 200 on success, or a
+        JSON error body with HTTP 400 if the code is incorrect.
+    """
     user = request.user
     if user.verified:
         return JsonResponse({'status': True})
@@ -103,7 +185,20 @@ def verify_user(request, body):
 @api_view(['POST'])
 @require_http_methods(['POST'])
 @auth_required
-def resend_verification_email(request):
+def resend_verification_email(request) -> JsonResponse:
+    """Resend the verification email to the authenticated user.
+
+    Enforces a 60-second cooldown per user using the Django cache. If the
+    user is already verified, returns success without sending an email.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: ``{'status': 'User is already verified'}`` if already
+        verified, a JSON error body with HTTP 429 if the cooldown is active,
+        or ``{'status': 'Verification email resent'}`` with HTTP 200 on success.
+    """
     user = request.user
     if user.verified:
         return JsonResponse({'status': 'User is already verified'})
@@ -131,7 +226,19 @@ def resend_verification_email(request):
 @require_http_methods(['GET'])
 @auth_required
 @get_query_params('page', 'limit')
-def suggested_users(request, page, limit):
+def suggested_users(request, page: int, limit: int) -> JsonResponse:
+    """Return a paginated list of suggested users for the authenticated user to follow.
+
+    Suggestions are generated by ``request.user.suggest_friends()``.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        page (int): Page number for pagination, injected by ``get_query_params``.
+        limit (int): Number of items per page, injected by ``get_query_params``.
+
+    Returns:
+        JsonResponse: Paginated serialized user list with HTTP 200.
+    """
     return get_paginated_response(
         request.user.suggest_friends(), UserSerializer, request, page, limit
     )
@@ -153,7 +260,16 @@ def suggested_users(request, page, limit):
 @api_view(['GET', 'PUT'])
 @require_http_methods(['GET', 'PUT'])
 @auth_required
-def self_user_wrapper(request):
+def self_user_wrapper(request) -> JsonResponse:
+    """Route GET and PUT requests for the authenticated user's own profile.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: The response from ``self_user_detail`` on GET,
+        or from ``update_user`` on PUT.
+    """
     match request.method:
         case 'GET':
             return self_user_detail(request)
@@ -162,12 +278,35 @@ def self_user_wrapper(request):
 
 
 @require_http_methods(['GET'])
-def self_user_detail(request):
+def self_user_detail(request) -> JsonResponse:
+    """Return the serialized profile of the authenticated user.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: Serialized user data with HTTP 200.
+    """
     return UserSerializer(request.user, request=request).json_response()
 
 
 @require_http_methods(['PUT'])
-def update_user(request, user):
+def update_user(request, user: User) -> JsonResponse:
+    """Apply partial updates to a user profile and persist the changes.
+
+    Updates only the fields present in ``request.data`` that differ from
+    the current values. Handles password hashing, email verification reset,
+    and model-level validation via ``full_clean()``.
+
+    Args:
+        request: The authenticated incoming HTTP request. ``request.data``
+            may contain any subset of fields defined in ``UserUpdateSerializer``.
+        user (User): The user instance to update.
+
+    Returns:
+        JsonResponse: Serialized updated user with HTTP 200, or a JSON error
+        body with HTTP 400 on validation failure.
+    """
     data = request.data
     for field in [
         'username',
@@ -220,7 +359,16 @@ def update_user(request, user):
 )
 @api_view(['POST', 'GET'])
 @require_http_methods(['POST', 'GET'])
-def forgot_password_wrapper(request):
+def forgot_password_wrapper(request) -> JsonResponse:
+    """Route GET and POST forgot-password requests to their respective handlers.
+
+    Args:
+        request: The incoming HTTP request. No authentication required.
+
+    Returns:
+        JsonResponse: The response from ``forgot_password`` on GET,
+        or from ``forgot_password_validation`` on POST.
+    """
     match request.method:
         case 'GET':
             return forgot_password(request)
@@ -230,7 +378,21 @@ def forgot_password_wrapper(request):
 
 @require_http_methods(['GET'])
 @get_query_params('email')
-def forgot_password(request, email):
+def forgot_password(request, email: str) -> JsonResponse:
+    """Initiate the password reset flow by sending a reset email.
+
+    Looks up the user by email and dispatches a password reset email
+    asynchronously via Celery.
+
+    Args:
+        request: The incoming HTTP request.
+        email (str): The email address to look up, injected by
+            ``get_query_params``.
+
+    Returns:
+        JsonResponse: ``{'status': 'Password reset email sent'}`` with HTTP 200,
+        or a JSON error body with HTTP 404 if no user matches the email.
+    """
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
@@ -241,7 +403,22 @@ def forgot_password(request, email):
 
 @require_http_methods(['POST'])
 @get_body(None, ['forgot_password_code', 'new_password', 'email'])
-def forgot_password_validation(request, body):
+def forgot_password_validation(request, body: dict) -> JsonResponse:
+    """Validate a password reset code and apply the new password.
+
+    Looks up the user by email, verifies the reset code, validates the new
+    password via Django's password validators, and persists the change.
+
+    Args:
+        request: The incoming HTTP request.
+        body (dict): Parsed request body containing ``'forgot_password_code'``,
+            ``'new_password'``, and ``'email'``, injected by ``get_body``.
+
+    Returns:
+        JsonResponse: ``{'status': 'Password reset successful'}`` with HTTP 200,
+        or a JSON error body with HTTP 400 on invalid code or validation failure,
+        or HTTP 400 if the user is not found.
+    """
     try:
         user = User.objects.get(email=body['email'])
         if user.forgot_password_code != body['forgot_password_code']:
@@ -268,7 +445,16 @@ def forgot_password_validation(request, body):
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
-def user_detail(request, user):
+def user_detail(request, user: User) -> JsonResponse:
+    """Return the serialized profile of a specific user.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user instance resolved from the URL.
+
+    Returns:
+        JsonResponse: Serialized user data with HTTP 200.
+    """
     return UserSerializer(user, request=request).json_response()
 
 
@@ -280,7 +466,21 @@ def user_detail(request, user):
 @api_view(['POST'])
 @require_http_methods(['POST'])
 @get_body(User, ['email', 'username', 'first_name', 'last_name', 'password'])
-def user_signup(request, user: User):
+def user_signup(request, user: User) -> JsonResponse:
+    """Create and persist a new user account.
+
+    Runs model-level validation via ``full_clean()``, validates the password
+    via Django's password validators, hashes it, and saves the new user.
+
+    Args:
+        request: The incoming HTTP request.
+        user (User): Unsaved ``User`` instance constructed from the request
+            body by ``get_body``.
+
+    Returns:
+        JsonResponse: Serialized new user with HTTP 200, or a JSON error
+        body with HTTP 400 on validation failure.
+    """
     try:
         raw_password = user.password
         user.full_clean()
@@ -303,7 +503,21 @@ def user_signup(request, user: User):
 @require_http_methods(['POST'])
 @auth_required
 @get_body(None, ['preferred_language'])
-def set_preferred_language(request, body):
+def set_preferred_language(request, body: dict) -> JsonResponse:
+    """Set the preferred language for the authenticated user.
+
+    Validates the submitted language code against ``settings.SUPPORTED_LANGUAGES``
+    before persisting the change.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        body (dict): Parsed request body containing ``'preferred_language'``,
+            injected by ``get_body``.
+
+    Returns:
+        JsonResponse: ``{'status': True}`` with HTTP 200, or a JSON error
+        body with HTTP 400 if the language code is not supported.
+    """
     preferred_language = body['preferred_language']
     if preferred_language not in settings.SUPPORTED_LANGUAGES:
         return JsonResponse({'error': 'Invalid language code'}, status=HTTPStatus.BAD_REQUEST)
@@ -325,7 +539,20 @@ def set_preferred_language(request, body):
 @require_http_methods(['GET'])
 @auth_required
 @get_query_params('page', 'limit')
-def user_reviews(request, user: User, page: int = 1, limit: int = 10):
+def user_reviews(request, user: User, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of reviews written by a specific user.
+
+    Reviews are ordered by most recently created first.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user instance resolved from the URL.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Paginated serialized reviews with HTTP 200.
+    """
     reviews_query = user.reviews.order_by('-created_at')
     return get_paginated_response(reviews_query, ReviewSerializer, request, page, limit)
 
@@ -344,7 +571,17 @@ def user_reviews(request, user: User, page: int = 1, limit: int = 10):
 @api_view(['POST', 'DELETE'])
 @require_http_methods(['POST', 'DELETE'])
 @auth_required
-def follow_user_wrapper(request, user: User):
+def follow_user_wrapper(request, user: User) -> JsonResponse:
+    """Follow or unfollow a user depending on the HTTP method.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The target user instance resolved from the URL.
+
+    Returns:
+        JsonResponse: ``{'following': bool}`` reflecting the updated follow
+        state after the operation, with HTTP 200.
+    """
     if request.method == 'POST':
         request.user.follow(user)
         return JsonResponse({'following': request.user.is_following(user)})

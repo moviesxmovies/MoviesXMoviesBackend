@@ -21,6 +21,14 @@ LIMIT_RECOMMENDATIONS = 5
 
 
 class ReviewSaveSerializer(serializers.Serializer):
+    """Serializer for validating review creation payloads.
+
+    Attributes:
+        is_positive (serializers.BooleanField): Whether the review is positive.
+        title (serializers.CharField): Title of the review.
+        content (serializers.CharField): Body content of the review.
+    """
+
     is_positive = serializers.BooleanField(
         required=True, help_text='If the serializer is positive or not'
     )
@@ -29,9 +37,39 @@ class ReviewSaveSerializer(serializers.Serializer):
 
 
 class RatingSaveSerializer(serializers.Serializer):
+    """Serializer for validating rating creation and update payloads.
+
+    Attributes:
+        rating (serializers.IntegerField): Numeric rating value between 1 and 5.
+    """
+
     rating = serializers.IntegerField(
         required=True, help_text='Rating value between 1 and 5', min_value=1, max_value=5
     )
+
+
+class MoviesInListSerializer(serializers.ModelSerializer):
+    """Serializer for representing a Movie inside a movie list.
+
+    Exposes a subset of movie fields suitable for list and recommendation
+    display contexts.
+    """
+
+    class Meta:
+        model = Movie
+        fields = [
+            'id',
+            'title',
+            'slug',
+            'release_date',
+            'synopsis',
+            'cover',
+            'genres',
+            'awards',
+            'platforms',
+            'actors',
+            'directors',
+        ]
 
 
 @extend_schema(
@@ -42,11 +80,19 @@ class RatingSaveSerializer(serializers.Serializer):
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
-def movie_detail(request, movie: Movie):
+def movie_detail(request, movie: Movie) -> JsonResponse:
+    """Return the full detail representation of a single movie.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: Serialized movie data with HTTP 200.
+    """
     return MovieSerializer(movie, request=request).json_response()
 
 
-# RATINGS
 @extend_schema(
     responses={200: RatingSerializer.get_paginated_schema(), 400: None, 404: None},
     description='Get ratings of friends for a specific movie',
@@ -59,14 +105,27 @@ def movie_detail(request, movie: Movie):
 @require_http_methods(['GET'])
 @auth_required
 @get_query_params('page', 'limit')
-def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10):
+def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of friend ratings for a specific movie.
+
+    Only ratings from users in request.user.friends are included,
+    ordered by most recently created first.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Paginated serialized ratings with HTTP 200.
+    """
     ratings_query = movie.ratings.filter(user__in=request.user.friends.all()).order_by(
         '-created_at'
     )
     return get_paginated_response(ratings_query, RatingSerializer, request, page, limit)
 
 
-# REVIEWS
 @extend_schema(
     methods=['GET'],
     description='Get reviews specific movie paginated',
@@ -86,7 +145,17 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
 )
 @api_view(['GET', 'POST'])
 @auth_required
-def movie_review_wrapper(request, movie: Movie):
+def movie_review_wrapper(request, movie: Movie) -> JsonResponse:
+    """Route GET and POST review requests to their respective handlers.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: The response from movie_reviews on GET,
+        or from save_movie_review on POST.
+    """
     match request.method:
         case 'POST':
             return save_movie_review(request, movie)
@@ -96,7 +165,20 @@ def movie_review_wrapper(request, movie: Movie):
 
 @require_http_methods(['GET'])
 @get_query_params('page', 'limit')
-def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10):
+def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of all reviews for a specific movie.
+
+    Reviews are ordered by most recently created first.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Paginated serialized reviews with HTTP 200.
+    """
     return get_paginated_response(
         movie.reviews.all().order_by('-created_at'), ReviewSerializer, request, page, limit
     )
@@ -104,7 +186,22 @@ def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10):
 
 @require_http_methods(['POST'])
 @get_body(Review, ['is_positive', 'title', 'content'])
-def save_movie_review(request, movie: Movie, review: Review):
+def save_movie_review(request, movie: Movie, review: Review) -> JsonResponse:
+    """Persist a new review for a movie and return it serialized.
+
+    The review instance is injected by the get_body decorator using
+    the 'is_positive', 'title', and 'content' fields from the request body.
+    user and movie are assigned before saving.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+        review (Review): Unsaved Review instance constructed from the
+            request body by get_body.
+
+    Returns:
+        JsonResponse: Serialized new review with HTTP 201.
+    """
     review.user = request.user
     review.movie = movie
     review.save()
@@ -113,7 +210,6 @@ def save_movie_review(request, movie: Movie, review: Review):
     return response
 
 
-# RATINGS
 @extend_schema(
     methods=['GET'],
     description='Get self rating for a specific movie',
@@ -136,7 +232,16 @@ def save_movie_review(request, movie: Movie, review: Review):
 )
 @api_view(['GET', 'POST', 'PUT'])
 @auth_required
-def movie_rating_wrapper(request, movie: Movie):
+def movie_rating_wrapper(request, movie: Movie) -> JsonResponse:
+    """Route GET, POST, and PUT rating requests to their respective handlers.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: The response from the matched rating handler.
+    """
     match request.method:
         case 'GET':
             return get_self_movie_rating(request, movie)
@@ -147,7 +252,17 @@ def movie_rating_wrapper(request, movie: Movie):
 
 
 @require_http_methods(['GET'])
-def get_self_movie_rating(request, movie: Movie):
+def get_self_movie_rating(request, movie: Movie) -> JsonResponse:
+    """Return the authenticated user's own rating for a specific movie.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: Serialized rating with HTTP 200, or a JSON error
+        body with HTTP 404 if no rating exists.
+    """
     try:
         rating = movie.ratings.get(user=request.user)
         return RatingSerializer(rating, request=request).json_response()
@@ -157,7 +272,22 @@ def get_self_movie_rating(request, movie: Movie):
 
 @require_http_methods(['POST'])
 @get_body(Rating, ['rating'])
-def create_movie_rating(request, movie: Movie, rating: Rating):
+def create_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
+    """Create and persist the authenticated user's rating for a movie.
+
+    Rejects the request if the user has already rated the movie.
+    Runs full_clean() before saving to enforce model-level validation.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+        rating (Rating): Unsaved Rating instance constructed from the
+            request body by get_body.
+
+    Returns:
+        JsonResponse: Serialized new rating with HTTP 201, or a JSON error
+        body with HTTP 400 on duplicate or validation failure.
+    """
     if movie.ratings.filter(user=request.user).exists():
         return JsonResponse(
             {'error': 'You have already rated this movie'}, status=HTTPStatus.BAD_REQUEST
@@ -176,7 +306,23 @@ def create_movie_rating(request, movie: Movie, rating: Rating):
 
 @require_http_methods(['PUT'])
 @get_body(Rating, ['rating'])
-def update_movie_rating(request, movie: Movie, rating: Rating):
+def update_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
+    """Update the authenticated user's existing rating for a movie.
+
+    Fetches the persisted rating, applies the new value from the injected
+    rating instance, runs full_clean(), and saves.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+        rating (Rating): Unsaved Rating instance carrying the new value,
+            constructed by get_body.
+
+    Returns:
+        JsonResponse: Serialized updated rating with HTTP 200, a JSON error
+        body with HTTP 404 if no prior rating exists, or HTTP 400 on
+        validation failure.
+    """
     try:
         existing_rating = movie.ratings.get(user=request.user)
         existing_rating.rating = rating.rating
@@ -191,27 +337,30 @@ def update_movie_rating(request, movie: Movie, rating: Rating):
 
 @extend_schema(
     description='Get movie recommendations for the authenticated user',
-    parameters=[
-        OpenApiParameter(name='page', description='Page number', required=False, type=int),
-        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
-    ],
-    responses={200: [MovieSerializer.get_schema()], 400: None},
+    responses={200: MoviesInListSerializer(many=True), 400: None},
     operation_id='get_movie_recommendations',
 )
 @api_view(['GET'])
 @auth_required
 @require_http_methods(['GET'])
-def get_movie_recommendations(request):
-    """
-    Returns a list of movie recommendations for the authenticated user.
-
+def get_movie_recommendations(request) -> JsonResponse:
+    """Return a ranked list of movie recommendations for the authenticated user.
 
     Pipeline:
-      1. Build exclusion set (already watched / marked unseen)
-      2. Fetch ML candidates from cache, fall back to recency ordering
-      3. Score + sort candidates
-      4. Pad with algorithmic results if the model doesn't return enough
-      5. Return response
+        1. Build exclusion set (already watched / marked unseen).
+        2. Fetch ML candidates from cache, fall back to recency ordering.
+        3. Score and sort candidates.
+        4. Pad with algorithmic results if the model returns fewer than
+           LIMIT_RECOMMENDATIONS.
+        5. Re-query Movie preserving the scored order.
+        6. Return serialized response.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: Serialized list of up to LIMIT_RECOMMENDATIONS
+        recommended movies with HTTP 200.
     """
     user = request.user
 
@@ -242,7 +391,30 @@ def get_movie_recommendations(request):
     return MovieSerializer(queryset, request=request).json_response()
 
 
-def _pad_with_algorithmic(existing, exclude_ids, user, needed):
+def _pad_with_algorithmic(
+    existing: list[Movie],
+    exclude_ids: set[int],
+    user,
+    needed: int,
+) -> list[Movie]:
+    """Pad a recommendations list with algorithmically selected fallback movies.
+
+    Fills the gap between len(existing) and needed by querying recent movies
+    available on the user's platforms, excluding already seen or existing
+    candidates.
+
+    Args:
+        existing (list[Movie]): Movies already selected by the scoring pipeline.
+        exclude_ids (set[int]): Primary-key set of movies to exclude.
+        user: The authenticated user whose platforms relation is used to
+            filter results.
+        needed (int): Total number of recommendations required.
+
+    Returns:
+        list[Movie]: The existing list extended with up to
+        needed - len(existing) additional Movie instances,
+        ordered by -release_date.
+    """
     existing_ids = {m.id for m in existing}
 
     user_platforms = user.platforms.values_list('slug', flat=True)

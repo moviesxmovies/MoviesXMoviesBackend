@@ -18,6 +18,15 @@ from .serializers import MovieListSerializer
 
 
 class SaveMovieListSerializer(serializers.Serializer):
+    """Serializer for validating movie list creation and update payloads.
+
+    Attributes:
+        name (serializers.CharField): Name of the movie list.
+        description (serializers.CharField): Description of the movie list.
+        privacity (serializers.ChoiceField): Visibility setting from
+            ``MovieList.Privacity.choices``.
+    """
+
     name = serializers.CharField(max_length=255)
     description = serializers.CharField(max_length=1024)
     privacity = serializers.ChoiceField(choices=MovieList.Privacity.choices)
@@ -71,7 +80,16 @@ class SaveMovieListSerializer(serializers.Serializer):
 @api_view(['GET', 'POST'])
 @require_http_methods(['GET', 'POST'])
 @auth_required
-def movies_list_self_wrapper(request):
+def movies_list_self_wrapper(request) -> JsonResponse:
+    """Route GET and POST movie list requests to their respective handlers.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: The response from ``movies_list_self`` on GET,
+        or from ``save_movie_list_self`` on POST.
+    """
     match request.method:
         case 'GET':
             return movies_list_self(request)
@@ -80,14 +98,16 @@ def movies_list_self_wrapper(request):
 
 
 @get_query_params('page', 'limit')
-def movies_list_self(request, page: int = 1, limit: int = 10):
-    """Users movies Lists
+def movies_list_self(request, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of all movie lists owned by the authenticated user.
 
     Args:
-        request (django.request)): All about the request
+        request: The authenticated incoming HTTP request.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
 
     Returns:
-        [movielists.models.MovieList]: A list of movies
+        JsonResponse: Paginated serialized movie lists with HTTP 200.
     """
     return get_paginated_response(
         request.user.movies_lists.all(),
@@ -100,7 +120,26 @@ def movies_list_self(request, page: int = 1, limit: int = 10):
 
 @get_body(MovieList, ['name', 'description', 'privacity'])
 @get_query_params('intelligent')
-def save_movie_list_self(request, movielist: MovieList, intelligent):
+def save_movie_list_self(request, movielist: MovieList, intelligent: str) -> JsonResponse:
+    """Create and persist a new movie list for the authenticated user.
+
+    Optionally fills the list intelligently using genres, celebrities, and
+    friends query parameters when ``intelligent`` is truthy. Validates all
+    parameters before saving.
+
+    Args:
+        request: The authenticated incoming HTTP request. May include
+            ``genres``, ``celebrities``, and ``friends`` as multi-value
+            query parameters when ``intelligent`` is set.
+        movielist (MovieList): Unsaved ``MovieList`` instance constructed
+            from the request body by ``get_body``.
+        intelligent (str): Query parameter controlling intelligent fill.
+            Treated as ``False`` when absent or equal to ``'false'``.
+
+    Returns:
+        JsonResponse: Serialized new movie list with HTTP 201, or a JSON
+        error body with HTTP 400 on validation failure or invalid parameters.
+    """
     genres = request.GET.getlist('genres')
     celebrities = request.GET.getlist('celebrities')
     friends = request.GET.getlist('friends')
@@ -109,7 +148,6 @@ def save_movie_list_self(request, movielist: MovieList, intelligent):
     movielist.slug = slugify(movielist.name)
 
     is_intelligent = bool(intelligent) and intelligent.lower() != 'false'
-
 
     try:
         movielist.full_clean()
@@ -133,7 +171,26 @@ def save_movie_list_self(request, movielist: MovieList, intelligent):
         return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
 
 
-def _validate_intelligent_params(user, genres, celebrities, friends):
+def _validate_intelligent_params(
+    user, genres: list[str], celebrities: list[str], friends: list[str]
+) -> JsonResponse | None:
+    """Validate that all provided slugs and usernames exist in the database.
+
+    Checks each genre slug against ``Genre``, each celebrity slug against
+    ``Person``, and each friend username against the user's friend list.
+    Returns the first error response encountered, or ``None`` if all are valid.
+
+    Args:
+        user: The authenticated user whose friends relation is used to
+            validate friend usernames.
+        genres (list[str]): List of genre slugs to validate.
+        celebrities (list[str]): List of celebrity slugs to validate.
+        friends (list[str]): List of friend usernames to validate.
+
+    Returns:
+        JsonResponse: A JSON error body with HTTP 400 for the first invalid
+        value found, or ``None`` if all values are valid.
+    """
     if genres:
         existing_genres = set(Genre.objects.filter(slug__in=genres).values_list('slug', flat=True))
         for g in genres:
@@ -174,15 +231,22 @@ def _validate_intelligent_params(user, genres, celebrities, friends):
 @require_http_methods(['GET'])
 @get_query_params('page', 'limit')
 @auth_required
-def movies_list_list(request, user, page: int = 1, limit: int = 10):
-    """Get user movie lists
+def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of movie lists belonging to a specific user.
+
+    Filters lists by privacity based on the relationship between the
+    authenticated user and the target user. Owners see all lists; friends
+    see public and followers-only lists; others see only public lists.
 
     Args:
-        request (djago.request): All about the request
-        user (users.models.User): The user which owns the lists
+        request: The authenticated incoming HTTP request.
+        user (User): The user whose movie lists are being retrieved,
+            resolved from the URL.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
 
     Returns:
-        [movielists.models.MovieList]: A list of movies
+        JsonResponse: Paginated serialized movie lists with HTTP 200.
     """
     if request.user == user:
         return MovieListSerializer(user.movies_lists.all(), request=request).json_response()
@@ -207,16 +271,21 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10):
 @api_view()
 @require_http_methods(['GET'])
 @auth_required
-def movies_list_detail(request, user, movies_list):
-    """A detail of a movie list
+def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
+    """Return the detail of a specific movie list, enforcing privacity rules.
+
+    Owners always have access. Public lists are visible to everyone.
+    Followers-only lists are visible only to friends of the owner.
 
     Args:
-        request (): User request
-        user (_type_): The user which owns the list
-        movies_list (_type_): The movie list to retrieve
+        request: The authenticated incoming HTTP request.
+        user (User): The user who owns the movie list, resolved from the URL.
+        movies_list (MovieList): The movie list instance resolved from the URL.
 
     Returns:
-        django.http.JsonResponse: The serialized movie list
+        JsonResponse: Serialized movie list with HTTP 200, or a JSON error
+        body with HTTP 404 if the list is private or the requester is not
+        allowed to view it.
     """
     if request.user == user:
         return MovieListSerializer(movies_list, request=request).json_response()
@@ -248,7 +317,23 @@ def movies_list_detail(request, user, movies_list):
 @api_view(['POST', 'DELETE'])
 @require_http_methods(['POST', 'DELETE'])
 @auth_required
-def movies_list_movie_wrapper(request, user, movies_list, movie):
+def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> JsonResponse:
+    """Route POST and DELETE movie-in-list requests to their respective handlers.
+
+    Rejects the request if the authenticated user is not the owner of both
+    the list and the user record.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user who owns the movie list, resolved from the URL.
+        movies_list (MovieList): The movie list instance resolved from the URL.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: The response from ``add_movie_to_list`` on POST, or
+        from ``remove_movie_from_list`` on DELETE, or a JSON error body
+        with HTTP 403 if the requester is not the list owner.
+    """
     if request.user != user or movies_list.user != user:
         return JsonResponse(
             {'error': "This movies list doesn't exist or you're not allowed to see it"},
@@ -262,14 +347,34 @@ def movies_list_movie_wrapper(request, user, movies_list, movie):
 
 
 @require_http_methods(['POST'])
-def add_movie_to_list(request, movies_list, movie):
+def add_movie_to_list(request, movies_list: MovieList, movie) -> JsonResponse:
+    """Add a movie to a movie list and return the updated list.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movies_list (MovieList): The movie list to add the movie to.
+        movie (Movie): The movie instance to add.
+
+    Returns:
+        JsonResponse: Serialized updated movie list with HTTP 200.
+    """
     movies_list.movies.add(movie)
     movies_list.save()
     return MovieListSerializer(movies_list, request=request).json_response()
 
 
 @require_http_methods(['DELETE'])
-def remove_movie_from_list(request, movies_list, movie):
+def remove_movie_from_list(request, movies_list: MovieList, movie) -> JsonResponse:
+    """Remove a movie from a movie list and confirm success.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movies_list (MovieList): The movie list to remove the movie from.
+        movie (Movie): The movie instance to remove.
+
+    Returns:
+        JsonResponse: ``{'success': True}`` with HTTP 200.
+    """
     movies_list.movies.remove(movie)
     movies_list.save()
     return JsonResponse({'success': True})

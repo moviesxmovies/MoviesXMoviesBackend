@@ -9,6 +9,11 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom serializer for obtaining JWT token pairs (access and refresh tokens) that includes additional user information in the token payload.
+    This serializer extends the default TokenObtainPairSerializer provided by the Simple JWT library, allowing for customization of the token generation process to include fields such as username, boarded status, verified status, and preferred language of the user.
+    """
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -22,6 +27,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class BaseSerializer(ABC):
+    """
+    Base serializer class that provides a structure for serializing objects or iterables of objects into JSON format. This class includes methods for building absolute URLs, serializing individual instances, and generating JSON responses. It also provides class methods for defining the schema of the serialized data, which can be used for documentation purposes with tools like drf-spectacular.
+    """
     def __init__(
         self,
         to_serialize: object | Iterable[object],
