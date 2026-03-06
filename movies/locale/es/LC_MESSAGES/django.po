@@ -20,8 +20,8 @@ msgstr ""
 "1 : 2;\n"
 #: movies/views.py:272 movies/views.py:335
 msgid "Rating not found"
-msgstr ""
+msgstr "Valoración no encontrada"
 
 #: movies/views.py:295
 msgid "You have already rated this movie"
-msgstr ""
+msgstr "Ya has valorado esta película"

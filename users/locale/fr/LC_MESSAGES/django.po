@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-06 12:57+0000\n"
+"POT-Creation-Date: 2026-03-06 15:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,106 +20,118 @@ msgstr ""
 
 #: users/decorators.py:52
 msgid "Token type is invalid"
-msgstr ""
+msgstr "Le type de token est invalide"
 
 #: users/decorators.py:58
 msgid "Token is invalid"
-msgstr ""
+msgstr "Le token est invalide"
 
 #: users/decorators.py:65
 msgid "User account is not verified"
-msgstr ""
+msgstr "Le compte utilisateur n'est pas vérifié"
 
 #: users/decorators.py:69
 msgid "You need to be authenticated"
-msgstr ""
+msgstr "Vous devez être authentifié"
 
 #: users/decorators.py:73
 msgid "Token is invalid or has incorrect padding"
-msgstr ""
+msgstr "Le token est invalide ou a un format incorrect"
 
 #: users/decorators.py:77
 msgid "Token has expired"
-msgstr ""
+msgstr "Le token a expiré"
 
 #: users/tasks.py:26
 #, python-brace-format
 msgid "Verificación de MoviesXMovies de {username}"
-msgstr ""
+msgstr "Vérification MoviesXMovies de {username}"
 
 #: users/tasks.py:50
 #, python-brace-format
 msgid "Restablecimiento de contraseña de MoviesXMovies de {username}"
-msgstr ""
+msgstr "Réinitialisation du mot de passe MoviesXMovies de {username}"
 
 #: users/templates/users/email/base.html:116
 #, python-format
 msgid "Hello, %(name)s!"
-msgstr ""
+msgstr "Bonjour, %(name)s !"
 
 #: users/templates/users/email/base.html:119
 msgid "Open MoviesXMovies"
-msgstr ""
+msgstr "Ouvrir MoviesXMovies"
 
 #: users/templates/users/email/base.html:123
 msgid "MoviesXMovies Team. Cinema for everyone."
-msgstr ""
+msgstr "Équipe MoviesXMovies. Le cinéma pour tous."
 
 #: users/templates/users/email/password-reset-email.html:4
 msgid "We have received a password reset request for your account:"
 msgstr ""
+"Nous avons reçu une demande de réinitialisation du mot de passe pour votre "
+"compte :"
 
-#: users/templates/users/email/password-reset-email.html:10
+#: users/templates/users/email/password-reset-email.html:6
+#: users/templates/users/email/verification-email.html:6
+msgid "Your security code"
+msgstr "Votre code de sécurité"
+
+#: users/templates/users/email/password-reset-email.html:9
 msgid "This code is private and will expire soon."
-msgstr ""
+msgstr "Ce code est privé et expirera bientôt."
 
-#: users/templates/users/email/password-reset-email.html:13
+#: users/templates/users/email/password-reset-email.html:12
 msgid "If you did not request a password reset, you can ignore this email."
 msgstr ""
+"Si vous n'avez pas demandé de réinitialisation du mot de passe, vous pouvez "
+"ignorer cet e-mail."
 
 #: users/templates/users/email/verification-email.html:4
 msgid ""
 "Thank you for joining our film community. To complete your registration, "
 "enter the following code:"
 msgstr ""
+"Merci de rejoindre notre communauté cinéphile. Pour finaliser votre "
+"inscription, entrez le code suivant :"
 
-#: users/templates/users/email/verification-email.html:12
+#: users/templates/users/email/verification-email.html:11
 msgid "If you did not create an account, you can ignore this email."
-msgstr ""
+msgstr "Si vous n'avez pas créé de compte, vous pouvez ignorer cet e-mail."
 
 #: users/views.py:184
 msgid "Verification code is incorrect"
-msgstr ""
+msgstr "Le code de vérification est incorrect"
 
 #: users/views.py:211
 msgid "User is already verified"
-msgstr ""
+msgstr "L'utilisateur est déjà vérifié"
 
 #: users/views.py:218
 #, python-brace-format
 msgid "You can resend the verification email in {remaining_time} seconds"
 msgstr ""
+"Vous pouvez renvoyer l'e-mail de vérification dans {remaining_time} secondes"
 
 #: users/views.py:225
 msgid "Verification email resent"
-msgstr ""
+msgstr "E-mail de vérification renvoyé"
 
-#: users/views.py:423
+#: users/views.py:427
 msgid "User not found"
-msgstr ""
+msgstr "Utilisateur introuvable"
 
-#: users/views.py:425
+#: users/views.py:429
 msgid "Password reset email sent"
-msgstr ""
+msgstr "E-mail de réinitialisation du mot de passe envoyé"
 
-#: users/views.py:450 users/views.py:459
+#: users/views.py:454 users/views.py:463
 msgid "Invalid verification code"
-msgstr ""
+msgstr "Code de vérification invalide"
 
-#: users/views.py:456
+#: users/views.py:460
 msgid "Password reset successful"
-msgstr ""
+msgstr "Mot de passe réinitialisé avec succès"
 
-#: users/views.py:583
+#: users/views.py:591
 msgid "Invalid language code"
-msgstr ""
+msgstr "Code de langue invalide"

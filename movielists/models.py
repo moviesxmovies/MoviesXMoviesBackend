@@ -6,6 +6,7 @@ from movies.models import Movie
 from ratings.models import Rating
 from shared.models import BaseModel
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 
 
 class MovieList(BaseModel):
@@ -21,7 +22,13 @@ class MovieList(BaseModel):
     """
 
     class Meta:
-        unique_together = ('slug', 'user')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['slug', 'user'],
+                name='unique_movielist_slug_user',
+                violation_error_message=_('A movie list with this name already exists.')
+            )
+        ]
 
     class Privacity(models.TextChoices):
         """Privacy settings controlling who can view a movie list.

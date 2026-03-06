@@ -19,8 +19,8 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 #: reviews/views.py:92
 msgid "You can only edit your own reviews"
-msgstr ""
+msgstr "Du kannst nur deine eigenen Rezensionen bearbeiten"
 
 #: reviews/views.py:117
 msgid "You can only delete your own reviews"
-msgstr ""
+msgstr "Du kannst nur deine eigenen Rezensionen löschen"

@@ -367,7 +367,10 @@ def update_user(request, user: User) -> JsonResponse:
     description='Initiate the forgot password process for a user account',
     methods=['GET'],
     parameters=[
-        OpenApiParameter(name='email', description='Email of the user to reset password for')
+        OpenApiParameter(
+            name='email', required=True, description='Email of the user to reset password for'
+        ),
+        OpenApiParameter(name='lang', required=False, description='User lang preference'),
     ],
 )
 @extend_schema(
@@ -375,6 +378,7 @@ def update_user(request, user: User) -> JsonResponse:
     description='Validate the forgot password code for a user account',
     methods=['POST'],
     request=ForgotPasswordValidationSerializer,
+    parameters=[OpenApiParameter(name='lang', required=False, description='User lang preference')],
 )
 @api_view(['POST', 'GET'])
 @require_http_methods(['POST', 'GET'])
@@ -492,7 +496,11 @@ def user_detail(request, user: User) -> JsonResponse:
     },
     parameters=[
         OpenApiParameter(
-            name='lang', description='User preferred language', required=False, type='string'
+            name='lang',
+            description='User preferred language',
+            required=False,
+            type=str,
+            location=OpenApiParameter.QUERY,
         )
     ],
 )
