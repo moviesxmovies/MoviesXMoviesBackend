@@ -35,6 +35,7 @@ from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
+from unittest.mock import MagicMock, patch
 
 # =================================================================
 # AUTH
@@ -431,8 +432,7 @@ def test_send_password_reset_email_logic(user_factory):
     sent_email = mail.outbox[0]
 
     assert (
-        sent_email.subject
-        == f'Restablecimiento de contraseña de MoviesXMovies de {user.username}'
+        sent_email.subject == f'Restablecimiento de contraseña de MoviesXMovies de {user.username}'
     )
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'
@@ -841,6 +841,7 @@ def test_forgot_password_validation(client, user_factory):
     assert response.status_code == HTTPStatus.OK
     assert response.json()['status'] == 'Password reset successful'
 
+
 @pytest.mark.django_db
 def test_forgot_password_validation_invalid_code(client, user_factory):
     user = user_factory(email='testuser@mail.com', forgot_password_code='valid_code')
@@ -856,6 +857,7 @@ def test_forgot_password_validation_invalid_code(client, user_factory):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['error'] == 'Invalid verification code'
 
+
 @pytest.mark.django_db
 def test_forgot_password_validation_nonexistent_email(client):
     response = client.post(
@@ -870,6 +872,7 @@ def test_forgot_password_validation_nonexistent_email(client):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['error'] == 'Invalid verification code'
 
+
 @pytest.mark.django_db
 def test_forgot_password_validation_weak_password(client, user_factory):
     user = user_factory(email='testuser@mail.com', forgot_password_code='valid_code')
@@ -883,7 +886,10 @@ def test_forgot_password_validation_weak_password(client, user_factory):
         content_type='application/json',
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()['error'] == ['This password is too short. It must contain at least 10 characters.']
+    assert response.json()['error'] == [
+        'This password is too short. It must contain at least 10 characters.'
+    ]
+
 
 @pytest.mark.django_db
 def test_set_preferred_language(auth_client):
@@ -891,12 +897,15 @@ def test_set_preferred_language(auth_client):
         'preferred_language': 'es',
     }
 
-    response = auth_client.post(USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json')
+    response = auth_client.post(
+        USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json'
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json()['status'] is True
 
     auth_client.user.refresh_from_db()
     assert auth_client.user.preferred_language == 'es'
+
 
 @pytest.mark.django_db
 def test_set_preferred_language_invalid_code(auth_client):
@@ -904,9 +913,229 @@ def test_set_preferred_language_invalid_code(auth_client):
         'preferred_language': 'invalid_code',
     }
 
-    response = auth_client.post(USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json')
+    response = auth_client.post(
+        USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json'
+    )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['error'] == 'Invalid language code'
 
     auth_client.user.refresh_from_db()
     assert auth_client.user.preferred_language != 'invalid_code'
+
+
+# =================================================================
+# ADAPTERS
+# =================================================================
+
+# =================================================================
+# Stubs
+# =================================================================
+
+
+class FakeUser:
+    def __init__(self, pk=1, email='user@example.com', picture_name='users/default.png'):
+        self.pk = pk
+        self.email = email
+        self.picture = MagicMock()
+        self.picture.name = picture_name
+
+
+class FakeSocialLogin:
+    def __init__(self, user=None, is_existing=False, extra_data=None):
+        self.user = user or FakeUser()
+        self.is_existing = is_existing
+        self.account = MagicMock()
+        self.account.extra_data = extra_data or {}
+        self.connect = MagicMock()
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def adapter():
+    from users.adapters import SocialAccountAdapter
+
+    instance = SocialAccountAdapter.__new__(SocialAccountAdapter)
+
+    with patch.object(
+        SocialAccountAdapter.__bases__[0], 'save_user'
+    ) as mock_super_save:
+        instance._mock_super_save = mock_super_save
+        yield instance
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def make_sl(picture_url=None, user_picture_name='users/default.png'):
+    user = FakeUser(picture_name=user_picture_name)
+    extra_data = {'picture': picture_url} if picture_url else {}
+    return FakeSocialLogin(user=user, extra_data=extra_data), user
+
+
+# ---------------------------------------------------------------------------
+# pre_social_login tests
+# ---------------------------------------------------------------------------
+
+
+class TestPreSocialLogin:
+    def test_returns_early_when_login_already_exists(self, adapter):
+        """No DB look-up or connect() call for an existing social login."""
+        sl = FakeSocialLogin(is_existing=True)
+
+        with patch('users.adapters.User') as MockUser:
+            adapter.pre_social_login(request=MagicMock(), sociallogin=sl)
+
+        MockUser.objects.get.assert_not_called()
+        sl.connect.assert_not_called()
+
+    def test_returns_early_when_email_is_missing(self, adapter):
+        """No DB look-up when the OAuth provider returns no e-mail."""
+        sl = FakeSocialLogin(user=FakeUser(email=''), is_existing=False)
+
+        with patch('users.adapters.User') as MockUser:
+            adapter.pre_social_login(request=MagicMock(), sociallogin=sl)
+
+        MockUser.objects.get.assert_not_called()
+        sl.connect.assert_not_called()
+
+    def test_connects_to_existing_user_with_matching_email(self, adapter):
+        """When a local account with the same e-mail exists, connect() is called."""
+        existing = FakeUser(pk=99, email='match@example.com')
+        sl = FakeSocialLogin(user=FakeUser(email='match@example.com'), is_existing=False)
+        request = MagicMock()
+
+        with patch('users.adapters.User') as MockUser:
+            MockUser.objects.get.return_value = existing
+            adapter.pre_social_login(request=request, sociallogin=sl)
+
+        MockUser.objects.get.assert_called_once_with(email='match@example.com')
+        sl.connect.assert_called_once_with(request, existing)
+
+    def test_does_not_connect_when_email_not_found(self, adapter):
+        """User.DoesNotExist is swallowed silently; connect() is never called."""
+        sl = FakeSocialLogin(user=FakeUser(email='new@example.com'), is_existing=False)
+
+        with patch('users.adapters.User') as MockUser:
+            MockUser.DoesNotExist = LookupError
+            MockUser.objects.get.side_effect = LookupError
+            adapter.pre_social_login(request=MagicMock(), sociallogin=sl)
+
+        sl.connect.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# save_user tests
+#
+# Condition: if picture_url and user.picture.name.endswith('users/default.png')
+# → picture is downloaded only for users who still have the default picture.
+# → users with a custom picture are skipped.
+# ---------------------------------------------------------------------------
+
+
+class TestSaveUser:
+    def test_returns_user_from_super(self, adapter):
+        """save_user always returns the user produced by the parent method."""
+        sl, user = make_sl()
+        adapter._mock_super_save.return_value = user
+
+        result = adapter.save_user(MagicMock(), sl)
+
+        assert result is user
+
+    def test_saves_profile_picture_for_new_user_with_default_picture(self, adapter):
+        """Happy path: URL present + user has default picture → picture downloaded."""
+        sl, user = make_sl(
+            picture_url='https://example.com/photo.jpg',
+            user_picture_name='users/default.png',
+        )
+        adapter._mock_super_save.return_value = user
+
+        fake_response = MagicMock(status_code=200, content=b'JPEG_BYTES')
+
+        with patch('requests.get', return_value=fake_response) as mock_get:
+            adapter.save_user(MagicMock(), sl)
+
+        mock_get.assert_called_once_with('https://example.com/photo.jpg', timeout=5)
+        user.picture.save.assert_called_once()
+        assert user.picture.save.call_args[0][0] == f'profile_{user.pk}.jpg'
+
+    def test_skips_picture_when_user_already_has_custom_picture(self, adapter):
+        """User with a non-default picture is not overwritten."""
+        sl, user = make_sl(
+            picture_url='https://example.com/photo.jpg',
+            user_picture_name='users/custom_avatar.png',
+        )
+        adapter._mock_super_save.return_value = user
+
+        with patch('requests.get') as mock_get:
+            adapter.save_user(MagicMock(), sl)
+
+        mock_get.assert_not_called()
+        user.picture.save.assert_not_called()
+
+    def test_skips_picture_when_url_absent(self, adapter):
+        """No HTTP request when extra_data has no 'picture' key."""
+        sl, user = make_sl(picture_url=None)
+        adapter._mock_super_save.return_value = user
+
+        with patch('requests.get') as mock_get:
+            adapter.save_user(MagicMock(), sl)
+
+        mock_get.assert_not_called()
+        user.picture.save.assert_not_called()
+
+    def test_skips_picture_on_failed_http_response(self, adapter):
+        """A non-200 response means no picture is saved."""
+        sl, user = make_sl(
+            picture_url='https://example.com/photo.jpg',
+            user_picture_name='users/default.png',
+        )
+        adapter._mock_super_save.return_value = user
+
+        with patch('requests.get', return_value=MagicMock(status_code=404)):
+            adapter.save_user(MagicMock(), sl)
+
+        user.picture.save.assert_not_called()
+
+    def test_swallows_request_exception(self, adapter):
+        """A network error must not propagate; save_user still returns the user."""
+        import requests as req
+
+        sl, user = make_sl(
+            picture_url='https://example.com/photo.jpg',
+            user_picture_name='users/default.png',
+        )
+        adapter._mock_super_save.return_value = user
+
+        with patch('requests.get', side_effect=req.RequestException('timeout')):
+            result = adapter.save_user(MagicMock(), sl)
+
+        assert result is user
+        user.picture.save.assert_not_called()
+
+    def test_picture_file_content_is_correct(self, adapter):
+        """The bytes from the response are wrapped in BytesIO then File before saving."""
+        sl, user = make_sl(
+            picture_url='https://example.com/photo.jpg',
+            user_picture_name='users/default.png',
+        )
+        adapter._mock_super_save.return_value = user
+
+        image_bytes = b'\xff\xd8\xff\xe0JPEG'
+        fake_response = MagicMock(status_code=200, content=image_bytes)
+
+        with (
+            patch('requests.get', return_value=fake_response),
+            patch('users.adapters.File') as MockFile,
+            patch('users.adapters.BytesIO') as MockBytesIO,
+        ):
+            adapter.save_user(MagicMock(), sl)
+
+        MockBytesIO.assert_called_once_with(image_bytes)
+        MockFile.assert_called_once_with(MockBytesIO.return_value)
