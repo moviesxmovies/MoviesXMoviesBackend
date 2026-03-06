@@ -1,5 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
+from django.utils import translation
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
@@ -380,6 +381,11 @@ def forgot_password_wrapper(request) -> JsonResponse:
         JsonResponse: The response from ``forgot_password`` on GET,
         or from ``forgot_password_validation`` on POST.
     """
+    preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
+    if preferred_language not in settings.SUPPORTED_LANGUAGES:
+        preferred_language = settings.DEFAULT_LANGUAGE
+    translation.activate(preferred_language)
+    request.LANGUAGE_CODE = preferred_language
     match request.method:
         case 'GET':
             return forgot_password(request)
@@ -475,6 +481,11 @@ def user_detail(request, user: User) -> JsonResponse:
     request={
         'multipart/form-data': SignupUserSerializer,
     },
+    parameters=[
+        OpenApiParameter(
+            name='lang', description='User preferred language', required=False, type='string'
+        )
+    ],
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
@@ -494,6 +505,10 @@ def user_signup(request) -> JsonResponse:
         body with HTTP 400 on validation failure.
     """
     try:
+        preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
+        if preferred_language not in settings.SUPPORTED_LANGUAGES:
+            preferred_language = settings.DEFAULT_LANGUAGE
+        translation.activate(preferred_language)
         for field in ['username', 'email', 'first_name', 'last_name', 'password']:
             if (
                 field not in request.data
@@ -508,6 +523,7 @@ def user_signup(request) -> JsonResponse:
             email=request.data['email'],
             first_name=request.data['first_name'],
             last_name=request.data['last_name'],
+            preferred_language=preferred_language,
         )
         raw_password = request.data['password']
 
