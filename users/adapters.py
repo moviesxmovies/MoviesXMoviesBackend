@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 
 import requests
@@ -29,7 +30,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             try:
                 response = requests.get(picture_url, timeout=5)
                 if response.status_code == 200:
-                    filename = f'profile_{user.pk}.jpg'
+                    filename = (
+                        f'profile_{user.username}_OAUTH_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg'
+                    )
                     user.picture.save(filename, File(BytesIO(response.content)), save=True)
             except requests.RequestException:
                 pass

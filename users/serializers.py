@@ -8,7 +8,7 @@ from .models import User
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'boarded', 'verified','preferred_language')
+        fields = ('username', 'boarded', 'verified', 'preferred_language')
 
 
 class UserSerializer(BaseSerializer):
@@ -20,6 +20,9 @@ class UserSerializer(BaseSerializer):
             'following': instance.is_followed_by(self.request.user)
             if self.request and self.request.user
             else None,
+            'picture': self.build_url(instance.picture.url)
+            if instance.picture and self.request
+            else None,
         }
 
     @staticmethod
@@ -29,4 +32,5 @@ class UserSerializer(BaseSerializer):
             'username': serializers.CharField(),
             'bio': serializers.CharField(),
             'following': serializers.BooleanField(allow_null=True),
+            'picture': serializers.URLField(allow_null=True),
         }

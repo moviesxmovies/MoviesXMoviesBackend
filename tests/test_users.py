@@ -1,5 +1,5 @@
 import json
-from datetime import timezone
+from datetime import datetime, timezone
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest import mock
@@ -291,7 +291,9 @@ def test_user_serializer_is_following(user_factory):
     user_request = user_factory()
     user_request.following.add(user)
     user_request.save()
-    request = SimpleNamespace(user=user_request)
+    request = SimpleNamespace(
+        user=user_request, build_absolute_uri=lambda x: f'http://testserver{x}'
+    )
     serialized = UserSerializer(user, request=request).serialize()
 
     assert serialized['id'] == user.pk
@@ -938,6 +940,7 @@ class FakeUser:
         self.email = email
         self.picture = MagicMock()
         self.picture.name = picture_name
+        self.username = f'user{pk}'
 
 
 class FakeSocialLogin:
@@ -960,9 +963,7 @@ def adapter():
 
     instance = SocialAccountAdapter.__new__(SocialAccountAdapter)
 
-    with patch.object(
-        SocialAccountAdapter.__bases__[0], 'save_user'
-    ) as mock_super_save:
+    with patch.object(SocialAccountAdapter.__bases__[0], 'save_user') as mock_super_save:
         instance._mock_super_save = mock_super_save
         yield instance
 
@@ -1063,7 +1064,7 @@ class TestSaveUser:
 
         mock_get.assert_called_once_with('https://example.com/photo.jpg', timeout=5)
         user.picture.save.assert_called_once()
-        assert user.picture.save.call_args[0][0] == f'profile_{user.pk}.jpg'
+        assert user.picture.save.call_args[0][0] == f'profile_{user.username}_OAUTH_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg'
 
     def test_skips_picture_when_user_already_has_custom_picture(self, adapter):
         """User with a non-default picture is not overwritten."""
