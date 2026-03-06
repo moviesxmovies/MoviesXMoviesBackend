@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-06 15:11+0000\n"
+"POT-Creation-Date: 2026-03-06 15:44+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,14 +43,15 @@ msgstr "El token es inválido o tiene un formato incorrecto"
 msgid "Token has expired"
 msgstr "El token ha expirado"
 
-#: users/tasks.py:26
-#, python-brace-format
-msgid "Verificación de MoviesXMovies de {username}"
+#: users/tasks.py:38
+#, fuzzy, python-brace-format
+#| msgid "Verificación de MoviesXMovies de {username}"
+msgid "Verification of MoviesXMovies account for {username}"
 msgstr "Verificación de MoviesXMovies de {username}"
 
-#: users/tasks.py:50
+#: users/tasks.py:52
 #, python-brace-format
-msgid "Restablecimiento de contraseña de MoviesXMovies de {username}"
+msgid "Password reset for MoviesXMovies account of {username}"
 msgstr "Restablecimiento de contraseña de MoviesXMovies de {username}"
 
 #: users/templates/users/email/base.html:116
@@ -116,22 +117,26 @@ msgstr "Puedes reenviar el correo de verificación en {remaining_time} segundos"
 msgid "Verification email resent"
 msgstr "Correo de verificación reenviado"
 
-#: users/views.py:427
+#: users/views.py:435
 msgid "User not found"
 msgstr "Usuario no encontrado"
 
-#: users/views.py:429
+#: users/views.py:437
 msgid "Password reset email sent"
 msgstr "Correo de restablecimiento de contraseña enviado"
 
-#: users/views.py:454 users/views.py:463
+#: users/views.py:462 users/views.py:471
 msgid "Invalid verification code"
 msgstr "Código de verificación inválido"
 
-#: users/views.py:460
+#: users/views.py:468
 msgid "Password reset successful"
 msgstr "Contraseña restablecida correctamente"
 
-#: users/views.py:591
+#: users/views.py:610
 msgid "Invalid language code"
 msgstr "Código de idioma inválido"
+
+#, python-brace-format
+#~ msgid "Restablecimiento de contraseña de MoviesXMovies de {username}"
+#~ msgstr "Restablecimiento de contraseña de MoviesXMovies de {username}"
