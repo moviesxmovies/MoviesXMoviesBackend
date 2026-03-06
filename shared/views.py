@@ -2,6 +2,9 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.utils import translation
+
+from shared.utils import activate_request_language, deactivate_language
 
 from .serializers import CustomTokenObtainPairSerializer
 
@@ -29,3 +32,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     """
 
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        previous_language = activate_request_language(request)
+        try:
+            return super().post(request, *args, **kwargs)
+        finally:
+            deactivate_language(previous_language)

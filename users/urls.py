@@ -8,7 +8,7 @@ urlpatterns = [
     # AUTH
     path(
         'auth/login/',
-        CustomTokenObtainPairView.as_view(), # TODO Translate error messages
+        CustomTokenObtainPairView.as_view(),
         name='token_obtain_pair',
     ),
     path(

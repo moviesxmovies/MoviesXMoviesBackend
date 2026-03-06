@@ -14,7 +14,7 @@ from rest_framework.decorators import api_view
 from main import settings
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
-from shared.utils import get_paginated_response
+from shared.utils import activate_request_language, deactivate_language, get_paginated_response
 from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
@@ -392,24 +392,15 @@ def forgot_password_wrapper(request) -> JsonResponse:
         JsonResponse: The response from ``forgot_password`` on GET,
         or from ``forgot_password_validation`` on POST.
     """
-    previous_language = translation.get_language()
+    previous_language = activate_request_language(request)
     try:
-        preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
-        if preferred_language not in settings.SUPPORTED_LANGUAGES:
-            preferred_language = settings.DEFAULT_LANGUAGE
-        translation.activate(preferred_language)
-        request.LANGUAGE_CODE = preferred_language
-
         match request.method:
             case 'GET':
                 return forgot_password(request)
             case 'POST':
                 return forgot_password_validation(request)
     finally:
-        if previous_language:
-            translation.activate(previous_language)
-        else:
-            translation.deactivate()
+        deactivate_language(previous_language)
 
 
 @require_http_methods(['GET'])
@@ -574,10 +565,7 @@ def user_signup(request) -> JsonResponse:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
     finally:
-        if previous_language:
-            translation.activate(previous_language)
-        else:
-            translation.deactivate()
+        deactivate_language(previous_language)
 
 
 @extend_schema(

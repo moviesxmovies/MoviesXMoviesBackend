@@ -413,8 +413,7 @@ def test_send_verification_email_logic(user_factory):
 
     assert len(mail.outbox) == 1
     sent_email = mail.outbox[0]
-
-    assert sent_email.subject == f'Verificación de MoviesXMovies de {user.username}'
+    assert sent_email.subject == f'Verification of MoviesXMovies account for {user.username}'
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'
 
@@ -436,7 +435,7 @@ def test_send_password_reset_email_logic(user_factory):
     sent_email = mail.outbox[0]
 
     assert (
-        sent_email.subject == f'Restablecimiento de contraseña de MoviesXMovies de {user.username}'
+        sent_email.subject == f'Password reset for MoviesXMovies account of {user.username}'
     )
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'
