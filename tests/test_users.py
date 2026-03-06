@@ -395,7 +395,7 @@ def test_auth_malformed_token(rf, mock_view_auth_required):
     request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {malformed_token}')
     response = mock_view_auth_required(request)
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert json.loads(response.content)['error'] == 'Token is invalid or have an incorrect padding'
+    assert json.loads(response.content)['error'] == 'Token is invalid or has incorrect padding'
 
 
 # =================================================================
