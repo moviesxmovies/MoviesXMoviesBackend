@@ -1,15 +1,13 @@
 {% extends "users/email/base.html" %}
-
+{% load i18n %}
 {% block content %}
-<p>Gracias por unirte a nuestra comunidad cinéfila. Para completar tu registro, ingresa el siguiente código:</p>
-
+<p>{% trans "Thank you for joining our film community. To complete your registration, enter the following code:" %}</p>
 <div class="code-container">
-    <p style="color: #bcbbdd; margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Tu
-        código de seguridad</p>
+    <p style="color: #bcbbdd; margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">{%
+        trans "Your security code" %}</p>
     <h2 class="verification-code">{{ user.verification_code }}</h2>
 </div>
 {% endblock %}
-
 {% block footer_text %}
-<p>Si no creaste una cuenta, puedes ignorar este correo.</p>
+<p>{% trans "If you did not create an account, you can ignore this email." %}</p>
 {% endblock %}

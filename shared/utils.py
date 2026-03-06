@@ -1,7 +1,7 @@
 from django.core.paginator import Paginator
 from django.http import Http404, JsonResponse
 from django.shortcuts import _get_queryset
-
+from django.utils.translation import gettext as _
 
 def get_object_or_json_404(klass, *args, **kwargs):
     """
@@ -22,7 +22,10 @@ def get_object_or_json_404(klass, *args, **kwargs):
         model_name = queryset.model.__name__
         lookup_value = list(kwargs.values())[0] if kwargs else 'unknown'
 
-        msg = f'Does not exist {model_name} with identifier {lookup_value}'
+        msg = _('Does not exist {model_name} with identifier {lookup_value}').format(
+            model_name=model_name,
+            lookup_value=lookup_value
+        )
         exc = Http404(msg)
         exc.model_name = model_name
         exc.lookup_value = lookup_value

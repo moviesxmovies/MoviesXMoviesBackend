@@ -1,6 +1,7 @@
 from datetime import datetime
 from http import HTTPStatus
 from django.utils import translation
+from django.utils.translation import gettext_lazy as _
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
@@ -179,7 +180,9 @@ def verify_user(request, body: dict) -> JsonResponse:
         user.save()
         return JsonResponse({'status': True})
 
-    return JsonResponse({'error': 'Verification code is incorrect'}, status=HTTPStatus.BAD_REQUEST)
+    return JsonResponse(
+        {'error': _('Verification code is incorrect')}, status=HTTPStatus.BAD_REQUEST
+    )
 
 
 @extend_schema(
@@ -205,17 +208,21 @@ def resend_verification_email(request) -> JsonResponse:
     """
     user = request.user
     if user.verified:
-        return JsonResponse({'status': 'User is already verified'})
+        return JsonResponse({'status': _('User is already verified')})
     cache_key = f'resend_verification_cooldown_{user.id}'
     remaining_time = cache.ttl(cache_key)
     if remaining_time > 0:
         return JsonResponse(
-            {'error': f'You can resend the verification email in {remaining_time} seconds'},
+            {
+                'error': _(
+                    'You can resend the verification email in {remaining_time} seconds'
+                ).format(remaining_time=remaining_time)
+            },
             status=HTTPStatus.TOO_MANY_REQUESTS,
         )
     send_verification_email.delay(user)
     cache.set(cache_key, True, timeout=60)
-    return JsonResponse({'status': 'Verification email resent'})
+    return JsonResponse({'status': _('Verification email resent')})
 
 
 @extend_schema(
@@ -413,9 +420,9 @@ def forgot_password(request, email: str) -> JsonResponse:
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return JsonResponse({'error': 'User not found'}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({'error': _('User not found')}, status=HTTPStatus.NOT_FOUND)
     send_password_reset_email.delay(user)
-    return JsonResponse({'status': 'Password reset email sent'})
+    return JsonResponse({'status': _('Password reset email sent')})
 
 
 @require_http_methods(['POST'])
@@ -440,15 +447,17 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
         user = User.objects.get(email=body['email'])
         if user.forgot_password_code != body['forgot_password_code']:
             return JsonResponse(
-                {'error': 'Invalid verification code'}, status=HTTPStatus.BAD_REQUEST
+                {'error': _('Invalid verification code')}, status=HTTPStatus.BAD_REQUEST
             )
         validate_password(body['new_password'], user=user)
         user.set_password(body['new_password'])
         user.password_reset_code = None
         user.save()
-        return JsonResponse({'status': 'Password reset successful'})
+        return JsonResponse({'status': _('Password reset successful')})
     except User.DoesNotExist:
-        return JsonResponse({'error': 'Invalid verification code'}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse(
+            {'error': _('Invalid verification code')}, status=HTTPStatus.BAD_REQUEST
+        )
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
@@ -516,7 +525,7 @@ def user_signup(request) -> JsonResponse:
                 or request.data[field] == ''
             ):
                 return JsonResponse(
-                    {'error': f'{field} is required'}, status=HTTPStatus.BAD_REQUEST
+                    {'error': {'error': _(f'{field} is required')}}, status=HTTPStatus.BAD_REQUEST
                 )
         user = User(
             username=request.data['username'],
@@ -571,7 +580,7 @@ def set_preferred_language(request, body: dict) -> JsonResponse:
     """
     preferred_language = body['preferred_language']
     if preferred_language not in settings.SUPPORTED_LANGUAGES:
-        return JsonResponse({'error': 'Invalid language code'}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse({'error': _('Invalid language code')}, status=HTTPStatus.BAD_REQUEST)
     request.user.preferred_language = preferred_language
     request.user.save()
     return JsonResponse({'status': True})

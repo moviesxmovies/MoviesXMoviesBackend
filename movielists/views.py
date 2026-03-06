@@ -3,7 +3,8 @@ from http import HTTPStatus
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.utils.text import slugify
-from drf_spectacular.utils import extend_schema
+from django.utils.translation import gettext as _
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
@@ -12,7 +13,7 @@ from persons.models import Person
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
 from users.decorators import auth_required
-from drf_spectacular.utils import OpenApiParameter
+
 from .models import MovieList
 from .serializers import MovieListSerializer
 
@@ -196,7 +197,8 @@ def _validate_intelligent_params(
         for g in genres:
             if g not in existing_genres:
                 return JsonResponse(
-                    {'error': f'Genre `{g}` does not exist'}, status=HTTPStatus.BAD_REQUEST
+                    {'error': _('Genre `{g}` does not exist').format(g=g)},
+                    status=HTTPStatus.BAD_REQUEST,
                 )
 
     if celebrities:
@@ -206,7 +208,8 @@ def _validate_intelligent_params(
         for c in celebrities:
             if c not in existing_celebs:
                 return JsonResponse(
-                    {'error': f'Celebrity `{c}` does not exist'}, status=HTTPStatus.BAD_REQUEST
+                    {'error': _('Celebrity `{c}` does not exist').format(c=c)},
+                    status=HTTPStatus.BAD_REQUEST,
                 )
 
     if friends:
@@ -216,7 +219,8 @@ def _validate_intelligent_params(
         for f in friends:
             if f not in existing_friends:
                 return JsonResponse(
-                    {'error': f'Friend `{f}` is not in your list'}, status=HTTPStatus.BAD_REQUEST
+                    {'error': _('Friend `{f}` is not in your list').format(f=f)},
+                    status=HTTPStatus.BAD_REQUEST,
                 )
 
     return None
@@ -297,7 +301,7 @@ def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
                 return MovieListSerializer(movies_list, request=request).json_response()
 
     return JsonResponse(
-        {'error': "This movies list doesn't exist or you're not allowed to see it"},
+        {'error': _("This movies list doesn't exist or you're not allowed to see it")},
         status=HTTPStatus.NOT_FOUND,
     )
 
@@ -336,7 +340,7 @@ def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> J
     """
     if request.user != user or movies_list.user != user:
         return JsonResponse(
-            {'error': "This movies list doesn't exist or you're not allowed to see it"},
+            {'error': _("This movies list doesn't exist or you're not allowed to see it")},
             status=HTTPStatus.FORBIDDEN,
         )
     match request.method:

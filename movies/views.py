@@ -1,11 +1,13 @@
 from http import HTTPStatus
 
+from django.db.models import Case, IntegerField, Q, When
 from django.forms import ValidationError
 from django.http import JsonResponse
+from django.utils.translation import gettext as _
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
-from django.db.models import Case, When, IntegerField, Q
+
 from movielists.models import MovieList
 from movies.models import Movie
 from movies.serializers import MovieSerializer
@@ -267,7 +269,7 @@ def get_self_movie_rating(request, movie: Movie) -> JsonResponse:
         rating = movie.ratings.get(user=request.user)
         return RatingSerializer(rating, request=request).json_response()
     except Rating.DoesNotExist:
-        return JsonResponse({'error': 'Rating not found'}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({'error': _('Rating not found')}, status=HTTPStatus.NOT_FOUND)
 
 
 @require_http_methods(['POST'])
@@ -290,7 +292,7 @@ def create_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
     """
     if movie.ratings.filter(user=request.user).exists():
         return JsonResponse(
-            {'error': 'You have already rated this movie'}, status=HTTPStatus.BAD_REQUEST
+            {'error': _('You have already rated this movie')}, status=HTTPStatus.BAD_REQUEST
         )
     rating.user = request.user
     rating.movie = movie
@@ -330,7 +332,7 @@ def update_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
         existing_rating.save()
         return RatingSerializer(existing_rating, request=request).json_response()
     except Rating.DoesNotExist:
-        return JsonResponse({'error': 'Rating not found'}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({'error': _('Rating not found')}, status=HTTPStatus.NOT_FOUND)
     except ValidationError as e:
         return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
 

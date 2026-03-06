@@ -7,7 +7,7 @@ from reviews.models import Review
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, require_http_methods
 from users.decorators import auth_required
-
+from django.utils.translation import gettext as _
 
 class ReviewUpdateSerializer(serializers.Serializer):
     """Serializer for validating review update payloads.
@@ -89,7 +89,7 @@ def edit_review(request, review: Review, body: dict) -> JsonResponse:
     """
     if review.user != request.user:
         return JsonResponse(
-            {'error': 'You can only edit your own reviews'}, status=HTTPStatus.FORBIDDEN
+            {'error': _('You can only edit your own reviews')}, status=HTTPStatus.FORBIDDEN
         )
     review.is_positive = body['is_positive']
     review.title = body['title']
@@ -114,7 +114,7 @@ def delete_review(request, review: Review) -> JsonResponse:
     """
     if review.user != request.user:
         return JsonResponse(
-            {'error': 'You can only delete your own reviews'}, status=HTTPStatus.FORBIDDEN
+            {'error': _('You can only delete your own reviews')}, status=HTTPStatus.FORBIDDEN
         )
     review.delete()
     return JsonResponse({'status': True}, status=HTTPStatus.NO_CONTENT)

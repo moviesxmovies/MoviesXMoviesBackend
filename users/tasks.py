@@ -1,7 +1,11 @@
 import secrets
+
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django_rq import job
+
+from django.utils.translation import gettext as _
+from django.utils import translation
 
 
 @job
@@ -17,8 +21,9 @@ def send_verification_email(user) -> None:
             ``email``, and ``verification_code`` fields.
     """
     user.verification_code = f'{secrets.randbelow(1000000):06d}'
+    translation.activate(user.preferred_language or translation.get_default_language())
     email = EmailMessage(
-        subject=f'Verificación de MoviesXMovies de {user.username}',
+        subject=_('Verificación de MoviesXMovies de {username}').format(username=user.username),
         body=render_to_string('users/email/verification-email.html', {'user': user}),
         to=[user.email],
     )
@@ -40,8 +45,11 @@ def send_password_reset_email(user) -> None:
             ``username``, ``email``, and ``forgot_password_code`` fields.
     """
     user.forgot_password_code = f'{secrets.randbelow(1000000):06d}'
+    translation.activate(user.preferred_language or translation.get_default_language())
     email = EmailMessage(
-        subject=f'Restablecimiento de contraseña de MoviesXMovies de {user.username}',
+        subject=_('Restablecimiento de contraseña de MoviesXMovies de {username}').format(
+            username=user.username
+        ),
         body=render_to_string('users/email/password-reset-email.html', {'user': user}),
         to=[user.email],
     )
