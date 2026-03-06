@@ -1,8 +1,10 @@
 import json
-from datetime import timezone
+from datetime import datetime, timezone
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest import mock
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test.client import MULTIPART_CONTENT, encode_multipart, BOUNDARY
 
 import jwt
 import pytest
@@ -291,7 +293,9 @@ def test_user_serializer_is_following(user_factory):
     user_request = user_factory()
     user_request.following.add(user)
     user_request.save()
-    request = SimpleNamespace(user=user_request)
+    request = SimpleNamespace(
+        user=user_request, build_absolute_uri=lambda x: f'http://testserver{x}'
+    )
     serialized = UserSerializer(user, request=request).serialize()
 
     assert serialized['id'] == user.pk
@@ -623,6 +627,30 @@ def test_user_signup(auth_client):
 
 
 @pytest.mark.django_db
+def test_user_signup_with_picture(auth_client):
+    picture_file = SimpleUploadedFile(
+        name='test_picture.jpg',
+        content=b'Test picture content',
+        content_type='image/jpeg',
+    )
+    payload = {
+        'email': 'test@example.com',
+        'username': 'test',
+        'first_name': 'test',
+        'last_name': 'test',
+        'password': 'testpassword',
+        'picture': picture_file,
+    }
+    response = auth_client.post(
+        SIGNUP_URL, data=payload, content_type=MULTIPART_CONTENT
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['username'] == 'test'
+    print(response.json())
+    assert response.json()['picture'].startswith('http://testserver/media/users/user_test_profile_')
+    assert response.json()['picture'].endswith('.jpg')
+
+@pytest.mark.django_db
 def test_user_signup_exception(auth_client):
     payload = {
         'email': 'testexample.com',
@@ -738,6 +766,32 @@ def test_edit_user(auth_client):
 
     auth_client.user.refresh_from_db()
     assert auth_client.user.bio == 'This is my new bio'
+
+
+@pytest.mark.django_db
+def test_edit_user_with_picture(auth_client):
+    picture_file = SimpleUploadedFile(
+        name='test_picture.jpg',
+        content=b'Test picture content',
+        content_type='image/jpeg',
+    )
+    payload = {
+        'bio': 'This is my new bio with picture',
+        'picture': picture_file,
+    }
+    response = auth_client.put(
+        SELF_USER_WRAPPER_URL,
+        data=encode_multipart(BOUNDARY, payload),
+        content_type=MULTIPART_CONTENT,
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['bio'] == 'This is my new bio with picture'
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.bio == 'This is my new bio with picture'
+    assert auth_client.user.picture.name.startswith(
+        f'users/user_{auth_client.user.username}_profile_'
+    )
+    assert auth_client.user.picture.name.endswith('.jpg')
 
 
 @pytest.mark.django_db
@@ -938,6 +992,7 @@ class FakeUser:
         self.email = email
         self.picture = MagicMock()
         self.picture.name = picture_name
+        self.username = f'user{pk}'
 
 
 class FakeSocialLogin:
@@ -960,9 +1015,7 @@ def adapter():
 
     instance = SocialAccountAdapter.__new__(SocialAccountAdapter)
 
-    with patch.object(
-        SocialAccountAdapter.__bases__[0], 'save_user'
-    ) as mock_super_save:
+    with patch.object(SocialAccountAdapter.__bases__[0], 'save_user') as mock_super_save:
         instance._mock_super_save = mock_super_save
         yield instance
 
@@ -1063,7 +1116,10 @@ class TestSaveUser:
 
         mock_get.assert_called_once_with('https://example.com/photo.jpg', timeout=5)
         user.picture.save.assert_called_once()
-        assert user.picture.save.call_args[0][0] == f'profile_{user.pk}.jpg'
+        assert (
+            user.picture.save.call_args[0][0]
+            == f'profile_{user.username}_OAUTH_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg'
+        )
 
     def test_skips_picture_when_user_already_has_custom_picture(self, adapter):
         """User with a non-default picture is not overwritten."""
