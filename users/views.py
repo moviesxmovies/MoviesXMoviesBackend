@@ -254,7 +254,9 @@ def suggested_users(request, page: int, limit: int) -> JsonResponse:
     operation_id='get_self_user_detail',
 )
 @extend_schema(
-    request=UserUpdateSerializer,
+    request={
+        'multipart/form-data': UserUpdateSerializer,
+    },
     responses={200: UserSerializer.get_schema(), 400: None, 404: None},
     description='Update the details of the authenticated user',
     methods=['PUT'],
@@ -343,7 +345,7 @@ def update_user(request, user: User) -> JsonResponse:
         picture = request.FILES.get('picture')
         if picture:
             picture.name = f'user_{user.username}_profile_{datetime.now().strftime("%Y%m%d%H%M%S")}.{picture.name.split(".")[-1]}'
-            user.picture = picture 
+            user.picture = picture
         user.full_clean()
         user.save()
         return UserSerializer(user, request=request).json_response()
@@ -470,7 +472,9 @@ def user_detail(request, user: User) -> JsonResponse:
 @extend_schema(
     responses={200: UserSerializer.get_schema(), 400: None, 404: None},
     description='Signup a user',
-    request=SignupUserSerializer,
+    request={
+        'multipart/form-data': SignupUserSerializer,
+    },
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
@@ -511,7 +515,6 @@ def user_signup(request) -> JsonResponse:
         user.set_password(raw_password)
         user.full_clean()
         picture = request.FILES.get('picture')
-
         if picture:
             picture.name = f'user_{user.username}_profile_{datetime.now().strftime("%Y%m%d%H%M%S")}.{picture.name.split(".")[-1]}'
             user.picture = picture
