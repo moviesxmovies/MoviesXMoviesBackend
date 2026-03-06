@@ -5,6 +5,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.forms import ValidationError
 from django.http import JsonResponse
+from django.utils import translation
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
@@ -12,7 +14,7 @@ from rest_framework.decorators import api_view
 from main import settings
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
-from shared.utils import get_paginated_response
+from shared.utils import activate_request_language, deactivate_language, get_paginated_response
 from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
@@ -178,7 +180,9 @@ def verify_user(request, body: dict) -> JsonResponse:
         user.save()
         return JsonResponse({'status': True})
 
-    return JsonResponse({'error': 'Verification code is incorrect'}, status=HTTPStatus.BAD_REQUEST)
+    return JsonResponse(
+        {'error': _('Verification code is incorrect')}, status=HTTPStatus.BAD_REQUEST
+    )
 
 
 @extend_schema(
@@ -204,17 +208,21 @@ def resend_verification_email(request) -> JsonResponse:
     """
     user = request.user
     if user.verified:
-        return JsonResponse({'status': 'User is already verified'})
+        return JsonResponse({'status': _('User is already verified')})
     cache_key = f'resend_verification_cooldown_{user.id}'
     remaining_time = cache.ttl(cache_key)
     if remaining_time > 0:
         return JsonResponse(
-            {'error': f'You can resend the verification email in {remaining_time} seconds'},
+            {
+                'error': _(
+                    'You can resend the verification email in {remaining_time} seconds'
+                ).format(remaining_time=remaining_time)
+            },
             status=HTTPStatus.TOO_MANY_REQUESTS,
         )
     send_verification_email.delay(user)
     cache.set(cache_key, True, timeout=60)
-    return JsonResponse({'status': 'Verification email resent'})
+    return JsonResponse({'status': _('Verification email resent')})
 
 
 @extend_schema(
@@ -359,7 +367,10 @@ def update_user(request, user: User) -> JsonResponse:
     description='Initiate the forgot password process for a user account',
     methods=['GET'],
     parameters=[
-        OpenApiParameter(name='email', description='Email of the user to reset password for')
+        OpenApiParameter(
+            name='email', required=True, description='Email of the user to reset password for'
+        ),
+        OpenApiParameter(name='lang', required=False, description='User lang preference'),
     ],
 )
 @extend_schema(
@@ -367,6 +378,7 @@ def update_user(request, user: User) -> JsonResponse:
     description='Validate the forgot password code for a user account',
     methods=['POST'],
     request=ForgotPasswordValidationSerializer,
+    parameters=[OpenApiParameter(name='lang', required=False, description='User lang preference')],
 )
 @api_view(['POST', 'GET'])
 @require_http_methods(['POST', 'GET'])
@@ -380,11 +392,15 @@ def forgot_password_wrapper(request) -> JsonResponse:
         JsonResponse: The response from ``forgot_password`` on GET,
         or from ``forgot_password_validation`` on POST.
     """
-    match request.method:
-        case 'GET':
-            return forgot_password(request)
-        case 'POST':
-            return forgot_password_validation(request)
+    previous_language = activate_request_language(request)
+    try:
+        match request.method:
+            case 'GET':
+                return forgot_password(request)
+            case 'POST':
+                return forgot_password_validation(request)
+    finally:
+        deactivate_language(previous_language)
 
 
 @require_http_methods(['GET'])
@@ -407,9 +423,9 @@ def forgot_password(request, email: str) -> JsonResponse:
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return JsonResponse({'error': 'User not found'}, status=HTTPStatus.NOT_FOUND)
+        return JsonResponse({'error': _('User not found')}, status=HTTPStatus.NOT_FOUND)
     send_password_reset_email.delay(user)
-    return JsonResponse({'status': 'Password reset email sent'})
+    return JsonResponse({'status': _('Password reset email sent')})
 
 
 @require_http_methods(['POST'])
@@ -434,15 +450,17 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
         user = User.objects.get(email=body['email'])
         if user.forgot_password_code != body['forgot_password_code']:
             return JsonResponse(
-                {'error': 'Invalid verification code'}, status=HTTPStatus.BAD_REQUEST
+                {'error': _('Invalid verification code')}, status=HTTPStatus.BAD_REQUEST
             )
         validate_password(body['new_password'], user=user)
         user.set_password(body['new_password'])
-        user.password_reset_code = None
+        user.forgot_password_code = None
         user.save()
-        return JsonResponse({'status': 'Password reset successful'})
+        return JsonResponse({'status': _('Password reset successful')})
     except User.DoesNotExist:
-        return JsonResponse({'error': 'Invalid verification code'}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse(
+            {'error': _('Invalid verification code')}, status=HTTPStatus.BAD_REQUEST
+        )
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
@@ -475,6 +493,15 @@ def user_detail(request, user: User) -> JsonResponse:
     request={
         'multipart/form-data': SignupUserSerializer,
     },
+    parameters=[
+        OpenApiParameter(
+            name='lang',
+            description='User preferred language',
+            required=False,
+            type=str,
+            location=OpenApiParameter.QUERY,
+        )
+    ],
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
@@ -493,7 +520,13 @@ def user_signup(request) -> JsonResponse:
         JsonResponse: Serialized new user with HTTP 200, or a JSON error
         body with HTTP 400 on validation failure.
     """
+    previous_language = translation.get_language()
     try:
+        preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
+        if preferred_language not in settings.SUPPORTED_LANGUAGES:
+            preferred_language = settings.DEFAULT_LANGUAGE
+        translation.activate(preferred_language)
+
         for field in ['username', 'email', 'first_name', 'last_name', 'password']:
             if (
                 field not in request.data
@@ -501,31 +534,38 @@ def user_signup(request) -> JsonResponse:
                 or request.data[field] == ''
             ):
                 return JsonResponse(
-                    {'error': f'{field} is required'}, status=HTTPStatus.BAD_REQUEST
+                    {'error': {'error': _(f'{field} is required')}}, status=HTTPStatus.BAD_REQUEST
                 )
+
         user = User(
             username=request.data['username'],
             email=request.data['email'],
             first_name=request.data['first_name'],
             last_name=request.data['last_name'],
+            preferred_language=preferred_language,
         )
         raw_password = request.data['password']
-
         validate_password(raw_password, user=user)
         user.set_password(raw_password)
         user.full_clean()
+
         picture = request.FILES.get('picture')
         if picture:
             picture.name = f'user_{user.username}_profile_{datetime.now().strftime("%Y%m%d%H%M%S")}.{picture.name.split(".")[-1]}'
             user.picture = picture
+
         bio = request.data.get('bio')
         if bio is not None and bio.strip() != '':
             user.bio = bio
+
         user.save()
         return UserSerializer(user, request=request).json_response()
+
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
+    finally:
+        deactivate_language(previous_language)
 
 
 @extend_schema(
@@ -555,7 +595,7 @@ def set_preferred_language(request, body: dict) -> JsonResponse:
     """
     preferred_language = body['preferred_language']
     if preferred_language not in settings.SUPPORTED_LANGUAGES:
-        return JsonResponse({'error': 'Invalid language code'}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse({'error': _('Invalid language code')}, status=HTTPStatus.BAD_REQUEST)
     request.user.preferred_language = preferred_language
     request.user.save()
     return JsonResponse({'status': True})

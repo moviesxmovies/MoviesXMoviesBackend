@@ -9,7 +9,10 @@ class CustomUserAdmin(UserAdmin):
     model = User
 
     fieldsets = UserAdmin.fieldsets + (
-        (None, {'fields': ['bio', 'boarded', 'verified', 'verification_code', 'forgot_password_code']}),
+        (
+            None,
+            {'fields': ['bio', 'boarded', 'verified', 'verification_code', 'forgot_password_code', 'preferred_language']},
+        ),
         ('Follow', {'fields': ['following_person', 'following']}),
         ('Platforms', {'fields': ['platforms']}),
     )

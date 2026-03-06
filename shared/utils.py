@@ -1,6 +1,10 @@
 from django.core.paginator import Paginator
 from django.http import Http404, JsonResponse
 from django.shortcuts import _get_queryset
+from django.utils.translation import gettext as _
+from django.utils import translation
+
+from main import settings
 
 
 def get_object_or_json_404(klass, *args, **kwargs):
@@ -22,7 +26,9 @@ def get_object_or_json_404(klass, *args, **kwargs):
         model_name = queryset.model.__name__
         lookup_value = list(kwargs.values())[0] if kwargs else 'unknown'
 
-        msg = f'Does not exist {model_name} with identifier {lookup_value}'
+        msg = _('Does not exist {model_name} with identifier {lookup_value}').format(
+            model_name=model_name, lookup_value=lookup_value
+        )
         exc = Http404(msg)
         exc.model_name = model_name
         exc.lookup_value = lookup_value
@@ -60,3 +66,20 @@ def get_paginated_response(queryset, serializer_class, request, page, limit):
             'current_page': page_result.number,
         }
     )
+
+
+def activate_request_language(request):
+    previous_language = translation.get_language()
+    preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
+    if preferred_language not in settings.SUPPORTED_LANGUAGES:
+        preferred_language = settings.DEFAULT_LANGUAGE
+    translation.activate(preferred_language)
+    request.LANGUAGE_CODE = preferred_language
+    return previous_language
+
+
+def deactivate_language(previous_language):
+    if previous_language:
+        translation.activate(previous_language)
+    else:
+        translation.deactivate()

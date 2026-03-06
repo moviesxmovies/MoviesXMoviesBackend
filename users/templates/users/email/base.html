@@ -1,3 +1,4 @@
+{% load i18n %}
 <!DOCTYPE html>
 <html>
 
@@ -110,18 +111,16 @@
                 class="header-logo-img">
             <span class="brand-name">Movies<span style="color: #2f27ce;">X</span>Movies</span>
         </div>
-
         <div class="content-card">
-            <h1>¡Hola, {% if user.first_name %}{{ user.first_name|capfirst }}{% else %}{{ user.username }}{% endif %}!
-            </h1>
+            {% with name=user.first_name|capfirst|default:user.username %}
+            <h1>{% blocktrans %}Hello, {{ name }}!{% endblocktrans %}</h1>
+            {% endwith %}
             {% block content %}{% endblock %}
-
-            <a href="https://moviesxmovies.jonaykb.com" class="btn">Abrir MoviesXMovies</a>
+            <a href="https://moviesxmovies.jonaykb.com" class="btn">{% trans "Open MoviesXMovies" %}</a>
         </div>
-
         <div class="footer">
             {% block footer_text %}{% endblock %}
-            <p>&copy; {% now "Y" %} MoviesXMovies Team. Cine para todos.</p>
+            <p>&copy; {% now "Y" %} {% trans "MoviesXMovies Team. Cinema for everyone." %}</p>
         </div>
     </div>
 </body>

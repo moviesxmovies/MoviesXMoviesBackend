@@ -3,8 +3,7 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest import mock
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test.client import MULTIPART_CONTENT, encode_multipart, BOUNDARY
+from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
@@ -27,9 +26,11 @@ from conftest import (
 from django.conf import settings
 from django.core import mail
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.template.loader import render_to_string
+from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
@@ -37,7 +38,6 @@ from users.decorators import auth_required
 from users.models import User
 from users.serializers import UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
-from unittest.mock import MagicMock, patch
 
 # =================================================================
 # AUTH
@@ -395,7 +395,7 @@ def test_auth_malformed_token(rf, mock_view_auth_required):
     request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {malformed_token}')
     response = mock_view_auth_required(request)
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert json.loads(response.content)['error'] == 'Token is invalid or have an incorrect padding'
+    assert json.loads(response.content)['error'] == 'Token is invalid or has incorrect padding'
 
 
 # =================================================================
@@ -413,8 +413,7 @@ def test_send_verification_email_logic(user_factory):
 
     assert len(mail.outbox) == 1
     sent_email = mail.outbox[0]
-
-    assert sent_email.subject == f'Verificación de MoviesXMovies de {user.username}'
+    assert sent_email.subject == f'Verification of MoviesXMovies account for {user.username}'
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'
 
@@ -436,7 +435,7 @@ def test_send_password_reset_email_logic(user_factory):
     sent_email = mail.outbox[0]
 
     assert (
-        sent_email.subject == f'Restablecimiento de contraseña de MoviesXMovies de {user.username}'
+        sent_email.subject == f'Password reset for MoviesXMovies account of {user.username}'
     )
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'
@@ -641,14 +640,13 @@ def test_user_signup_with_picture(auth_client):
         'password': 'testpassword',
         'picture': picture_file,
     }
-    response = auth_client.post(
-        SIGNUP_URL, data=payload, content_type=MULTIPART_CONTENT
-    )
+    response = auth_client.post(SIGNUP_URL, data=payload, content_type=MULTIPART_CONTENT)
     assert response.status_code == HTTPStatus.OK
     assert response.json()['username'] == 'test'
-    print(response.json())
+    (response.json())
     assert response.json()['picture'].startswith('http://testserver/media/users/user_test_profile_')
     assert response.json()['picture'].endswith('.jpg')
+
 
 @pytest.mark.django_db
 def test_user_signup_exception(auth_client):

@@ -22,6 +22,7 @@ TESTING = 'test' in sys.argv or 'pytest' in sys.modules
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de']
+DEFAULT_LANGUAGE = 'en'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -91,6 +92,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'shared.middleware.UserLanguageMiddleware',
 ]
 
 

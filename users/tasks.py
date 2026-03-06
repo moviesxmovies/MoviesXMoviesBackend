@@ -2,49 +2,55 @@ import secrets
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django_rq import job
+from django.utils.translation import gettext as _
+from django.utils import translation
+
+from users.models import User
+
+
+def _send_email(user: User, subject: str, template: str, extra_context: dict = None) -> None:
+    """Activate the user's language, render and send an HTML email, then restore the language."""
+    previous_language = translation.get_language()
+    try:
+        translation.activate(user.preferred_language or translation.get_default_language())
+        context = {'user': user, **(extra_context or {})}
+        email = EmailMessage(
+            subject=subject,
+            body=render_to_string(template, context),
+            to=[user.email],
+        )
+        email.content_subtype = 'html'
+        email.send()
+    finally:
+        if previous_language:
+            translation.activate(previous_language)
+        else:
+            translation.deactivate()
 
 
 @job
 def send_verification_email(user) -> None:
-    """Generate a verification code and send it to the user via email.
-
-    Generates a cryptographically secure 6-digit code, assigns it to
-    ``user.verification_code``, persists the user, and dispatches an HTML
-    email rendered from ``users/email/verification-email.html``.
-
-    Args:
-        user (User): The user instance to verify. Must have ``username``,
-            ``email``, and ``verification_code`` fields.
-    """
+    """Generate a verification code and send it to the user via email."""
     user.verification_code = f'{secrets.randbelow(1000000):06d}'
-    email = EmailMessage(
-        subject=f'Verificación de MoviesXMovies de {user.username}',
-        body=render_to_string('users/email/verification-email.html', {'user': user}),
-        to=[user.email],
-    )
-    email.content_subtype = 'html'
     user.save()
-    email.send()
+    _send_email(
+        user,
+        subject=_('Verification of MoviesXMovies account for {username}').format(
+            username=user.username
+        ),
+        template='users/email/verification-email.html',
+    )
 
 
 @job
 def send_password_reset_email(user) -> None:
-    """Generate a password reset code and send it to the user via email.
-
-    Generates a cryptographically secure 6-digit code, assigns it to
-    ``user.forgot_password_code``, persists the user, and dispatches an HTML
-    email rendered from ``users/email/password-reset-email.html``.
-
-    Args:
-        user (User): The user instance requesting a password reset. Must have
-            ``username``, ``email``, and ``forgot_password_code`` fields.
-    """
+    """Generate a password reset code and send it to the user via email."""
     user.forgot_password_code = f'{secrets.randbelow(1000000):06d}'
-    email = EmailMessage(
-        subject=f'Restablecimiento de contraseña de MoviesXMovies de {user.username}',
-        body=render_to_string('users/email/password-reset-email.html', {'user': user}),
-        to=[user.email],
-    )
-    email.content_subtype = 'html'
     user.save()
-    email.send()
+    _send_email(
+        user,
+        subject=_('Password reset for MoviesXMovies account of {username}').format(
+            username=user.username
+        ),
+        template='users/email/password-reset-email.html',
+    )

@@ -1,6 +1,7 @@
 import json
 from http import HTTPStatus
 from django.http import JsonResponse
+from django.utils.translation import gettext as _
 
 
 def require_http_methods(methods):
@@ -45,7 +46,7 @@ def require_http_methods(methods):
             """
             if request.method not in methods:
                 return JsonResponse(
-                    {'error': 'Method not allowed'},
+                    {'error': _('Method not allowed')},
                     status=HTTPStatus.METHOD_NOT_ALLOWED,
                 )
             return func(request, *args, **kwargs)
@@ -173,7 +174,7 @@ def get_body(model_class, required_fields):
                 body_data = json.loads(request.body)
             except json.JSONDecodeError:
                 return JsonResponse(
-                    {'error': 'Invalid JSON body'},
+                    {'error': _('Invalid JSON body')},
                     status=HTTPStatus.BAD_REQUEST,
                 )
 
@@ -181,7 +182,7 @@ def get_body(model_class, required_fields):
             for field in required_fields:
                 if field not in body_data:
                     return JsonResponse(
-                        {'error': 'Missing required fields'},
+                        {'error': _('Missing required fields')},
                         status=HTTPStatus.BAD_REQUEST,
                     )
                 clean_data[field] = body_data[field]
