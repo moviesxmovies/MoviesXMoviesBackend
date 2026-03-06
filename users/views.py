@@ -1,12 +1,12 @@
 from datetime import datetime
 from http import HTTPStatus
-from django.utils import translation
-from django.utils.translation import gettext_lazy as _
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.forms import ValidationError
 from django.http import JsonResponse
+from django.utils import translation
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
@@ -392,16 +392,24 @@ def forgot_password_wrapper(request) -> JsonResponse:
         JsonResponse: The response from ``forgot_password`` on GET,
         or from ``forgot_password_validation`` on POST.
     """
-    preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
-    if preferred_language not in settings.SUPPORTED_LANGUAGES:
-        preferred_language = settings.DEFAULT_LANGUAGE
-    translation.activate(preferred_language)
-    request.LANGUAGE_CODE = preferred_language
-    match request.method:
-        case 'GET':
-            return forgot_password(request)
-        case 'POST':
-            return forgot_password_validation(request)
+    previous_language = translation.get_language()
+    try:
+        preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
+        if preferred_language not in settings.SUPPORTED_LANGUAGES:
+            preferred_language = settings.DEFAULT_LANGUAGE
+        translation.activate(preferred_language)
+        request.LANGUAGE_CODE = preferred_language
+
+        match request.method:
+            case 'GET':
+                return forgot_password(request)
+            case 'POST':
+                return forgot_password_validation(request)
+    finally:
+        if previous_language:
+            translation.activate(previous_language)
+        else:
+            translation.deactivate()
 
 
 @require_http_methods(['GET'])
@@ -455,7 +463,7 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
             )
         validate_password(body['new_password'], user=user)
         user.set_password(body['new_password'])
-        user.password_reset_code = None
+        user.forgot_password_code = None
         user.save()
         return JsonResponse({'status': _('Password reset successful')})
     except User.DoesNotExist:
@@ -521,11 +529,13 @@ def user_signup(request) -> JsonResponse:
         JsonResponse: Serialized new user with HTTP 200, or a JSON error
         body with HTTP 400 on validation failure.
     """
+    previous_language = translation.get_language()
     try:
         preferred_language = request.GET.get('lang', settings.DEFAULT_LANGUAGE)
         if preferred_language not in settings.SUPPORTED_LANGUAGES:
             preferred_language = settings.DEFAULT_LANGUAGE
         translation.activate(preferred_language)
+
         for field in ['username', 'email', 'first_name', 'last_name', 'password']:
             if (
                 field not in request.data
@@ -535,6 +545,7 @@ def user_signup(request) -> JsonResponse:
                 return JsonResponse(
                     {'error': {'error': _(f'{field} is required')}}, status=HTTPStatus.BAD_REQUEST
                 )
+
         user = User(
             username=request.data['username'],
             email=request.data['email'],
@@ -543,22 +554,30 @@ def user_signup(request) -> JsonResponse:
             preferred_language=preferred_language,
         )
         raw_password = request.data['password']
-
         validate_password(raw_password, user=user)
         user.set_password(raw_password)
         user.full_clean()
+
         picture = request.FILES.get('picture')
         if picture:
             picture.name = f'user_{user.username}_profile_{datetime.now().strftime("%Y%m%d%H%M%S")}.{picture.name.split(".")[-1]}'
             user.picture = picture
+
         bio = request.data.get('bio')
         if bio is not None and bio.strip() != '':
             user.bio = bio
+
         user.save()
         return UserSerializer(user, request=request).json_response()
+
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
+    finally:
+        if previous_language:
+            translation.activate(previous_language)
+        else:
+            translation.deactivate()
 
 
 @extend_schema(
