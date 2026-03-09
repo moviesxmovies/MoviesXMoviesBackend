@@ -81,9 +81,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'corsheaders',
     'django_rq',
+    'django_prometheus',
 ]
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -93,6 +95,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'shared.middleware.UserLanguageMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 
@@ -111,7 +114,7 @@ if TESTING:
 else:
     CACHES = {
         'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
+            'BACKEND': 'django_prometheus.cache.backends.redis.RedisCache',
             'LOCATION': f'redis://{REDIS_HOST}:6379/1',
         }
     }
@@ -283,7 +286,7 @@ WSGI_APPLICATION = 'main.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'ENGINE': config('DB_ENGINE', default='django_prometheus.db.backends.sqlite3'),
         'NAME': config('DB_NAME', default='db.sqlite3'),
         'USER': config('DB_USER', default=''),
         'PASSWORD': config('DB_PASSWORD', default=''),
