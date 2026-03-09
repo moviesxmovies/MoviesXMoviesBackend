@@ -424,6 +424,17 @@ def forgot_password(request, email: str) -> JsonResponse:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         return JsonResponse({'error': _('User not found')}, status=HTTPStatus.NOT_FOUND)
+    cache_key = f'resend_forgot_password_cooldown_{user.id}'
+    remaining_time = cache.ttl(cache_key)
+    if remaining_time > 0:
+        return JsonResponse(
+            {
+                'error': _(
+                    'You can resend the password reset email in {remaining_time} seconds'
+                ).format(remaining_time=remaining_time)
+            },
+            status=HTTPStatus.TOO_MANY_REQUESTS,
+        )
     send_password_reset_email.delay(user)
     return JsonResponse({'status': _('Password reset email sent')})
 

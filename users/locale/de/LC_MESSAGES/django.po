@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-06 15:44+0000\n"
+"POT-Creation-Date: 2026-03-09 11:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -118,23 +118,31 @@ msgstr ""
 msgid "Verification email resent"
 msgstr "Verifizierungs-E-Mail erneut gesendet"
 
-#: users/views.py:435
+#: users/views.py:426
 msgid "User not found"
 msgstr "Benutzer nicht gefunden"
 
-#: users/views.py:437
+#: users/views.py:433
+#, fuzzy, python-brace-format
+#| msgid "You can resend the verification email in {remaining_time} seconds"
+msgid "You can resend the password reset email in {remaining_time} seconds"
+msgstr ""
+"Du kannst die Verifizierungs-E-Mail in {remaining_time} Sekunden erneut "
+"senden"
+
+#: users/views.py:439
 msgid "Password reset email sent"
 msgstr "E-Mail zum Zurücksetzen des Passworts gesendet"
 
-#: users/views.py:462 users/views.py:471
+#: users/views.py:464 users/views.py:475
 msgid "Invalid verification code"
 msgstr "Ungültiger Verifizierungscode"
 
-#: users/views.py:468
+#: users/views.py:472
 msgid "Password reset successful"
 msgstr "Passwort erfolgreich zurückgesetzt"
 
-#: users/views.py:610
+#: users/views.py:611
 msgid "Invalid language code"
 msgstr "Ungültiger Sprachcode"
 
