@@ -27,6 +27,7 @@ for name, converter_class in CUSTOM_CONVERTERS.items():
 handler404 = 'shared.handlers.custom_handler404'
 
 urlpatterns = [
+    path('', include('django_prometheus.urls')),
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/movies-lists/', include('movielists.urls')),

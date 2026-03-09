@@ -275,6 +275,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-prometheus"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prometheus-client" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/b9/c758675671d71a1800feaad5c5fbcdecbd8d34296b63f9dc5662db39abda/django_prometheus-2.4.0.tar.gz", hash = "sha256:67da5c73d8e859aa73f6e11f52341c482691b17f8bd9844157cff6cdf51ce9bc", size = 24393, upload-time = "2025-06-18T18:06:28.673Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/05/d980950fb8c3f6f96c644599b1a025fb50e827477b1acf36daef72aa7e76/django_prometheus-2.4.0-py2.py3-none-any.whl", hash = "sha256:5b46b5f07b02ba8dd7abdb03a3c39073e8fd9120e2293a1ecb949bbb865378ac", size = 29528, upload-time = "2025-06-18T18:06:27.079Z" },
+]
+
+[[package]]
 name = "django-redis"
 version = "6.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -515,7 +527,7 @@ wheels = [
 
 [[package]]
 name = "moviesxmoviesbackend"
-version = "1.3.1"
+version = "1.4.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cryptography" },
@@ -523,6 +535,7 @@ dependencies = [
     { name = "django" },
     { name = "django-allauth" },
     { name = "django-cors-headers" },
+    { name = "django-prometheus" },
     { name = "django-redis" },
     { name = "django-rq" },
     { name = "djangorestframework-simplejwt" },
@@ -554,6 +567,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.0.1" },
     { name = "django-allauth", specifier = "==0.55.0" },
     { name = "django-cors-headers", specifier = ">=4.9.0" },
+    { name = "django-prometheus", specifier = ">=2.4.0" },
     { name = "django-redis", specifier = ">=6.0.0" },
     { name = "django-rq", specifier = ">=3.2.2" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.5.1" },
@@ -713,6 +727,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/09/4610455726515805d034eaee4e663481a4e60db42007cfd373f0b09595a1/prettyconf-2.3.0.tar.gz", hash = "sha256:d73e025b25ffb188227c88f15755a7e6bfe57203700a9b6f45146b7d6bc55c67", size = 13540, upload-time = "2025-03-25T19:46:00.504Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/2b/c5006566fd2482285f069ee508eb2a872cd0bfb2d41e3fa011c05bb7ff37/prettyconf-2.3.0-py3-none-any.whl", hash = "sha256:9c83eb90472522b0f2bc196f7d561ff8c26a1833f838cc32f948ea4d3973cb64", size = 9907, upload-time = "2025-03-25T19:45:59.078Z" },
+]
+
+[[package]]
+name = "prometheus-client"
+version = "0.24.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/58/a794d23feb6b00fc0c72787d7e87d872a6730dd9ed7c7b3e954637d8f280/prometheus_client-0.24.1.tar.gz", hash = "sha256:7e0ced7fbbd40f7b84962d5d2ab6f17ef88a72504dcf7c0b40737b43b2a461f9", size = 85616, upload-time = "2026-01-14T15:26:26.965Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/74/c3/24a2f845e3917201628ecaba4f18bab4d18a337834c1df2a159ee9d22a42/prometheus_client-0.24.1-py3-none-any.whl", hash = "sha256:150db128af71a5c2482b36e588fc8a6b95e498750da4b17065947c16070f4055", size = 64057, upload-time = "2026-01-14T15:26:24.42Z" },
 ]
 
 [[package]]
