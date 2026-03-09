@@ -455,6 +455,8 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
         validate_password(body['new_password'], user=user)
         user.set_password(body['new_password'])
         user.forgot_password_code = None
+        user.verified = True  # Automatically verify the user upon successful password reset
+        user.verification_code = None
         user.save()
         return JsonResponse({'status': _('Password reset successful')})
     except User.DoesNotExist:
