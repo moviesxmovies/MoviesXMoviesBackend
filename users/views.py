@@ -436,6 +436,7 @@ def forgot_password(request, email: str) -> JsonResponse:
             status=HTTPStatus.TOO_MANY_REQUESTS,
         )
     send_password_reset_email.delay(user)
+    cache.set(cache_key, True, timeout=60)
     return JsonResponse({'status': _('Password reset email sent')})
 
 
