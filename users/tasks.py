@@ -4,18 +4,17 @@ from django.template.loader import render_to_string
 from django_rq import job
 from django.utils.translation import gettext as _
 from django.utils import translation
-
 from users.models import User
 
 
-def _send_email(user: User, subject: str, template: str, extra_context: dict = None) -> None:
+def _send_email(user: User, subject_template: str, subject_kwargs: dict, template: str, extra_context: dict = None) -> None:
     """Activate the user's language, render and send an HTML email, then restore the language."""
     previous_language = translation.get_language()
     try:
         translation.activate(user.preferred_language or translation.get_default_language())
         context = {'user': user, **(extra_context or {})}
         email = EmailMessage(
-            subject=subject,
+            subject=_(subject_template).format(**subject_kwargs),
             body=render_to_string(template, context),
             to=[user.email],
         )
@@ -35,9 +34,8 @@ def send_verification_email(user) -> None:
     user.save()
     _send_email(
         user,
-        subject=_('Verification of MoviesXMovies account for {username}').format(
-            username=user.username
-        ),
+        subject_template='Verification of MoviesXMovies account for {username}',
+        subject_kwargs={'username': user.username},
         template='users/email/verification-email.html',
     )
 
@@ -49,8 +47,7 @@ def send_password_reset_email(user) -> None:
     user.save()
     _send_email(
         user,
-        subject=_('Password reset for MoviesXMovies account of {username}').format(
-            username=user.username
-        ),
+        subject_template='Password reset for MoviesXMovies account of {username}',
+        subject_kwargs={'username': user.username},
         template='users/email/password-reset-email.html',
     )
