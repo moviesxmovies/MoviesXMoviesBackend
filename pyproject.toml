@@ -1,6 +1,6 @@
 [project]
 name = "moviesxmoviesbackend"
-version = "1.5.1"
+version = "1.5.2"
 requires-python = ">=3.14"
 dependencies = [
     "cryptography>=46.0.4",

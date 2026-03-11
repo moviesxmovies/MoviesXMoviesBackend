@@ -19,5 +19,5 @@ def send_verification_email_on_created(sender, instance: User, created: bool, **
             if an existing record was updated.
         **kwargs: Additional keyword arguments passed by the signal.
     """
-    if created:
+    if created and not instance.socialaccount_set.exists():
         send_verification_email.delay(instance)
