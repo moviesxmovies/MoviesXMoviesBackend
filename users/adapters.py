@@ -4,7 +4,7 @@ from io import BytesIO
 import requests
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
-
+from django.core.files import File
 User = get_user_model()
 
 
@@ -52,7 +52,6 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             filename = (
                 f'profile_{user.username}_OAUTH_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg'
             )
-            from django.core.files import File
 
             user.picture.save(filename, File(BytesIO(response.content)), save=True)
 
