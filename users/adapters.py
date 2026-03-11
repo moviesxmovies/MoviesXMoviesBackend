@@ -5,6 +5,7 @@ import requests
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
 from django.core.files import File
+
 User = get_user_model()
 
 
@@ -48,12 +49,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         try:
             response = requests.get(picture_url, timeout=5)
             response.raise_for_status()
-
             filename = (
                 f'profile_{user.username}_OAUTH_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg'
             )
-
-            user.picture.save(filename, File(BytesIO(response.content)), save=True)
-
+            user.picture.save(filename, File(BytesIO(response.content)), save=False)
+            user.save(update_fields=['picture'])
         except requests.RequestException:
             pass
