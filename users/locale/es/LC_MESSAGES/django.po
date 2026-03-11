@@ -3,12 +3,11 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-09 11:30+0000\n"
+"POT-Creation-Date: 2026-03-11 14:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,17 +41,6 @@ msgstr "El token es inválido o tiene un formato incorrecto"
 #: users/decorators.py:77
 msgid "Token has expired"
 msgstr "El token ha expirado"
-
-#: users/tasks.py:38
-#, fuzzy, python-brace-format
-#| msgid "Verificación de MoviesXMovies de {username}"
-msgid "Verification of MoviesXMovies account for {username}"
-msgstr "Verificación de MoviesXMovies de {username}"
-
-#: users/tasks.py:52
-#, python-brace-format
-msgid "Password reset for MoviesXMovies account of {username}"
-msgstr "Restablecimiento de contraseña de MoviesXMovies de {username}"
 
 #: users/templates/users/email/base.html:116
 #, python-format
@@ -100,49 +88,54 @@ msgstr ""
 msgid "If you did not create an account, you can ignore this email."
 msgstr "Si no creaste una cuenta, puedes ignorar este correo."
 
-#: users/views.py:184
+#: users/views.py:194
 msgid "Verification code is incorrect"
 msgstr "El código de verificación es incorrecto"
 
-#: users/views.py:211
+#: users/views.py:221
 msgid "User is already verified"
 msgstr "El usuario ya está verificado"
 
-#: users/views.py:218
+#: users/views.py:228
 #, python-brace-format
 msgid "You can resend the verification email in {remaining_time} seconds"
 msgstr "Puedes reenviar el correo de verificación en {remaining_time} segundos"
 
-#: users/views.py:225
+#: users/views.py:235
 msgid "Verification email resent"
 msgstr "Correo de verificación reenviado"
 
-#: users/views.py:426
+#: users/views.py:436
 msgid "User not found"
 msgstr "Usuario no encontrado"
 
-#: users/views.py:433
-#, fuzzy, python-brace-format
-#| msgid "You can resend the verification email in {remaining_time} seconds"
+#: users/views.py:443
+#, python-brace-format
 msgid "You can resend the password reset email in {remaining_time} seconds"
-msgstr "Puedes reenviar el correo de verificación en {remaining_time} segundos"
+msgstr "Puedes reenviar el correo de restablecimiento de contraseña en {remaining_time} segundos"
 
-#: users/views.py:439
+#: users/views.py:450
 msgid "Password reset email sent"
 msgstr "Correo de restablecimiento de contraseña enviado"
 
-#: users/views.py:464 users/views.py:475
+#: users/views.py:475 users/views.py:486
 msgid "Invalid verification code"
 msgstr "Código de verificación inválido"
 
-#: users/views.py:472
+#: users/views.py:483
 msgid "Password reset successful"
 msgstr "Contraseña restablecida correctamente"
 
-#: users/views.py:611
+#: users/views.py:657
 msgid "Invalid language code"
 msgstr "Código de idioma inválido"
 
+#: users/emails.py
 #, python-brace-format
-#~ msgid "Restablecimiento de contraseña de MoviesXMovies de {username}"
-#~ msgstr "Restablecimiento de contraseña de MoviesXMovies de {username}"
+msgid "Verification of MoviesXMovies account for {username}"
+msgstr "Verificación de la cuenta de MoviesXMovies de {username}"
+
+#: users/emails.py
+#, python-brace-format
+msgid "Password reset for MoviesXMovies account of {username}"
+msgstr "Restablecimiento de contraseña de la cuenta de MoviesXMovies de {username}"
