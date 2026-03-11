@@ -134,7 +134,8 @@ SOCIALACCOUNT_PROVIDERS = {
             'client_id': config('GOOGLE_CLIENT_ID', default=''),
             'secret': config('GOOGLE_SECRET', default=''),
             'key': '',
-        }
+        },
+        'SCOPE': ['profile', 'email'],
     }
 }
 
