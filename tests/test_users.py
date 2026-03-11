@@ -18,8 +18,8 @@ from conftest import (
     SUGGESTED_USERS_URL,
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
-    USER_CHANGE_PREFERRED_LANGUAGE_URL,
     USER_DETAIL_URL,
+    USER_PREFERRED_LANGUAGE_URL,
     USER_REVIEWS_URL,
     VERIFY_USER_URL,
 )
@@ -434,9 +434,7 @@ def test_send_password_reset_email_logic(user_factory):
     assert len(mail.outbox) == 1
     sent_email = mail.outbox[0]
 
-    assert (
-        sent_email.subject == f'Password reset for MoviesXMovies account of {user.username}'
-    )
+    assert sent_email.subject == f'Password reset for MoviesXMovies account of {user.username}'
     assert sent_email.to == [user.email]
     assert sent_email.content_subtype == 'html'
 
@@ -950,7 +948,7 @@ def test_set_preferred_language(auth_client):
     }
 
     response = auth_client.post(
-        USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json'
+        USER_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json'
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json()['status'] is True
@@ -966,13 +964,23 @@ def test_set_preferred_language_invalid_code(auth_client):
     }
 
     response = auth_client.post(
-        USER_CHANGE_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json'
+        USER_PREFERRED_LANGUAGE_URL, data=payload, content_type='application/json'
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['error'] == 'Invalid language code'
 
     auth_client.user.refresh_from_db()
     assert auth_client.user.preferred_language != 'invalid_code'
+
+
+@pytest.mark.django_db
+def test_get_preferred_language(auth_client):
+    auth_client.user.preferred_language = 'fr'
+    auth_client.user.save()
+    response = auth_client.get(USER_PREFERRED_LANGUAGE_URL)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['preferred_language'] == auth_client.user.preferred_language
+
 
 
 # =================================================================

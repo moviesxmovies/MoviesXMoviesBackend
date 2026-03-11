@@ -29,7 +29,7 @@ urlpatterns = [
     path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
     # USERS
     path('users/suggested-users/', views.suggested_users, name='suggested_users'),
-    path('users/preferred-language/', views.set_preferred_language, name='set_preferred_language'),
+    path('users/preferred-language/', views.preferred_language_wrapper, name='preferred_language_wrapper'),
     path('users/', views.self_user_wrapper, name='self_user_wrapper'),
     path('users/<user:user>/', views.user_detail, name='user-detail'),
     path('users/<user:user>/follow/', views.follow_user_wrapper, name='follow-user-wrapper'),
