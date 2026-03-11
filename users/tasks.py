@@ -31,7 +31,7 @@ def _send_email(user: User, subject_template: str, subject_kwargs: dict, templat
 def send_verification_email(user) -> None:
     """Generate a verification code and send it to the user via email."""
     user.verification_code = f'{secrets.randbelow(1000000):06d}'
-    user.save()
+    user.save(update_fields=['verification_code'])
     _send_email(
         user,
         subject_template='Verification of MoviesXMovies account for {username}',
@@ -44,7 +44,7 @@ def send_verification_email(user) -> None:
 def send_password_reset_email(user) -> None:
     """Generate a password reset code and send it to the user via email."""
     user.forgot_password_code = f'{secrets.randbelow(1000000):06d}'
-    user.save()
+    user.save(update_fields=['forgot_password_code'])
     _send_email(
         user,
         subject_template='Password reset for MoviesXMovies account of {username}',
