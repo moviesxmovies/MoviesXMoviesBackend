@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
+import requests
 from conftest import (
     FOLLOW_USER_URL,
     FORGOT_PASSWORD_URL,
@@ -999,6 +1000,8 @@ class FakeUser:
         self.picture = MagicMock()
         self.picture.name = picture_name
         self.username = f'user{pk}'
+    def save(self, *args, **kwargs):
+        return self
 
 
 class FakeSocialLogin:
@@ -1153,14 +1156,16 @@ class TestSaveUser:
         user.picture.save.assert_not_called()
 
     def test_skips_picture_on_failed_http_response(self, adapter):
-        """A non-200 response means no picture is saved."""
         sl, user = make_sl(
             picture_url='https://example.com/photo.jpg',
             user_picture_name='users/default.png',
         )
         adapter._mock_super_save.return_value = user
 
-        with patch('requests.get', return_value=MagicMock(status_code=404)):
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = requests.HTTPError('404')
+
+        with patch('requests.get', return_value=mock_response):
             adapter.save_user(MagicMock(), sl)
 
         user.picture.save.assert_not_called()
