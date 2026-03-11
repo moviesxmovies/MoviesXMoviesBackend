@@ -147,6 +147,16 @@ class ChangePreferredLanguageResponse(serializers.Serializer):
     )
 
 
+class GetPreferredLanguageResponse(serializers.Serializer):
+    """Serializer for the get preferred language response.
+
+    Attributes:
+        preferred_language (serializers.CharField): The user's current preferred language code.
+    """
+
+    preferred_language = serializers.CharField(help_text='Current preferred language code')
+
+
 @extend_schema(
     request=VerifyUserSerializer,
     responses={200: None, 400: None},
@@ -588,9 +598,44 @@ def user_signup(request) -> JsonResponse:
     methods=['POST'],
     request=ChangePreferredLanguageSerializer,
 )
-@api_view(['POST'])
-@require_http_methods(['POST'])
+@extend_schema(
+    responses={200: GetPreferredLanguageResponse, 400: None, 404: None},
+    description='Get preferred language for the authenticated user',
+    methods=['GET'],
+)
+@api_view(['POST', 'GET'])
+@require_http_methods(['POST', 'GET'])
 @auth_required
+def preferred_language_wrapper(request) -> JsonResponse:
+    """Route GET and POST requests for the authenticated user's preferred language.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+    Returns:
+        JsonResponse: The response from ``get_preferred_language`` on GET,
+        or from ``set_preferred_language`` on POST.
+    """
+    match request.method:
+        case 'GET':
+            return get_preferred_language(request)
+        case 'POST':
+            return set_preferred_language(request)
+
+
+@require_http_methods(['GET'])
+def get_preferred_language(request) -> JsonResponse:
+    """Return the authenticated user's preferred language.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: ``{'preferred_language': str}`` with HTTP 200.
+    """
+    return JsonResponse({'preferred_language': request.user.preferred_language})
+
+
+@require_http_methods(['POST'])
 @get_body(None, ['preferred_language'])
 def set_preferred_language(request, body: dict) -> JsonResponse:
     """Set the preferred language for the authenticated user.
