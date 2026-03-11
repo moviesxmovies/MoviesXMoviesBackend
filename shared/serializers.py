@@ -21,7 +21,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
         token['boarded'] = user.boarded
         token['verified'] = user.verified
-        token['preferred_language'] = user.preferred_language
 
         return token
 
