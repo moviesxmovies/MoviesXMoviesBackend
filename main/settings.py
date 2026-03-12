@@ -270,11 +270,14 @@ LOGGING = {
             'level': 'INFO',
         },
         'django': {
-            'handlers': [
-                'file',
-            ],
-            'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['file', 'console'],
+            'level': 'INFO',                 
+            'propagate': False,              
+        },
+        'django.request': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',                
+            'propagate': False,
         },
     },
 }
