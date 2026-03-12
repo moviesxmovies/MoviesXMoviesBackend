@@ -240,16 +240,30 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
+        'colored': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(asctime)s%(reset)s %(white)s%(message)s',
+            'log_colors': {
+                'DEBUG': 'cyan',
+                'INFO': 'green',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'red,bg_white',
+            },
+            'secondary_log_colors': {},
+            'style': '%',
+        },
         'verbose': {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
     },
     'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'colored',  # <--- Colores aquí
+        },
         'file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -258,29 +272,33 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'verbose',
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+        'file_all': {
+            'level': 'INFO',  
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_BASE_DIR, 'django_all.log'),
+            'maxBytes': 1024 * 1024 * 50,  
+            'backupCount': 10,
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         '': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console', 'file', 'file_all'],
             'level': 'INFO',
         },
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',                 
-            'propagate': False,              
+            'handlers': ['console', 'file', 'file_all'],
+            'level': 'INFO',
+            'propagate': False,
         },
         'django.request': {
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',                
+            'handlers': ['console', 'file', 'file_all'],
+            'level': 'DEBUG',
             'propagate': False,
         },
     },
 }
+
 
 WSGI_APPLICATION = 'main.wsgi.application'
 

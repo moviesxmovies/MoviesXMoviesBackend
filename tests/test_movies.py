@@ -418,7 +418,7 @@ def test_retrain_professional_model_success(user_factory, movie_factory, rating_
 
     result = retrain_professional_model()
 
-    assert result == 'Modelo Implicit (ALS) entrenado exitosamente'
+    assert result == 'Model Implicit (ALS) trained'
 
     raw_data = cache.get('movie_recommendation_model')
     assert raw_data is not None

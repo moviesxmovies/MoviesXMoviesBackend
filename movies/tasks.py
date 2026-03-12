@@ -1,11 +1,16 @@
+import logging
 import pickle
-from scipy.sparse import csr_matrix
+
 from django.core.cache import cache
 from django_rq import job
 from implicit.als import AlternatingLeastSquares
-from ratings.models import Rating
+from scipy.sparse import csr_matrix
+
 from movies.models import Movie
+from ratings.models import Rating
 from users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 @job
@@ -27,10 +32,11 @@ def retrain_professional_model() -> str:
 
     Returns:
         str: ``'No ratings to train the model'`` if no ratings exist,
-        otherwise ``'Modelo Implicit (ALS) entrenado exitosamente'``.
+        otherwise ``'Model Implicit (ALS) trained'``.
     """
     ratings_qs = Rating.objects.values_list('user_id', 'movie_id', 'rating')
     if not ratings_qs.exists():
+        logger.info('No ratings to traind the model')
         return 'No ratings to train the model'
 
     users_list = list(User.objects.values_list('id', flat=True))
@@ -66,4 +72,5 @@ def retrain_professional_model() -> str:
         pickle.dumps(trained_data),
         timeout=None,
     )
-    return 'Modelo Implicit (ALS) entrenado exitosamente'
+    logger.info('Successfully trained model')
+    return 'Model Implicit (ALS) trained'
