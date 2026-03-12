@@ -1,5 +1,6 @@
 from django.urls import reverse
 from rest_framework import serializers
+from django.db.models import Count
 
 from shared.serializers import BaseSerializer
 
@@ -27,3 +28,21 @@ class ReviewSerializer(BaseSerializer):
             'is_positive': serializers.BooleanField(),
             'created_at': serializers.DateTimeField(),
         }
+
+
+# TODO: Refactor this
+
+
+class ReactionsSerializer(BaseSerializer):
+    def serialize_instance(self, reactions_queryset) -> dict:
+        user = self.request.user
+
+        counts_query = reactions_queryset.values('emoji').annotate(total=Count('emoji'))
+        counts = {r['emoji']: r['total'] for r in counts_query}
+
+        your_reactions = {}
+        if user and user.is_authenticated:
+            user_reacs = reactions_queryset.filter(user=user).values('emoji', 'id')
+            your_reactions = {r['emoji']: r['id'] for r in user_reacs}
+
+        return {'reactions': counts, 'your_reactions': your_reactions}
