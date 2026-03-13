@@ -83,3 +83,20 @@ def deactivate_language(previous_language):
         translation.activate(previous_language)
     else:
         translation.deactivate()
+
+def get_progressive_response(queryset, serializer_class, request, last_id=None, limit=10):
+    limit = int(limit) if limit else 10
+    last_id = int(last_id) if last_id else None
+
+    if last_id:
+        queryset = queryset.filter(pk__lt=last_id)
+
+    items = list(queryset.order_by('-pk')[:limit + 1])
+    has_more = len(items) > limit
+    if has_more:
+        items = items[:-1]
+
+    return JsonResponse({
+        'results': serializer_class(items, request=request).serialize(),
+        'next_last_id': items[-1].pk if has_more and items else None,
+    })

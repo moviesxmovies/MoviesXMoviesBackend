@@ -17,6 +17,7 @@ from reviews.serializers import (
     ReviewSerializer,
 )
 from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.utils import get_progressive_response
 from users.decorators import auth_required
 
 
@@ -296,26 +297,13 @@ def comment_wrapper(request, review: Review):
 
 @require_http_methods(['GET'])
 @get_query_params('limit', 'last_id')
-def get_review_comments(request, review: Review, limit: int, last_id: int) -> JsonResponse:
-    if limit is None:
-        limit = 20
-    limit = int(limit)
-    queryset = Comment.objects.filter(
-        review=review,
-        reply_comment=None,
-        **({'pk__lt': last_id} if last_id else {}),
-    ).order_by('-pk')[: limit + 1]
-
-    comments = list(queryset)
-    has_more = len(comments) > limit
-    if has_more:
-        comments = comments[:-1]
-
-    return JsonResponse(
-        {
-            'results': CommentSerializer(comments, request=request).serialize(),
-            'next_last_id': comments[-1].pk if has_more else None,
-        }
+def get_review_comments(request, review: Review, limit=10, last_id=None):
+    return get_progressive_response(
+        Comment.objects.filter(review=review, reply_comment=None),
+        CommentSerializer,
+        request,
+        last_id,
+        limit,
     )
 
 
@@ -460,28 +448,13 @@ def reply_wrapper(request, review: Review, comment: Comment):
 
 @require_http_methods(['GET'])
 @get_query_params('limit', 'last_id')
-def get_comment_replies(
-    request, review: Review, comment: Comment, limit: int = 20, last_id: int = None
-) -> JsonResponse:
-    if limit is None:
-        limit = 20
-    limit = int(limit)
-    queryset = Comment.objects.filter(
-        review=review,
-        reply_comment=comment,
-        **({'pk__lt': last_id} if last_id else {}),
-    ).order_by('-pk')[: limit + 1]
-
-    comments = list(queryset)
-    has_more = len(comments) > limit
-    if has_more:
-        comments = comments[:-1]
-
-    return JsonResponse(
-        {
-            'results': CommentSerializer(comments, request=request).serialize(),
-            'next_last_id': comments[-1].pk if has_more else None,
-        }
+def get_comment_replies(request, review: Review, comment: Comment, limit=20, last_id=None):
+    return get_progressive_response(
+        Comment.objects.filter(review=review, reply_comment=comment),
+        CommentSerializer,
+        request,
+        last_id,
+        limit,
     )
 
 
