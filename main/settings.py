@@ -84,6 +84,8 @@ INSTALLED_APPS = [
     'django_prometheus',
 ]
 
+RQ_SHOW_ADMIN_LINK = True
+
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'shared.middleware.RequestLogMiddleware',
@@ -274,10 +276,10 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'file_all': {
-            'level': 'INFO',  
+            'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOG_BASE_DIR, 'django_all.log'),
-            'maxBytes': 1024 * 1024 * 50,  
+            'maxBytes': 1024 * 1024 * 50,
             'backupCount': 10,
             'formatter': 'verbose',
         },

@@ -221,11 +221,8 @@ def test_movie_reviews_view(movie_factory, review_factory, auth_client):
     data = response.json()
     assert 'results' in data
     assert len(data['results']) == 2
-    assert data['count'] == 3
-    assert data['has_next'] is True
-    assert data['has_previous'] is False
-    assert data['current_page'] == 1
-    assert data['total_pages'] == 2
+    assert 'next_last_id' in data
+    assert data['next_last_id'] is not None
 
 
 @pytest.mark.django_db

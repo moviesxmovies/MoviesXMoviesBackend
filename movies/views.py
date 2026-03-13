@@ -16,7 +16,7 @@ from ratings.serializers import RatingSerializer
 from reviews.models import Review
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
-from shared.utils import get_paginated_response
+from shared.utils import get_paginated_response, get_progressive_response
 from users.decorators import auth_required
 
 LIMIT_RECOMMENDATIONS = 5
@@ -132,10 +132,15 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
     methods=['GET'],
     description='Get reviews specific movie paginated',
     parameters=[
-        OpenApiParameter(name='page', description='Page number', required=False, type=int),
         OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+        OpenApiParameter(
+            name='last_id',
+            description='ID of the last item from the previous page',
+            required=False,
+            type=int,
+        ),
     ],
-    responses={200: ReviewSerializer.get_paginated_schema(), 404: None},
+    responses={200: ReviewSerializer.get_progressive_pagination_schema(), 404: None},
     operation_id='get_movie_reviews',
 )
 @extend_schema(
@@ -166,23 +171,10 @@ def movie_review_wrapper(request, movie: Movie) -> JsonResponse:
 
 
 @require_http_methods(['GET'])
-@get_query_params('page', 'limit')
-def movie_reviews(request, movie: Movie, page: int = 1, limit: int = 10) -> JsonResponse:
-    """Return a paginated list of all reviews for a specific movie.
-
-    Reviews are ordered by most recently created first.
-
-    Args:
-        request: The authenticated incoming HTTP request.
-        movie (Movie): The movie instance resolved from the URL.
-        page (int): Page number for pagination. Defaults to 1.
-        limit (int): Number of items per page. Defaults to 10.
-
-    Returns:
-        JsonResponse: Paginated serialized reviews with HTTP 200.
-    """
-    return get_paginated_response(
-        movie.reviews.all().order_by('-created_at'), ReviewSerializer, request, page, limit
+@get_query_params('limit', 'last_id')
+def movie_reviews(request, movie: Movie, limit=10, last_id=None):
+    return get_progressive_response(
+        Review.objects.filter(movie=movie), ReviewSerializer, request, last_id, limit
     )
 
 
@@ -206,6 +198,10 @@ def save_movie_review(request, movie: Movie, review: Review) -> JsonResponse:
     """
     review.user = request.user
     review.movie = movie
+    try:
+        review.full_clean()
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
     review.save()
     response = ReviewSerializer(review, request=request).json_response()
     response.status_code = 201
