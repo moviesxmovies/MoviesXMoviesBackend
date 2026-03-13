@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from shared.models import BaseModel
+from users.models import User
 
 
 class Review(BaseModel):
@@ -22,7 +23,7 @@ class Review(BaseModel):
     title = models.CharField(max_length=128)
     content = models.TextField(max_length=256)
     is_positive = models.BooleanField()
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     movie = models.ForeignKey('movies.Movie', on_delete=models.CASCADE, related_name='reviews')
 
     class Meta:
@@ -43,7 +44,7 @@ class Review(BaseModel):
 
 
 class Comment(BaseModel):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
     reply_comment = models.ForeignKey(
@@ -58,7 +59,7 @@ class Comment(BaseModel):
 
 
 class Reaction(BaseModel):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reactions')
 
     class EmojiType(models.TextChoices):
         LIKE = 'LIKE', '👍'
@@ -78,7 +79,7 @@ class Reaction(BaseModel):
         TOP = 'TOP', '🔝'
         TRASH = 'TRASH', '🗑️'
 
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reactions')
 
     emoji = models.CharField(max_length=20, choices=EmojiType.choices)
 

@@ -11,7 +11,7 @@ from genres.models import Genre
 from reviews.serializers import ReviewSerializer
 from shared.decorators import get_body, get_query_params, require_http_methods
 from shared.serializers import BaseSerializer
-from shared.utils import get_paginated_response
+from shared.utils import get_paginated_response, get_progressive_response
 from shared.views import GoogleLogin
 
 
@@ -423,3 +423,48 @@ def test_get_paginated_response(movie_factory, auth_client, user_factory):
     assert data['has_previous'] is False
     assert data['current_page'] == 1
     assert data['total_pages'] == 2
+
+# =================================================================
+# GET PROGRESSIVE RESPONSE
+# =================================================================
+@pytest.mark.django_db
+def test_get_progressive_response(movie_factory, user_factory):
+    movie = movie_factory(title='The Matrix')
+    for i in range(15):
+        user = user_factory()
+        movie.reviews.create(
+            title=f'Review {i}', content='Amazing!', is_positive=True, user=user
+        )
+    response = get_progressive_response(
+        movie.reviews.all().order_by('-created_at'),
+        ReviewSerializer,
+        None,
+        last_id=None,
+        limit='10',
+    )
+    assert response.status_code == 200
+    data = json.loads(response.content)
+    assert 'results' in data
+    assert len(data['results']) == 10
+    assert data['next_last_id'] is not None
+
+@pytest.mark.django_db
+def test_get_progressive_response_no_more_items(movie_factory, user_factory):
+    movie = movie_factory(title='The Matrix Reloaded')
+    for i in range(5):
+        user = user_factory()
+        movie.reviews.create(
+            title=f'Review {i}', content='Good sequel!', is_positive=True, user=user
+        )
+    response = get_progressive_response(
+        movie.reviews.all().order_by('-created_at'),
+        ReviewSerializer,
+        None,
+        last_id=None,
+        limit='10',
+    )
+    assert response.status_code == 200
+    data = json.loads(response.content)
+    assert 'results' in data
+    assert len(data['results']) == 5
+    assert data['next_last_id'] is None

@@ -8,6 +8,7 @@ from pytest_factoryboy import register
 
 from factories import (
     AwardFactory,
+    CommentFactory,
     GenreFactory,
     GenreTranslationFactory,
     MovieFactory,
@@ -16,6 +17,7 @@ from factories import (
     PersonFactory,
     PlatformFactory,
     RatingFactory,
+    ReactionFactory,
     ReviewFactory,
     UserFactory,
 )
@@ -32,6 +34,8 @@ register(PlatformFactory)
 register(MovieListFactory)
 register(MovieTranslationFactory)
 register(GenreTranslationFactory)
+register(CommentFactory)
+register(ReactionFactory)
 
 # ===========================================
 # URLS
@@ -67,9 +71,17 @@ USER_REVIEWS_URL = '/api/users/{username}/reviews/'
 FOLLOW_USER_URL = '/api/users/{username}/follow/'
 USER_PREFERRED_LANGUAGE_URL = '/api/users/preferred-language/'
 
-# REVIEWS
+# REVIEWS - COMMENTS - REACTIONS
 EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'
-
+REVIEW_COMMENTS_URL = '/api/reviews/{review_id}/comments/'
+REVIEW_COMMENT_DETAIL_URL = '/api/reviews/{review_id}/comments/{comment_id}/'
+REVIEW_COMMENT_REPLIES_URL = '/api/reviews/{review_id}/comments/{comment_id}/replies/'
+REVIEW_REACTIONS_URL = '/api/reviews/{review_id}/reactions/'
+REVIEW_REACTION_DETAIL_URL = '/api/reviews/{review_id}/reactions/{reaction_id}/'
+COMMENT_REACTIONS_URL = '/api/reviews/{review_id}/comments/{comment_id}/reactions/'
+COMMENT_REACTION_DETAIL_URL = (
+    '/api/reviews/{review_id}/comments/{comment_id}/reactions/{reaction_id}/'
+)
 
 # ===========================================
 # TEST USERS
