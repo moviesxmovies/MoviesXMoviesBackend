@@ -262,7 +262,7 @@ LOGGING = {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            'formatter': 'colored',  # <--- Colores aquí
+            'formatter': 'colored',
         },
         'file': {
             'level': 'ERROR',
