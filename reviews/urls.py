@@ -10,18 +10,36 @@ urlpatterns = [
         '<review:review>/reactions/', views.reaction_review_wrapper, name='reaction-review-wrapper'
     ),  # TODO: Get gets reactions, post add a reaction
     path(
+        '<review:review>/reactions/<reaction:reaction>/',
+        views.delete_review_reaction,
+        name='delete-reaction-review',
+        # TODO: Delete reaction on delete
+    ),
+    path(
         '<review:review>/comments/', views.comment_wrapper, name='comment-wrapper'
-    ),  # TODO: Create comment on post, get comments on get
+    ),  # TODO: Create comment on post, get comments pagination on get
     path(
         '<review:review>/comments/<comment:comment>/',
         views.comment_wrapper_with_id,
-        name='comment-wrapper',
-    ),  # TODO: Edit comment on PUT, reply comment on post, delete comment on delete
+        name='comment-wrapper-with-id',
+    ),  # TODO: Edit comment on PUT, delete comment on delete, Get on get
+    path(
+        '<review:review>/comments/<comment:comment>/replies/',
+        views.reply_wrapper,
+        name='reply-comment-wrapper',
+        # TODO: Create reply on post, get replies pagination on get
+    ),
     path(
         '<review:review>/comments/<comment:comment>/reactions/',
         views.reaction_comment_wrapper,
         name='reaction-comment-wrapper',
-    ),  # TODO: Create comment on post, get comments on get
+    ),  # TODO: Create reaction on post, get reactions on get
+    path(
+        '<review:review>/comments/<comment:comment>/reactions/<reaction:reaction>/',
+        views.delete_reaction_comment,
+        name='delete-reaction-comment',
+        # TODO: Delete reaction on delete
+    ),
 ]
 
 

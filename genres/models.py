@@ -12,7 +12,7 @@ class Genre(BaseModel):
         slug (models.SlugField): A URL-friendly version of the genre's name.
     """
 
-    class GenreTranslation(models.Model):
+    class GenreTranslation(BaseModel):
         """
         A model representing the translation of a genre's name.
 

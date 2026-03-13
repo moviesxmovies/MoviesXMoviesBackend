@@ -67,6 +67,16 @@ class BaseSerializer(ABC):
         return inline_serializer(name=name or cls.__name__, fields=cls.get_fields_schema())
 
     @classmethod
+    def get_progressive_pagination_schema(cls, name: str = None):
+        return inline_serializer(
+            name=f'ProgressivePaginated{name or cls.__name__}',
+            fields={
+                'results': cls.get_fields_schema(many=True),
+                'next_last_id': serializers.IntegerField(allow_null=True),
+            },
+        )
+
+    @classmethod
     def get_fields_schema(cls, many=False) -> dict | serializers.ListSerializer:
         fields = cls.get_fields_dict()
 

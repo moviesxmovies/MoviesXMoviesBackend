@@ -1,6 +1,8 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 from shared.models import BaseModel
 
@@ -24,7 +26,17 @@ class Review(BaseModel):
     movie = models.ForeignKey('movies.Movie', on_delete=models.CASCADE, related_name='reviews')
 
     class Meta:
-        unique_together = ['user', 'movie']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'movie'],
+                condition=models.Q(deleted_at=None),
+                name='unique_active_review_per_user_movie',
+                violation_error_message=_('Each user can only have one active review per movie.'),
+            )
+        ]
+
+    def get_absolute_url(self):
+        return reverse('reviews:movie-reviews', args=[self.pk])
 
     def __str__(self):
         return self.title
@@ -38,34 +50,37 @@ class Comment(BaseModel):
         'reviews.Comment', on_delete=models.CASCADE, related_name='replies', null=True, blank=True
     )
 
+    def get_absolute_url(self):
+        return reverse('reviews:comment-wrapper', args=[self.review.pk, self.pk])
+
     def __str__(self):
-        return f'{self.user} comments on {self.review}'
+        return f'{self.pk}: {self.user} comments on {self.review}'
 
 
 class Reaction(BaseModel):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='reactions')
 
     class EmojiType(models.TextChoices):
-        LIKE = '👍'
-        LOVE = '❤️'
-        LAUGH = '😂'
-        SAD = '😢'
-        FIRE = '🔥'
-        EYES = '👀'
-        POOP = '💩'
-        SKULL = '💀'
-        CLOWN = '🤡'
-        MIND_BLOWN = '🤯'
-        PARTY = '🥳'
-        THINKING = '🤔'
-        POPCORN = '🍿'
-        STAR = '⭐'
-        TOP = '🔝'
-        TRASH = '🗑️'
+        LIKE = 'LIKE', '👍'
+        LOVE = 'LOVE', '❤️'
+        LAUGH = 'LAUGH', '😂'
+        SAD = 'SAD', '😢'
+        FIRE = 'FIRE', '🔥'
+        EYES = 'EYES', '👀'
+        POOP = 'POOP', '💩'
+        SKULL = 'SKULL', '💀'
+        CLOWN = 'CLOWN', '🤡'
+        MIND_BLOWN = 'MIND_BLOWN', '🤯'
+        PARTY = 'PARTY', '🥳'
+        THINKING = 'THINKING', '🤔'
+        POPCORN = 'POPCORN', '🍿'
+        STAR = 'STAR', '⭐'
+        TOP = 'TOP', '🔝'
+        TRASH = 'TRASH', '🗑️'
 
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='reactions')
 
-    emoji = models.CharField(max_length=7, choices=EmojiType.choices, default=EmojiType.LIKE)
+    emoji = models.CharField(max_length=20, choices=EmojiType.choices)
 
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()

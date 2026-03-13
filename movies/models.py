@@ -19,7 +19,7 @@ class Movie(BaseModel):
         platforms (models.ManyToManyField): A many-to-many relationship to the Platform model
     """
 
-    class MovieTranslation(models.Model):
+    class MovieTranslation(BaseModel):
         """
         A model representing the translation of a movie's title and synopsis.
 

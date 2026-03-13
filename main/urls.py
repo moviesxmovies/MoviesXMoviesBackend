@@ -7,7 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from movielists.converters import MovieListConverter
 from movies.converters import MovieConverter
-from reviews.converters import ReviewConverter
+from reviews.converters import CommentConverter, ReactionConverter, ReviewConverter
 from users.converters import UserConverter
 
 # CONVERTERS
@@ -16,6 +16,8 @@ CUSTOM_CONVERTERS = {
     'movies-list': MovieListConverter,
     'movie': MovieConverter,
     'review': ReviewConverter,
+    'comment': CommentConverter,
+    'reaction': ReactionConverter,
 }
 
 registered = get_converters()
