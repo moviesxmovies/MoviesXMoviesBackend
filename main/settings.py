@@ -86,6 +86,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    'shared.middleware.RequestLogMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -296,6 +297,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'requests': {
+        'handlers': ['console', 'file_all'],
+        'level': 'INFO',
+        'propagate': False,
+    },
     },
 }
 
