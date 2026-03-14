@@ -2,8 +2,15 @@ from django.utils import translation
 
 import logging
 import time
+from prometheus_client import Counter
 
 logger = logging.getLogger('requests')
+
+http_responses_total = Counter(
+    'http_responses_by_view_total',
+    'HTTP responses excluding metrics scraping',
+    ['status', 'view', 'method']
+)
 
 class RequestLogMiddleware:
     def __init__(self, get_response):
@@ -20,6 +27,19 @@ class RequestLogMiddleware:
             f'{response.status_code} '
             f'{duration_ms:.1f}ms'
         )
+
+        if not request.path.startswith('/metrics'):
+            view = (
+                request.resolver_match.view_name
+                if request.resolver_match
+                else 'unknown'
+            )
+            http_responses_total.labels(
+                status=str(response.status_code),
+                view=view,
+                method=request.method
+            ).inc()
+
         return response
 
 class UserLanguageMiddleware:
