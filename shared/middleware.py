@@ -21,24 +21,20 @@ class RequestLogMiddleware:
         response = self.get_response(request)
         duration_ms = (time.monotonic() - start) * 1000
 
-        logger.info(
-            f'{request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", "-"))} '
-            f'"{request.method} {request.get_full_path()}" '
-            f'{response.status_code} '
-            f'{duration_ms:.1f}ms'
-        )
-
         if not request.path.startswith('/metrics'):
-            view = (
-                request.resolver_match.view_name
-                if request.resolver_match
-                else 'unknown'
+            logger.info(
+                f'{request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", "-"))} '
+                f'"{request.method} {request.get_full_path()}" '
+                f'{response.status_code} '
+                f'{duration_ms:.1f}ms'
             )
-            http_responses_total.labels(
-                status=str(response.status_code),
-                view=view,
-                method=request.method
-            ).inc()
+
+            if request.resolver_match:
+                http_responses_total.labels(
+                    status=str(response.status_code),
+                    view=request.resolver_match.view_name,
+                    method=request.method
+                ).inc()
 
         return response
 
