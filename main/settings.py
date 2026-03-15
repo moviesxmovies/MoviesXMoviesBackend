@@ -179,7 +179,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '20/minute',
-        'user': '10000/day',
+        'user': '200/minute',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
@@ -283,27 +283,30 @@ LOGGING = {
             'backupCount': 10,
             'formatter': 'verbose',
         },
+        'null': {
+            'class': 'logging.NullHandler',
+        },
     },
     'loggers': {
         '': {
-            'handlers': ['console', 'file', 'file_all'],
+            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
             'level': 'INFO',
         },
         'django': {
-            'handlers': ['console', 'file', 'file_all'],
+            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console', 'file', 'file_all'],
+            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
             'level': 'DEBUG',
             'propagate': False,
         },
         'requests': {
-        'handlers': ['console', 'file_all'],
-        'level': 'INFO',
-        'propagate': False,
-    },
+            'handlers': ['null'] if TESTING else ['console', 'file_all'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 

@@ -1,6 +1,8 @@
 import json
+import logging
 import pickle
-from unittest.mock import Mock
+import sys
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.core.cache import cache
@@ -760,3 +762,72 @@ def test_pad_with_algorithmic_returns_existing_when_already_enough(
 
     assert len(result) == 5
     assert {m.id for m in result} == {m.id for m in existing}
+
+
+# ===========================================================================
+# APPS - ready() method (integration-level)
+# ===========================================================================
+
+@pytest.mark.django_db
+def test_apps_ready_skips_in_test_environment(monkeypatch):
+    from django.apps import apps
+    
+    monkeypatch.delenv('FORCE_RQ_SCHEDULER', raising=False)
+    monkeypatch.delenv('RUN_MAIN', raising=False)
+
+    log_messages = []
+    logger = logging.getLogger('movies.apps')
+    monkeypatch.setattr(logger, 'info', lambda msg: log_messages.append(msg))
+
+    config = apps.get_app_config('movies')
+    config.ready()
+
+    assert any('Test environment detected. Skipping job scheduling.' in msg for msg in log_messages)
+
+
+@pytest.mark.django_db
+def test_apps_ready_schedules_job(monkeypatch):
+    from django.apps import apps
+
+    monkeypatch.setenv('FORCE_RQ_SCHEDULER', 'true')
+
+    mock_job = MagicMock()
+    mock_job.func_name = 'other.task' 
+
+    mock_scheduler = MagicMock()
+    mock_scheduler.get_jobs.return_value = []
+    mock_scheduler.schedule.return_value = mock_job
+
+    log_messages = []
+    logger = logging.getLogger('movies.apps')
+    monkeypatch.setattr(logger, 'info', lambda msg: log_messages.append(msg))
+
+    with patch('django_rq.get_scheduler', return_value=mock_scheduler):
+        config = apps.get_app_config('movies')
+        config.ready()
+
+    assert any('Job scheduled: ' in msg for msg in log_messages)
+
+
+@pytest.mark.django_db
+def test_apps_ready_cancels_existing_job(monkeypatch):
+    from django.apps import apps
+
+    monkeypatch.setenv('FORCE_RQ_SCHEDULER', 'true')
+
+    mock_job = MagicMock()
+    mock_job.func_name = 'movies.tasks.retrain_professional_model'
+
+    mock_scheduler = MagicMock()
+    mock_scheduler.get_jobs.return_value = [mock_job]
+    mock_scheduler.schedule.return_value = MagicMock()
+
+    log_messages = []
+    logger = logging.getLogger('movies.apps')
+    monkeypatch.setattr(logger, 'info', lambda msg: log_messages.append(msg))
+
+    with patch('django_rq.get_scheduler', return_value=mock_scheduler):
+        config = apps.get_app_config('movies')
+        config.ready()
+
+    assert any('Canceled existing job: ' in msg for msg in log_messages)
