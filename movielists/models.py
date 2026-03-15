@@ -29,6 +29,8 @@ class MovieList(BaseModel):
                 violation_error_message=_('A movie list with this name already exists.')
             )
         ]
+        verbose_name = _('Movie List')
+        verbose_name_plural = _('Movie Lists')
 
     class Privacity(models.TextChoices):
         """Privacy settings controlling who can view a movie list.
@@ -42,6 +44,9 @@ class MovieList(BaseModel):
         PUBLIC = 'P', 'Public'
         FOLLOWERS = 'F', 'Followers'
         PRIVATE = 'R', 'Private'
+        class Meta:
+            verbose_name = _('Privacy Setting')
+            verbose_name_plural = _('Privacy Settings')
 
     name = models.CharField(max_length=128)
     slug = models.SlugField(max_length=128)

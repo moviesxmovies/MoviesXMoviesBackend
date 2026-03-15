@@ -1,6 +1,7 @@
 from django.db import models
 
 from shared.models import BaseModel
+from django.utils.translation import gettext_lazy as _
 
 
 class Genre(BaseModel):
@@ -11,6 +12,9 @@ class Genre(BaseModel):
         name (models.CharField): The name of the genre.
         slug (models.SlugField): A URL-friendly version of the genre's name.
     """
+    class Meta:
+        verbose_name = _('Genre')
+        verbose_name_plural = _('Genres')
 
     class GenreTranslation(BaseModel):
         """
@@ -24,6 +28,8 @@ class Genre(BaseModel):
 
         class Meta:
             unique_together = ('genre', 'language')
+            verbose_name = _('Genre Translation')
+            verbose_name_plural = _('Genre Translations')
 
         genre = models.ForeignKey('Genre', related_name='translations', on_delete=models.CASCADE)
         language = models.CharField(max_length=2)

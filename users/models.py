@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Count, Q
+from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
@@ -18,6 +19,10 @@ class User(AbstractUser):
         platforms (models.ManyToManyField): A many-to-many relationship to Platform model for platforms the user is associated with.
         verification_code (models.CharField): A code used for email verification, can be null or blank.
     """
+
+    class Meta:
+        verbose_name = _('User')
+        verbose_name_plural = _('Users')
 
     bio = models.TextField(blank=True, null=True)
     boarded = models.BooleanField(default=False)

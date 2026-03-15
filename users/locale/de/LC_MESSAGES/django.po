@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-11 14:58+0000\n"
+"POT-Creation-Date: 2026-03-15 15:34+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -40,6 +40,14 @@ msgstr "Der Token ist ungültig oder hat ein falsches Format"
 #: users/decorators.py:77
 msgid "Token has expired"
 msgstr "Der Token ist abgelaufen"
+
+#: users/models.py:24
+msgid "User"
+msgstr "Benutzer"
+
+#: users/models.py:25
+msgid "Users"
+msgstr "Benutzer"
 
 #: users/templates/users/email/base.html:116
 #, python-format
@@ -133,12 +141,10 @@ msgstr "Passwort erfolgreich zurückgesetzt"
 msgid "Invalid language code"
 msgstr "Ungültiger Sprachcode"
 
-#: users/emails.py
 #, python-brace-format
 msgid "Verification of MoviesXMovies account for {username}"
 msgstr "Verifizierung des MoviesXMovies-Kontos von {username}"
 
-#: users/emails.py
 #, python-brace-format
 msgid "Password reset for MoviesXMovies account of {username}"
 msgstr "Passwort zurücksetzen für das MoviesXMovies-Konto von {username}"

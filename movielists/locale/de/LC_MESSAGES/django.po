@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-06 14:22+0000\n"
+"POT-Creation-Date: 2026-03-15 15:34+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: German <de@li.org>\n"
@@ -21,6 +21,22 @@ msgstr ""
 #: movielists/models.py:29
 msgid "A movie list with this name already exists."
 msgstr "Eine Filmliste mit diesem Namen existiert bereits."
+
+#: movielists/models.py:32
+msgid "Movie List"
+msgstr "Filmliste"
+
+#: movielists/models.py:33
+msgid "Movie Lists"
+msgstr "Filmlisten"
+
+#: movielists/models.py:48
+msgid "Privacy Setting"
+msgstr "Datenschutzeinstellung"
+
+#: movielists/models.py:49
+msgid "Privacy Settings"
+msgstr "Datenschutzeinstellungen"
 
 #: movielists/views.py:200
 #, python-brace-format

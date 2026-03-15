@@ -1,6 +1,7 @@
 from django.db import models
 
 from shared.models import BaseModel
+from django.utils.translation import gettext_lazy as _
 
 
 class Movie(BaseModel):
@@ -18,6 +19,9 @@ class Movie(BaseModel):
         genres (models.ManyToManyField): A many-to-many relationship to the Genre model.
         platforms (models.ManyToManyField): A many-to-many relationship to the Platform model
     """
+    class Meta:
+        verbose_name = _('Movie')
+        verbose_name_plural = _('Movies')
 
     class MovieTranslation(BaseModel):
         """
@@ -32,6 +36,8 @@ class Movie(BaseModel):
 
         class Meta:
             unique_together = ('movie', 'language')
+            verbose_name = _('Movie Translation')
+            verbose_name_plural = _('Movie Translations')
 
         movie = models.ForeignKey('Movie', related_name='translations', on_delete=models.CASCADE)
         language = models.CharField(max_length=2)
