@@ -1,9 +1,11 @@
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from shared.utils import activate_request_language, deactivate_language
+from users.models import User
 
 from .serializers import CustomTokenObtainPairSerializer
 
@@ -36,5 +38,32 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         previous_language = activate_request_language(request)
         try:
             return super().post(request, *args, **kwargs)
+        finally:
+            deactivate_language(previous_language)
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    View for refreshing JWT access tokens using a refresh token.
+    """
+
+    def post(self, request, *args, **kwargs):
+        previous_language = activate_request_language(request)
+        try:
+            response = super().post(request, *args, **kwargs)
+
+            if response.status_code == 200:
+                refresh = RefreshToken(request.data['refresh'])
+                user_id = refresh['user_id']
+                user = User.objects.get(id=user_id)
+
+                new_refresh = RefreshToken.for_user(user)
+                new_refresh['username'] = user.username
+                new_refresh['boarded'] = user.boarded
+                new_refresh['verified'] = user.verified
+
+                response.data['access'] = str(new_refresh.access_token)
+
+            return response
         finally:
             deactivate_language(previous_language)
