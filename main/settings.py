@@ -291,14 +291,20 @@ LOGGING = {
         '': {
             'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
             'level': 'INFO',
+            'propagate': False,
         },
         'django': {
             'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['null'],
             'level': 'DEBUG',
             'propagate': False,
         },
