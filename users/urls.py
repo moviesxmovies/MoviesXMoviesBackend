@@ -1,7 +1,6 @@
 from django.urls import include, path
-from rest_framework_simplejwt.views import TokenRefreshView
 
-from shared.views import CustomTokenObtainPairView, GoogleLogin
+from shared.views import CustomTokenObtainPairView, CustomTokenRefreshView, GoogleLogin
 from users import views
 
 urlpatterns = [
@@ -13,7 +12,7 @@ urlpatterns = [
     ),
     path(
         'auth/refresh/',
-        TokenRefreshView.as_view(),
+        CustomTokenRefreshView.as_view(),
         name='token_refresh',
     ),
     path('auth/signup/', views.user_signup, name='signup'),
@@ -29,7 +28,11 @@ urlpatterns = [
     path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
     # USERS
     path('users/suggested-users/', views.suggested_users, name='suggested_users'),
-    path('users/preferred-language/', views.preferred_language_wrapper, name='preferred_language_wrapper'),
+    path(
+        'users/preferred-language/',
+        views.preferred_language_wrapper,
+        name='preferred_language_wrapper',
+    ),
     path('users/', views.self_user_wrapper, name='self_user_wrapper'),
     path('users/<user:user>/', views.user_detail, name='user-detail'),
     path('users/<user:user>/follow/', views.follow_user_wrapper, name='follow-user-wrapper'),
