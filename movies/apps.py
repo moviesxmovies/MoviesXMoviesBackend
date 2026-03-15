@@ -14,20 +14,24 @@ class MoviesConfig(AppConfig):
     name = 'movies'
 
     def ready(self):
+        is_forced = os.environ.get('FORCE_RQ_SCHEDULER') == 'true'
 
         if 'collectstatic' in sys.argv:
             logger.info('Collectstatic command detected. Skipping job scheduling.')
             return
 
-        if ('test' in sys.argv or 'pytest' in sys.modules) and not os.environ.get(
-            'FORCE_RQ_SCHEDULER'
-        ):
+        if ('test' in sys.argv or 'pytest' in sys.modules) and not is_forced:
             logger.info('Test environment detected. Skipping job scheduling.')
             return
 
-        if os.environ.get('RUN_MAIN') != 'true' and not os.environ.get('FORCE_RQ_SCHEDULER'):
+        if os.environ.get('GUNICORN_WORKER') == 'true':
+            logger.info('Gunicorn worker process. Skipping job scheduling.')
+            return
+
+        if not is_forced and os.environ.get('RUN_MAIN') != 'true' and not any('gunicorn' in arg for arg in sys.argv):
             logger.info('Not the main process. Skipping job scheduling.')
             return
+
 
         try:
             import django_rq

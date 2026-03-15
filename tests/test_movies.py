@@ -1,7 +1,6 @@
 import json
 import logging
 import pickle
-import sys
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -767,11 +766,10 @@ def test_pad_with_algorithmic_returns_existing_when_already_enough(
 # ===========================================================================
 # APPS - ready() method (integration-level)
 # ===========================================================================
-
 @pytest.mark.django_db
 def test_apps_ready_skips_in_test_environment(monkeypatch):
     from django.apps import apps
-    
+
     monkeypatch.delenv('FORCE_RQ_SCHEDULER', raising=False)
     monkeypatch.delenv('RUN_MAIN', raising=False)
 
@@ -791,18 +789,19 @@ def test_apps_ready_schedules_job(monkeypatch):
 
     monkeypatch.setenv('FORCE_RQ_SCHEDULER', 'true')
 
-    mock_job = MagicMock()
-    mock_job.func_name = 'other.task' 
-
+    mock_scheduled_job = MagicMock()
     mock_scheduler = MagicMock()
     mock_scheduler.get_jobs.return_value = []
-    mock_scheduler.schedule.return_value = mock_job
+    mock_scheduler.schedule.return_value = mock_scheduled_job
 
     log_messages = []
     logger = logging.getLogger('movies.apps')
     monkeypatch.setattr(logger, 'info', lambda msg: log_messages.append(msg))
 
-    with patch('django_rq.get_scheduler', return_value=mock_scheduler):
+    with (
+        patch('django_rq.get_scheduler', return_value=mock_scheduler),
+        patch('movies.tasks.retrain_professional_model', MagicMock()),
+    ):
         config = apps.get_app_config('movies')
         config.ready()
 
@@ -826,7 +825,10 @@ def test_apps_ready_cancels_existing_job(monkeypatch):
     logger = logging.getLogger('movies.apps')
     monkeypatch.setattr(logger, 'info', lambda msg: log_messages.append(msg))
 
-    with patch('django_rq.get_scheduler', return_value=mock_scheduler):
+    with (
+        patch('django_rq.get_scheduler', return_value=mock_scheduler),
+        patch('movies.tasks.retrain_professional_model', MagicMock()),
+    ):
         config = apps.get_app_config('movies')
         config.ready()
 
