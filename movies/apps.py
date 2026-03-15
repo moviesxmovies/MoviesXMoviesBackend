@@ -14,16 +14,19 @@ class MoviesConfig(AppConfig):
     name = 'movies'
 
     def ready(self):
-        if os.environ.get('RUN_MAIN') != 'true':
-            logger.info('Not the main process. Skipping job scheduling.')
-            return
 
         if 'collectstatic' in sys.argv:
             logger.info('Collectstatic command detected. Skipping job scheduling.')
             return
 
-        if 'test' in sys.argv or 'pytest' in sys.modules:
+        if ('test' in sys.argv or 'pytest' in sys.modules) and not os.environ.get(
+            'FORCE_RQ_SCHEDULER'
+        ):
             logger.info('Test environment detected. Skipping job scheduling.')
+            return
+
+        if os.environ.get('RUN_MAIN') != 'true' and not os.environ.get('FORCE_RQ_SCHEDULER'):
+            logger.info('Not the main process. Skipping job scheduling.')
             return
 
         try:
@@ -49,17 +52,16 @@ class MoviesConfig(AppConfig):
             if scheduled_time < now:
                 scheduled_time += timedelta(days=1)
                 logger.info(
-                    f'Scheduled time is in the past. Adjusting to the next day: {scheduled_time}'
+                    f'Scheduled time is in the past. Adjusting to next day: {scheduled_time}'
                 )
 
-            jobScheduled = scheduler.schedule(
+            job_scheduled = scheduler.schedule(
                 scheduled_time=scheduled_time,
                 func=retrain_professional_model,
                 interval=86400,
                 repeat=None,
             )
-
-            logger.info(f'Job scheduled: {jobScheduled}')
+            logger.info(f'Job scheduled: {job_scheduled}')
 
         except ImportError:
             logger.error('Error occurred while importing django_rq')
