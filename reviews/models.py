@@ -20,6 +20,7 @@ class Review(BaseModel):
         movie (models.ForeignKey): The movie that the review is about.
     """
 
+
     title = models.CharField(max_length=128)
     content = models.TextField(max_length=256)
     is_positive = models.BooleanField()
@@ -35,6 +36,8 @@ class Review(BaseModel):
                 violation_error_message=_('Each user can only have one active review per movie.'),
             )
         ]
+        verbose_name = _('Review')
+        verbose_name_plural = _('Reviews')
 
     def get_absolute_url(self):
         return reverse('reviews:movie-reviews', args=[self.pk])
@@ -56,6 +59,10 @@ class Comment(BaseModel):
 
     def __str__(self):
         return f'{self.pk}: {self.user} comments on {self.review}'
+
+    class Meta:
+        verbose_name = _('Comment')
+        verbose_name_plural = _('Comments')
 
 
 class Reaction(BaseModel):
@@ -88,6 +95,8 @@ class Reaction(BaseModel):
     target = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
+        verbose_name = _('Reaction')
+        verbose_name_plural = _('Reactions')
         unique_together = ['user', 'content_type', 'object_id', 'emoji']
 
     def __str__(self):

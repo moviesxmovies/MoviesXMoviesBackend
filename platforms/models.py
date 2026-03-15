@@ -1,6 +1,7 @@
 from django.db import models
 
 from shared.models import BaseModel
+from django.utils.translation import gettext_lazy as _
 
 
 class Platform(BaseModel):
@@ -12,6 +13,9 @@ class Platform(BaseModel):
         slug (models.SlugField): A URL-friendly version of the platform's name.
         url (models.URLField): The official website URL of the platform.
     """
+    class Meta:
+        verbose_name = _('Platform')
+        verbose_name_plural = _('Platforms')
 
     name = models.CharField(max_length=32, unique=True)
     slug = models.SlugField(max_length=32, unique=True)

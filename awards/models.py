@@ -1,6 +1,7 @@
 from django.db import models
 
 from shared.models import BaseModel
+from django.utils.translation import gettext_lazy as _
 
 
 class Award(BaseModel):
@@ -14,11 +15,17 @@ class Award(BaseModel):
         icon (models.ImageField): An icon representing the award.
         date (models.DateField): The date when the award was given.
     """
+    class Meta:
+        verbose_name = _('Award')
+        verbose_name_plural = _('Awards')
 
     class Category(models.TextChoices):
         """
         Enumeration of award categories.
         """
+        class Meta:
+            verbose_name = _('Award Category')
+            verbose_name_plural = _('Award Categories')
 
         # MOVIES
         BEST_PICTURE = 'BP', 'Best Picture'

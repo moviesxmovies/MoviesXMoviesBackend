@@ -2,6 +2,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from shared.models import BaseModel
+from django.utils.translation import gettext_lazy as _
 
 
 class Rating(BaseModel):
@@ -23,6 +24,8 @@ class Rating(BaseModel):
     movie = models.ForeignKey('movies.Movie', on_delete=models.CASCADE, related_name='ratings')
 
     class Meta:
+        verbose_name = _('Rating')
+        verbose_name_plural = _('Ratings')
         unique_together = ['user', 'movie']
 
     def __str__(self):

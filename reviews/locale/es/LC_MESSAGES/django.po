@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-06 12:49+0000\n"
+"POT-Creation-Date: 2026-03-15 15:34+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,10 +18,49 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
-#: reviews/views.py:92
+
+#: reviews/models.py:36
+msgid "Each user can only have one active review per movie."
+msgstr "Cada usuario solo puede tener una reseña activa por película."
+
+#: reviews/models.py:39
+msgid "Review"
+msgstr "Reseña"
+#: reviews/models.py:40
+msgid "Reviews"
+msgstr "Reseñas"
+
+#: reviews/models.py:64
+msgid "Comment"
+msgstr "Comentario"
+
+#: reviews/models.py:65
+msgid "Comments"
+msgstr "Comentarios"
+
+#: reviews/models.py:98
+msgid "Reaction"
+msgstr "Reacción"
+#: reviews/models.py:99
+msgid "Reactions"
+msgstr "Reacciones"
+
+#: reviews/views.py:118
 msgid "You can only edit your own reviews"
 msgstr "Solo puedes editar tus propias reseñas"
 
-#: reviews/views.py:117
+#: reviews/views.py:143
 msgid "You can only delete your own reviews"
 msgstr "Solo puedes eliminar tus propias reseñas"
+
+#: reviews/views.py:196
+msgid "You can only delete your own reactions"
+msgstr "Solo puedes eliminar tus propias reacciones"
+
+#: reviews/views.py:360
+msgid "You can only edit your own comments"
+msgstr "Solo puedes editar tus propios comentarios"
+
+#: reviews/views.py:371
+msgid "You can only delete your own comments"
+msgstr "Solo puedes eliminar tus propios comentarios"

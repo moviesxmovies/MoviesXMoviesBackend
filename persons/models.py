@@ -1,6 +1,7 @@
 from django.db import models
 
 from shared.models import BaseModel
+from django.utils.translation import gettext_lazy as _
 
 
 class Person(BaseModel):
@@ -13,6 +14,9 @@ class Person(BaseModel):
         image (models.ImageField): A profile image of the person.
         country (models.CharField): The country of origin of the person.
     """
+    class Meta:
+        verbose_name = _('Person')
+        verbose_name_plural = _('People')
 
     name = models.CharField(max_length=128)
     slug = models.SlugField(max_length=128, unique=True)
