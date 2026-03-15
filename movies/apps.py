@@ -1,9 +1,12 @@
+import logging
 import os
-from datetime import datetime, time, timedelta
 import sys
+from datetime import datetime, time, timedelta
 
 from django.apps import AppConfig
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class MoviesConfig(AppConfig):
@@ -12,35 +15,51 @@ class MoviesConfig(AppConfig):
 
     def ready(self):
         if os.environ.get('RUN_MAIN') != 'true':
-            if 'collectstatic' in sys.argv:
-                return
-            if 'test' in sys.argv or 'pytest' in sys.modules:
-                return
-            try:
-                import django_rq
+            logger.info('Not the main process. Skipping job scheduling.')
+            return
 
-                from .tasks import retrain_professional_model
+        if 'collectstatic' in sys.argv:
+            logger.info('Collectstatic command detected. Skipping job scheduling.')
+            return
 
-                scheduler = django_rq.get_scheduler('default')
+        if 'test' in sys.argv or 'pytest' in sys.modules:
+            logger.info('Test environment detected. Skipping job scheduling.')
+            return
 
-                for job in scheduler.get_jobs():
-                    if job.func_name == 'movies.tasks.retrain_professional_model':
-                        job.delete()
+        try:
+            import django_rq
 
-                now = timezone.now()
-                target_time = time(3, 0)
-                scheduled_time = datetime.combine(now.date(), target_time)
+            from .tasks import retrain_professional_model
 
-                scheduled_time = timezone.make_aware(scheduled_time)
+            scheduler = django_rq.get_scheduler('default')
 
-                if scheduled_time < now:
-                    scheduled_time += timedelta(days=1)
+            for job in scheduler.get_jobs():
+                if job.func_name == 'movies.tasks.retrain_professional_model':
+                    try:
+                        scheduler.cancel(job)
+                        logger.info(f'Canceled existing job: {job}')
+                    except Exception as e:
+                        logger.error(f'Error occurred while canceling job: {e}')
 
-                scheduler.schedule(
-                    scheduled_time=scheduled_time,
-                    func=retrain_professional_model,
-                    interval=86400,
-                    repeat=None,
+            now = timezone.now()
+            target_time = time(3, 0)
+            scheduled_time = datetime.combine(now.date(), target_time)
+            scheduled_time = timezone.make_aware(scheduled_time)
+
+            if scheduled_time < now:
+                scheduled_time += timedelta(days=1)
+                logger.info(
+                    f'Scheduled time is in the past. Adjusting to the next day: {scheduled_time}'
                 )
-            except ImportError:
-                pass
+
+            jobScheduled = scheduler.schedule(
+                scheduled_time=scheduled_time,
+                func=retrain_professional_model,
+                interval=86400,
+                repeat=None,
+            )
+
+            logger.info(f'Job scheduled: {jobScheduled}')
+
+        except ImportError:
+            logger.error('Error occurred while importing django_rq')
