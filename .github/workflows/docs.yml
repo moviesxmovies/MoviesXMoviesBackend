@@ -1,8 +1,9 @@
 name: Notify Docs Update
 on:
-  push:
-    branches: [main, master]
-
+  workflow_run:
+    workflows: ["GitHub Changelog"]
+    types: [completed]
+    branches: [main]
 jobs:
   ping-docs:
     runs-on: ubuntu-latest
