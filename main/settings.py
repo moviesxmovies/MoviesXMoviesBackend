@@ -39,11 +39,13 @@ CSRF_TRUSTED_ORIGINS = [
     'https://moviesxmovies.jonaykb.com',
     'http://127.0.0.1:5173',
     'http://localhost:5173',
+    'https://10.0.0.1:5173',
 ]
 CORS_ALLOWED_ORIGINS = [
     'https://moviesxmovies.jonaykb.com',
     'http://127.0.0.1:5173',
     'http://localhost:5173',
+    'https://10.0.0.1:5173',
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
