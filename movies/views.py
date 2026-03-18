@@ -368,7 +368,9 @@ def get_movie_recommendations(request) -> JsonResponse:
     candidates_qs = proxy._get_base_candidates(exclude_ids)
     candidates_qs = proxy._apply_hard_filters(candidates_qs, genres=None)
     scored_movies = proxy._score_candidates(
-        candidates_qs, celebrities=None, friends=request.user.friends.all()
+        candidates_qs,
+        celebrities=None,
+        friends=list(request.user.friends.values_list('username', flat=True)),
     )
 
     recommended = [movie for movie, _score in scored_movies]
