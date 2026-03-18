@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.core.cache import cache
 from django.db.models import Case, IntegerField, Q, When
 from django.forms import ValidationError
 from django.http import JsonResponse
@@ -18,7 +19,7 @@ from reviews.serializers import ReviewSerializer
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response, get_progressive_response
 from users.decorators import auth_required
-from django.core.cache import cache
+
 LIMIT_RECOMMENDATIONS = 5
 
 
@@ -521,4 +522,4 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
         )
 
     user.unseen_movies.remove(movie)
-    return True
+    return 
