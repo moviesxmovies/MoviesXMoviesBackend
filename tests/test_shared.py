@@ -9,10 +9,11 @@ from rest_framework.test import APIRequestFactory
 
 from genres.models import Genre
 from reviews.serializers import ReviewSerializer
-from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.serializers import BaseSerializer
 from shared.utils import get_paginated_response, get_progressive_response
 from shared.views import GoogleLogin
+from django.core.cache import cache
 
 
 # =================================================================
@@ -468,3 +469,32 @@ def test_get_progressive_response_no_more_items(movie_factory, user_factory):
     assert 'results' in data
     assert len(data['results']) == 5
     assert data['next_last_id'] is None
+
+# =================================================================
+# CACHED VIEW
+# =================================================================
+@pytest.fixture
+def mock_view_cached():
+    @cached_view(make_key=lambda req: 'test_cache_key', timeout=60)
+    def view(request):
+        return JsonResponse({'message': 'This is a cached response'})
+    return view
+
+@pytest.mark.django_db
+def test_cached_view(mock_view_cached):
+    # First request should generate the response and cache it
+    request = APIRequestFactory().get('/')
+    response1 = mock_view_cached(request)
+    assert response1.status_code == 200
+    data1 = json.loads(response1.content)
+    assert data1['message'] == 'This is a cached response'
+
+    assert cache.get('test_cache_key') == {'message': 'This is a cached response'}
+    cache.set('test_cache_key', {'message': 'This is to test repsonse is taking it'}, timeout=60)
+
+    # Second request should hit the cache
+    response2 = mock_view_cached(request)
+    assert response2.status_code == 200
+    data2 = json.loads(response2.content)
+    assert data2['message'] == 'This is to test repsonse is taking it'
+

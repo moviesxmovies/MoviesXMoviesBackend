@@ -1,7 +1,12 @@
 import json
+from functools import wraps
 from http import HTTPStatus
+import logging
+
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
+logger = logging.getLogger(__name__)
 
 
 def require_http_methods(methods):
@@ -195,6 +200,31 @@ def get_body(model_class, required_fields):
                 kwargs['body'] = instance
 
             return func(request, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def cached_view(make_key, timeout=300):
+    """
+    Cache a view's JSON response.
+    make_key: callable(request, *args, **kwargs) -> str
+    """
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            key = make_key(request, *args, **kwargs)
+            cached = cache.get(key)
+            if cached is not None:
+                logger.debug(f'Cache hit for key: {key}')
+                return JsonResponse(cached, safe=False)
+            response = view_func(request, *args, **kwargs)
+            if response.status_code == 200:
+                logger.debug(f'Caching response for key: {key} with timeout: {timeout}')
+                cache.set(key, json.loads(response.content), timeout=timeout)
+            return response
 
         return wrapper
 

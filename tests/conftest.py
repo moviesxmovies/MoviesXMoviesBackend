@@ -5,6 +5,7 @@ import jwt
 import pytest
 from django.conf import settings
 from pytest_factoryboy import register
+from django.core.cache import cache
 
 from factories import (
     AwardFactory,
@@ -62,6 +63,7 @@ MOVIE_DETAIL_URL = '/api/movies/{movie_slug}/'
 MOVIE_REVIEWS_URL = '/api/movies/{movie_slug}/reviews/'
 MOVIE_FRIENDS_RATINGS_URL = '/api/movies/{movie_slug}/friends-ratings/'
 MOVIE_SELF_RATING_URL = '/api/movies/{movie_slug}/ratings/'
+MOVIE_UNSEEN_URL = '/api/movies/{movie_slug}/unseen/'
 
 # USERS
 SUGGESTED_USERS_URL = '/api/users/suggested-users/'
@@ -146,6 +148,11 @@ def auth_client(client, user_factory, generate_jwt):
 
     return client
 
+@pytest.fixture(autouse=True)
+def clear_cache():
+    cache.clear()
+    yield
+    cache.clear()  
 
 @pytest.fixture(autouse=True)
 def disable_social_jobs():

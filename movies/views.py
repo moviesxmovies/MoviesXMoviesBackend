@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.core.cache import cache
 from django.db.models import Case, IntegerField, Q, When
 from django.forms import ValidationError
 from django.http import JsonResponse
@@ -15,7 +16,7 @@ from ratings.models import Rating
 from ratings.serializers import RatingSerializer
 from reviews.models import Review
 from reviews.serializers import ReviewSerializer
-from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response, get_progressive_response
 from users.decorators import auth_required
 
@@ -82,6 +83,7 @@ class MoviesInListSerializer(serializers.ModelSerializer):
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
+@cached_view(lambda req, movie: f'movie_detail_{movie.pk}', timeout=60 * 60 * 6)
 def movie_detail(request, movie: Movie) -> JsonResponse:
     """Return the full detail representation of a single movie.
 
@@ -107,6 +109,12 @@ def movie_detail(request, movie: Movie) -> JsonResponse:
 @require_http_methods(['GET'])
 @auth_required
 @get_query_params('page', 'limit')
+@cached_view(
+    make_key=lambda req, movie, page=1, limit=10: (
+        f'friends_ratings:{req.user.pk}:{movie.pk}:{page}:{limit}'
+    ),
+    timeout=60 * 5,
+)
 def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10) -> JsonResponse:
     """Return a paginated list of friend ratings for a specific movie.
 
@@ -341,6 +349,7 @@ def update_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
 @api_view(['GET'])
 @auth_required
 @require_http_methods(['GET'])
+@cached_view(make_key=lambda req: f'recommendations:{req.user.pk}', timeout=60 * 30)
 def get_movie_recommendations(request) -> JsonResponse:
     """Return a ranked list of movie recommendations for the authenticated user.
 
@@ -431,3 +440,86 @@ def _pad_with_algorithmic(
         ).distinct()
 
     return existing + list(fallback_qs[: needed - len(existing)])
+
+
+@extend_schema(
+    description='Mark a movie as unseen',
+    methods=['POST'],
+    responses={200: bool, 400: None, 404: None},
+    operation_id='mark_movie_unseen',
+)
+@extend_schema(
+    description='Remove a movie from the unseen list',
+    methods=['DELETE'],
+    responses={200: bool, 400: None, 404: None},
+    operation_id='unmark_movie_unseen',
+)
+@api_view(['POST', 'DELETE'])
+@auth_required
+@require_http_methods(['POST', 'DELETE'])
+def movie_unseen_wrapper(request, movie: Movie) -> JsonResponse:
+    """Handle marking a movie as unseen or removing it from the unseen list.
+
+    If request method is POST, the movie is added to the user's unseen list.
+    If request method is DELETE, the movie is removed from the unseen list.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: A JSON response indicating success or failure.
+    """
+    match request.method:
+        case 'POST':
+            response = mark_movie_unseen(request, movie)
+        case 'DELETE':
+            response = unmark_movie_unseen(request, movie)
+
+    if isinstance(response, JsonResponse):
+        return response
+
+    cache.delete(f'recommendations:{request.user.pk}')
+    return JsonResponse({'success': True}, status=HTTPStatus.OK)
+
+
+@require_http_methods(['POST'])
+def mark_movie_unseen(request, movie: Movie) -> JsonResponse:
+    """Add a movie to the authenticated user's unseen list.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: A JSON response indicating success or failure.
+    """
+    user = request.user
+    if user.unseen_movies.filter(pk=movie.pk).exists():
+        return JsonResponse(
+            {'error': _('Movie already marked as unseen')}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    user.unseen_movies.add(movie)
+    return True
+
+
+@require_http_methods(['DELETE'])
+def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
+    """Remove a movie from the authenticated user's unseen list.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: A JSON response indicating success or failure.
+    """
+    user = request.user
+    if not user.unseen_movies.filter(pk=movie.pk).exists():
+        return JsonResponse(
+            {'error': _('Movie not marked as unseen')}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    user.unseen_movies.remove(movie)
+    return True

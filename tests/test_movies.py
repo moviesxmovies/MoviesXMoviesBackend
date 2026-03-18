@@ -1,8 +1,7 @@
 import json
-import logging
 import pickle
-import sys
-from unittest.mock import MagicMock, Mock, patch
+from socketserver import DatagramRequestHandler
+from unittest.mock import Mock
 
 import pytest
 from django.core.cache import cache
@@ -17,6 +16,7 @@ from tests.conftest import (
     MOVIE_RECOMMENDATIONS_URL,
     MOVIE_REVIEWS_URL,
     MOVIE_SELF_RATING_URL,
+    MOVIE_UNSEEN_URL,
 )
 
 # ===========================================================================
@@ -764,6 +764,62 @@ def test_pad_with_algorithmic_returns_existing_when_already_enough(
     assert {m.id for m in result} == {m.id for m in existing}
 
 
-# ===========================================================================
-#  MISC
-# ===========================================================================
+@pytest.mark.django_db
+def test_unseen_movie_view(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    response = auth_client.post(
+        MOVIE_UNSEEN_URL.format(movie_slug=movie.slug),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['success']
+    auth_client.user.refresh_from_db()
+    assert movie in auth_client.user.unseen_movies.all()
+
+
+@pytest.mark.django_db
+def test_unseen_movie_view_remove_unseen(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    auth_client.user.unseen_movies.add(movie)
+
+    response = auth_client.delete(
+        MOVIE_UNSEEN_URL.format(movie_slug=movie.slug),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['success']
+    auth_client.user.refresh_from_db()
+    assert movie not in auth_client.user.unseen_movies.all()
+
+@pytest.mark.django_db
+def test_unseen_movie_view_already_unseen(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+    auth_client.user.unseen_movies.add(movie)
+
+    response = auth_client.post(
+        MOVIE_UNSEEN_URL.format(movie_slug=movie.slug),
+        content_type='application/json',
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data['error'] == 'Movie already marked as unseen'
+    auth_client.user.refresh_from_db()
+    assert movie in auth_client.user.unseen_movies.all()
+
+@pytest.mark.django_db
+def test_unseen_movie_view_not_marked_unseen(movie_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    response = auth_client.delete(
+        MOVIE_UNSEEN_URL.format(movie_slug=movie.slug),
+        content_type='application/json',
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert data['error'] == 'Movie not marked as unseen'
+    auth_client.user.refresh_from_db()
+    assert movie not in auth_client.user.unseen_movies.all()
