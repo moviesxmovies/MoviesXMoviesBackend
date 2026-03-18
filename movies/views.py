@@ -522,4 +522,4 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
         )
 
     user.unseen_movies.remove(movie)
-    return 
+    return True
