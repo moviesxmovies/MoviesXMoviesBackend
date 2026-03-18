@@ -176,41 +176,37 @@ class MovieList(BaseModel):
         )
 
     def _get_base_candidates(self, exclude_ids: set[int]):
-        """Return a queryset of candidate movies for recommendation.
-
-        Attempts to use the cached ALS model to generate personalised
-        candidates. Falls back to a recency-ordered queryset of all
-        non-excluded movies if the cache is empty, the user has no model
-        mapping, or deserialisation fails.
-
-        Args:
-            exclude_ids (set[int]): Primary keys of movies to exclude from
-                the candidate set.
-
-        Returns:
-            QuerySet: A ``Movie`` queryset of recommendation candidates.
-        """
         raw_data = cache.get('movie_recommendation_model')
 
         if raw_data:
             try:
                 data = pickle.loads(raw_data)
-                internal_id = data['user_id_map'].get(self.user.id)
+                dataset = data['dataset']
 
-                if internal_id is not None:
-                    ids, _ = data['model'].recommend(
-                        internal_id, data['user_items_matrix'][internal_id], N=300
+                user_mapping = dataset.mapping()[0]   
+                item_mapping = dataset.mapping()[2]
+                reverse_item = {v: k for k, v in item_mapping.items()}
+
+                internal_uid = user_mapping.get(self.user.id)
+                if internal_uid is not None:
+                    n_items = len(item_mapping)
+                    scores = data['model'].predict(
+                        user_ids=internal_uid,
+                        item_ids=list(range(n_items)),
+                        item_features=data['item_features'],
+                        user_features=data['user_features'],
                     )
-                    candidate_ids = [
-                        data['reverse_movie_map'][i]
-                        for i in ids
-                        if data['reverse_movie_map'][i] not in exclude_ids
-                    ]
-                    return Movie.objects.filter(id__in=candidate_ids)
+                    top_ids = [
+                        reverse_item[i]
+                        for i in scores.argsort()[::-1]
+                        if reverse_item.get(i) not in exclude_ids
+                    ][:300]
+                    return Movie.objects.filter(id__in=top_ids)
             except Exception:
                 pass
 
         return Movie.objects.exclude(id__in=exclude_ids).order_by('-release_date')
+
 
     def _apply_hard_filters(self, queryset, genres: list[str] | None):
         """Apply mandatory filters to a candidate queryset.
