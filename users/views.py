@@ -1,5 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
+import logging
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
@@ -13,7 +14,7 @@ from rest_framework.decorators import api_view
 
 from main import settings
 from reviews.serializers import ReviewSerializer
-from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import activate_request_language, deactivate_language, get_paginated_response
 from users.decorators import auth_required
 from users.models import User
@@ -26,6 +27,7 @@ FIRST_NAME_HELPER = 'User first name'
 LAST_NAME_HELPER = 'User last name'
 USER_PASSWORD_HELPER = 'User password'
 
+logger = logging.getLogger(__name__)
 
 class VerifyUserSerializer(serializers.Serializer):
     """Serializer for validating account verification payloads.
@@ -247,6 +249,10 @@ def resend_verification_email(request) -> JsonResponse:
 @require_http_methods(['GET'])
 @auth_required
 @get_query_params('page', 'limit')
+@cached_view(
+    make_key=lambda req, page=1, limit=10: f'suggested_users:{req.user.pk}:{page}:{limit}',
+    timeout=60 * 15,
+)
 def suggested_users(request, page: int, limit: int) -> JsonResponse:
     """Return a paginated list of suggested users for the authenticated user to follow.
 
@@ -498,6 +504,7 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
+@cached_view(make_key=lambda req, user: f'user_detail:{user.pk}', timeout=60 * 60)
 def user_detail(request, user: User) -> JsonResponse:
     """Return the serialized profile of a specific user.
 
@@ -706,19 +713,22 @@ def user_reviews(request, user: User, page: int = 1, limit: int = 10) -> JsonRes
 @require_http_methods(['POST', 'DELETE'])
 @auth_required
 def follow_user_wrapper(request, user: User) -> JsonResponse:
-    """Follow or unfollow a user depending on the HTTP method.
-
-    Args:
-        request: The authenticated incoming HTTP request.
-        user (User): The target user instance resolved from the URL.
-
-    Returns:
-        JsonResponse: ``{'following': bool}`` reflecting the updated follow
-        state after the operation, with HTTP 200.
-    """
     if request.method == 'POST':
         request.user.follow(user)
-        return JsonResponse({'following': request.user.is_following(user)})
     else:
         request.user.unfollow(user)
-        return JsonResponse({'following': request.user.is_following(user)})
+
+    _invalidate_suggested_users(request.user.pk)
+    _invalidate_suggested_users(user.pk)
+
+    return JsonResponse({'following': request.user.is_following(user)})
+
+
+def _invalidate_suggested_users(user_pk: int) -> None:
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern(f'suggested_users:{user_pk}:*')
+    else:
+        logger.warning('Cache backend does not support delete_pattern; manually deleting suggested users keys')
+        for page in range(1, 10):
+            for limit in [10, 20, 50]:
+                cache.delete(f'suggested_users:{user_pk}:{page}:{limit}')

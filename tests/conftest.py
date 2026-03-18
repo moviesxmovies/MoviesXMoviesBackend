@@ -5,6 +5,7 @@ import jwt
 import pytest
 from django.conf import settings
 from pytest_factoryboy import register
+from django.core.cache import cache
 
 from factories import (
     AwardFactory,
@@ -146,6 +147,11 @@ def auth_client(client, user_factory, generate_jwt):
 
     return client
 
+@pytest.fixture(autouse=True)
+def clear_cache():
+    cache.clear()
+    yield
+    cache.clear()  
 
 @pytest.fixture(autouse=True)
 def disable_social_jobs():
