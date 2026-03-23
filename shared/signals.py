@@ -31,7 +31,7 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
         f'Invalidated recommendations cache for user {user.pk} due to new rating for movie {movie.pk}'
     )
 
-    cache.delete(f'movie_rating_{user.pk}_{movie.pk}')
+    cache.delete(f'movie_rating:{user.pk}:{movie.pk}')
     logger.debug(f'Invalidated movie_rating cache for user {user.pk} and movie {movie.pk}')
 
     for friend in user.friends.all():
