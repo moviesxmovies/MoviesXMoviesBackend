@@ -36,6 +36,7 @@ class UserSerializer(BaseSerializer):
             'username': serializers.CharField(),
             'bio': serializers.CharField(),
             'is_friend': serializers.BooleanField(allow_null=True),
+            'requested_friendship_status': serializers.CharField(allow_null=True),
             'picture': serializers.URLField(allow_null=True),
         }
 
@@ -46,7 +47,7 @@ class FriendRequestSerializer(BaseSerializer):
             'id': instance.pk,
             'from_user': self.build_url(reverse('user-detail', args={instance.from_user})),
             'to_user': self.build_url(reverse('user-detail', args={instance.to_user})),
-            'status': instance.status,
+            'status': instance.get_status_display(),
         }
 
     @staticmethod
