@@ -263,7 +263,7 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonRespo
         return MovieListSerializer(user.movies_lists.all(), request=request).json_response()
     movies_lists = user.movies_lists.exclude(privacity=MovieList.Privacity.PRIVATE).all()
     if not user.is_friend(request.user):
-        movies_lists = movies_lists.exclude(privacity=MovieList.Privacity.FOLLOWERS)
+        movies_lists = movies_lists.exclude(privacity=MovieList.Privacity.FRIENDS)
 
     return get_paginated_response(
         movies_lists,
@@ -307,7 +307,7 @@ def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
     match movies_list.privacity:
         case MovieList.Privacity.PUBLIC:
             return MovieListSerializer(movies_list, request=request).json_response()
-        case MovieList.Privacity.FOLLOWERS:
+        case MovieList.Privacity.FRIENDS:
             if user.is_friend(request.user):
                 return MovieListSerializer(movies_list, request=request).json_response()
 

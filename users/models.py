@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 
@@ -15,7 +15,6 @@ class User(AbstractUser):
         email (models.EmailField): The user's email address, must be unique.
         picture (models.ImageField): The user's profile picture, with a default image.
         following_person (models.ManyToManyField): A many-to-many relationship to Person model for following people.
-        following (models.ManyToManyField): A many-to-many relationship to other Users for following users.
         platforms (models.ManyToManyField): A many-to-many relationship to Platform model for platforms the user is associated with.
         verification_code (models.CharField): A code used for email verification, can be null or blank.
     """
@@ -32,33 +31,12 @@ class User(AbstractUser):
     following_person = models.ManyToManyField(
         'persons.Person', related_name='followers', blank=True
     )
-    following = models.ManyToManyField('users.User', related_name='followers', blank=True)
     platforms = models.ManyToManyField('platforms.Platform', related_name='users', blank=True)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     forgot_password_code = models.CharField(max_length=6, null=True, blank=True)
     unseen_movies = models.ManyToManyField('movies.Movie', related_name='users_unseen', blank=True)
     preferred_language = models.CharField(max_length=2, default='en')
-    def is_following(self, check_user):
-        """Check if user is following check_user
-
-        Args:
-            check_user (User): The user to check with
-
-        Returns:
-            Boolean: If self is following check_user
-        """
-        return self.following.filter(pk=check_user.pk).exists()
-
-    def is_followed_by(self, check_user):
-        """Check if user is being followed by check_user
-
-        Args:
-            check_user (User): The user to check with
-
-        Returns:
-            Boolean: If self is being followed by check_user
-        """
-        return self.followers.filter(pk=check_user.pk).exists()
+    friends = models.ManyToManyField('self', through='FriendShip', symmetrical=True, blank=True)
 
     def is_friend(self, check_user):
         """Checks if users are friends (mutual following)
@@ -69,57 +47,155 @@ class User(AbstractUser):
         Returns:
             Boolean: If they are friends or not
         """
-        if not check_user or self.pk == check_user.pk:
+        if check_user is None or self.pk == check_user.pk:
             return False
-
-        return self.is_following(check_user) and self.is_followed_by(check_user)
-
-    @property
-    def friends(self):
-        """Get all friends (mutual following) of the user
-
-        Returns:
-            QuerySet: A queryset of users who are friends with the user
-        """
-        return self.following.filter(followers=self)
+        return FriendShip.objects.filter(
+            Q(user1=self, user2=check_user) | Q(user1=check_user, user2=self)
+        ).exists()
 
     def suggest_friends(self):
         """
-        Suggest friends based on users followed by people you follow (friends-of-friends).
-
-        The suggestions are users who are followed by your `following` set, excluding
-        yourself and users you already follow, ordered by how many of your followings
-        also follow them.
+        Suggest friends based on mutual friends. Returns users who are not
+        already friends with the current user but have the most mutual friends
+        in common, annotated with common_friends_count.
 
         Returns:
-            models.QuerySet: A queryset of suggested users.
+            QuerySet: A queryset of suggested friends ordered by the number
+            of mutual friends in descending order.
         """
-        following_ids = self.following.values_list('id', flat=True)
-
-        return (
-            User.objects.filter(followers__in=following_ids)
-            .exclude(Q(id=self.id) | Q(id__in=following_ids))
+        my_friend_ids = list(
+            FriendShip.objects.filter(Q(user1=self) | Q(user2=self))
             .annotate(
-                common_friends_count=Count('followers', filter=Q(followers__in=following_ids))
+                friend_id=models.Case(
+                    models.When(user1=self, then=models.F('user2')),
+                    default=models.F('user1'),
+                    output_field=models.IntegerField(),
+                )
             )
-            .order_by('-common_friends_count', 'id')
-            .distinct()
+            .values_list('friend_id', flat=True)
         )
 
-    def follow(self, other_user):
-        """Follow another user
+        if not my_friend_ids:
+            return User.objects.none()
 
-        Args:
-            other_user (User): The user to follow
-        """
-        if other_user and other_user != self:
-            self.following.add(other_user)
+        friendship_table = FriendShip._meta.db_table
+        user_table = User._meta.db_table
+        placeholders = ','.join(['%s'] * len(my_friend_ids))
+        return (
+            User.objects.exclude(Q(id=self.pk) | Q(id__in=my_friend_ids))
+            .annotate(
+                common_friends_count=models.expressions.RawSQL(
+                    f"""
+                    SELECT COUNT(*)
+                    FROM {friendship_table} f
+                    WHERE (
+                        (f.user1_id = {user_table}.id AND f.user2_id IN ({placeholders}))
+                        OR
+                        (f.user2_id = {user_table}.id AND f.user1_id IN ({placeholders}))
+                    )
+                    """,
+                    my_friend_ids * 2,
+                )
+            )
+            .filter(common_friends_count__gt=0)
+            .order_by('-common_friends_count', 'id')
+        )
 
-    def unfollow(self, other_user):
-        """Unfollow another user
+    def get_friends(self):
+        friend_ids = (
+            FriendShip.objects.filter(Q(user1=self) | Q(user2=self))
+            .annotate(
+                friend_id=models.Case(
+                    models.When(user1=self, then=models.F('user2')),
+                    default=models.F('user1'),
+                    output_field=models.IntegerField(),
+                )
+            )
+            .values('friend_id')
+        )
+        return User.objects.filter(id__in=friend_ids)
+    
+    def get_friend_request_status(self, check_user):
+        if check_user is None or self.pk == check_user.pk:
+            return None
+        try:
+            friend_request = FriendRequest.objects.get(
+                Q(from_user=self, to_user=check_user) | Q(from_user=check_user, to_user=self)
+            )
+            return friend_request.get_status_display()
+        except FriendRequest.DoesNotExist:
+            return None
 
-        Args:
-            other_user (User): The user to unfollow
-        """
-        if other_user and other_user != self:
-            self.following.remove(other_user)
+
+class FriendRequest(models.Model):
+    """
+    Model representing a friend request between users.
+
+    Attributes:
+        from_user (models.ForeignKey): The user who sent the friend request.
+        to_user (models.ForeignKey): The user who received the friend request.
+        created_at (models.DateTimeField): The timestamp when the friend request was created.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = 'P', _('Pending')
+        ACCEPTED = 'A', _('Accepted')
+        REJECTED = 'R', _('Rejected')
+
+    from_user = models.ForeignKey(
+        User, related_name='sent_friend_requests', on_delete=models.CASCADE
+    )
+    to_user = models.ForeignKey(
+        User, related_name='received_friend_requests', on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=1, choices=Status.choices, default=Status.PENDING)
+
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+        verbose_name = _('Friend Request')
+        verbose_name_plural = _('Friend Requests')
+
+    def __str__(self):
+        return f'FriendRequest(from={self.from_user.username}, to={self.to_user.username})'
+
+    def accept(self):
+        """Accept the friend request, creating a FriendShip record."""
+        if self.status != self.Status.PENDING:
+            raise ValueError(_('Only pending friend requests can be accepted.'))
+        FriendShip.objects.create(user1=self.from_user, user2=self.to_user)
+        self.status = self.Status.ACCEPTED
+        self.save()
+
+    def reject(self):
+        """Reject the friend request."""
+        if self.status != self.Status.PENDING:
+            raise ValueError(_('Only pending friend requests can be rejected.'))
+        self.status = self.Status.REJECTED
+        self.save()
+
+
+class FriendShip(models.Model):
+    """
+    Model representing a friendship between two users.
+
+    Attributes:
+        user1 (models.ForeignKey): One user in the friendship.
+        user2 (models.ForeignKey): The other user in the friendship.
+        created_at (models.DateTimeField): The timestamp when the friendship was created.
+    """
+
+    user1 = models.ForeignKey(User, related_name='friendship_user1', on_delete=models.CASCADE)
+    user2 = models.ForeignKey(User, related_name='friendship_user2', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user1', 'user2')
+        verbose_name = _('Friendship')
+        verbose_name_plural = _('Friendships')
+        indexes = [
+            models.Index(fields=['user2', 'user1'], name='friendship_user2_user1_idx'),
+        ]
+
+    def __str__(self):
+        return f'FriendShip(user1={self.user1.username}, user2={self.user2.username})'

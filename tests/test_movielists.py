@@ -11,6 +11,7 @@ from django.urls import reverse
 from movielists.models import MovieList
 from movielists.serializers import MovieListSerializer
 from movies.tasks import retrain_professional_model
+from users.models import FriendShip
 
 # ===========================================================================
 #  MODELS
@@ -91,8 +92,7 @@ def test_movie_list_intelligent_fill_with_scoring_filters(
     user.platforms.clear()
 
     friend = user_factory(username='best_friend')
-    user.following.add(friend)
-    friend.following.add(user)
+    FriendShip.objects.create(user1=user, user2=friend)
 
     actor = person_factory(slug='leo-dicaprio')
     winner = movie_factory(title='The Perfect Movie')
@@ -151,7 +151,7 @@ def test_movies_list_self_view(auth_client, movie_list_factory):
 
     movie_list_factory(user=user, name='My Movie List', privacity=MovieList.Privacity.PRIVATE)
     movie_list_factory(user=user, name='My Movie List2', privacity=MovieList.Privacity.PUBLIC)
-    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FOLLOWERS)
+    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FRIENDS)
 
     response = auth_client.get(MOVIE_LIST_SELF_URL)
 
@@ -186,7 +186,7 @@ def test_movies_list_user_public_view(auth_client, movie_list_factory, user_fact
 
     movie_list_factory(user=user, name='My Movie List', privacity=MovieList.Privacity.PRIVATE)
     movie_list_factory(user=user, name='My Movie List2', privacity=MovieList.Privacity.PUBLIC)
-    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FOLLOWERS)
+    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FRIENDS)
 
     response = auth_client.get(MOVIE_LIST_USER_URL.format(username=user.username))
     assert response.status_code == 200
@@ -199,14 +199,11 @@ def test_movies_list_user_public_view(auth_client, movie_list_factory, user_fact
 def test_movies_list_user_followers_view(auth_client, movie_list_factory, user_factory):
     user = user_factory(username='otheruser')
     user_auth = auth_client.user
-    user.following.add(user_auth)
-    user.save()
-    user_auth.following.add(user)
-    user_auth.save()
+    FriendShip.objects.create(user1=user, user2=user_auth)
 
     movie_list_factory(user=user, name='My Movie List', privacity=MovieList.Privacity.PRIVATE)
     movie_list_factory(user=user, name='My Movie List2', privacity=MovieList.Privacity.PUBLIC)
-    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FOLLOWERS)
+    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FRIENDS)
 
     response = auth_client.get(MOVIE_LIST_USER_URL.format(username=user.username))
     assert response.status_code == 200
@@ -223,7 +220,7 @@ def test_movies_list_user_self(auth_client, movie_list_factory):
 
     movie_list_factory(user=user, name='My Movie List', privacity=MovieList.Privacity.PRIVATE)
     movie_list_factory(user=user, name='My Movie List2', privacity=MovieList.Privacity.PUBLIC)
-    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FOLLOWERS)
+    movie_list_factory(user=user, name='My Movie List3', privacity=MovieList.Privacity.FRIENDS)
 
     response = auth_client.get(MOVIE_LIST_USER_URL.format(username=user.username))
     assert response.status_code == 200
@@ -260,13 +257,10 @@ def test_movies_list_detail_view_public(auth_client, movie_list_factory, user_fa
 def test_movies_list_detail_view_followers(auth_client, movie_list_factory, user_factory):
     user = user_factory(username='otheruser')
     user_auth = auth_client.user
-    user.following.add(user_auth)
-    user.save()
-    user_auth.following.add(user)
-    user_auth.save()
+    FriendShip.objects.create(user1=user, user2=user_auth)
 
     movie_list = movie_list_factory(
-        user=user, name='My Movie List', privacity=MovieList.Privacity.FOLLOWERS
+        user=user, name='My Movie List', privacity=MovieList.Privacity.FRIENDS
     )
 
     response = auth_client.get(
@@ -282,7 +276,7 @@ def test_movies_list_detail_view_followers_forbidden(auth_client, movie_list_fac
     user = user_factory(username='otheruser')
 
     movie_list = movie_list_factory(
-        user=user, name='My Movie List', privacity=MovieList.Privacity.FOLLOWERS
+        user=user, name='My Movie List', privacity=MovieList.Privacity.FRIENDS
     )
 
     response = auth_client.get(
@@ -444,16 +438,13 @@ def test_movie_list_save_intelligent_fill_with_scoring_filters(
     user.platforms.clear()
 
     friend = user_factory(username='best_friend')
-    user.following.add(friend)
-    friend.following.add(user)
+    FriendShip.objects.create(user1=user, user2=friend)
 
     actor = person_factory(slug='leo-dicaprio')
     winner = movie_factory(title='The Perfect Movie')
     winner.actors.add(actor)
-
     award = award_factory(name='Best Picture')
     winner.awards.add(award)
-
     rating_factory(movie=winner, user=friend, rating=5)
 
     neutral_movie = movie_factory(title='Meh Movie')
@@ -467,6 +458,7 @@ def test_movie_list_save_intelligent_fill_with_scoring_filters(
         },
         content_type='application/json',
     )
+
     assert response.status_code == 201
     data = response.json()
     assert data['name'] == 'My Scored Intelligent Movie List'

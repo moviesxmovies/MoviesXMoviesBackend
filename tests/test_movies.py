@@ -18,6 +18,7 @@ from tests.conftest import (
     MOVIE_SELF_RATING_URL,
     MOVIE_UNSEEN_URL,
 )
+from users.models import FriendShip
 
 # ===========================================================================
 #  MODELS
@@ -187,12 +188,9 @@ def test_movie_friends_ratings_view(movie_factory, user_factory, rating_factory,
     rating_factory(movie=movie, user=user1, rating=4)
     rating_factory(movie=movie, user=user2, rating=5)
 
-    user1.following.add(user2)
-    user2.following.add(user1)
-    auth_client.user.following.add(user1)
-    auth_client.user.following.add(user2)
-    user1.following.add(auth_client.user)
-    user2.following.add(auth_client.user)
+    FriendShip.objects.create(user1=auth_client.user, user2=user1)
+    FriendShip.objects.create(user1=auth_client.user, user2=user2)
+
 
     response = auth_client.get(MOVIE_FRIENDS_RATINGS_URL.format(movie_slug=movie.slug))
     assert response.status_code == 200
@@ -547,8 +545,7 @@ def test_get_movie_recommendations_boosts_friends_ratings(
     auth_client.user.platforms.add(platform)
 
     friend = user_factory()
-    auth_client.user.following.add(friend)
-    friend.following.add(auth_client.user)
+    FriendShip.objects.create(user1=auth_client.user, user2=friend)
 
     # auth_client.user has NOT rated this — only the friend has
     friend_movie = movie_factory(title='Friend Loved This', platforms=[platform])

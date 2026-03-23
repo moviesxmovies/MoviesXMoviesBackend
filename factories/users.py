@@ -17,12 +17,6 @@ class UserFactory(factory.django.DjangoModelFactory):
     password = factory.PostGenerationMethodCall('set_password', 'password123')
 
     @factory.post_generation
-    def following(self, create, extracted, **kwargs):
-        if not create or not extracted:
-            return
-        self.following.add(*extracted)
-
-    @factory.post_generation
     def following_person(self, create, extracted, **kwargs):
         if not create:
             return

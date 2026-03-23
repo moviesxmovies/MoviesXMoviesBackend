@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from shared.serializers import BaseSerializer
@@ -17,8 +18,11 @@ class UserSerializer(BaseSerializer):
             'id': instance.pk,
             'username': instance.username,
             'bio': instance.bio,
-            'following': instance.is_followed_by(self.request.user)
-            if self.request and self.request.user
+            'is_friend': instance.is_friend(self.request.user)
+            if self.request and self.request.user and self.request.user != instance
+            else None,
+            'requested_friendship_status': instance.get_friend_request_status(self.request.user)
+            if self.request and self.request.user and self.request.user != instance
             else None,
             'picture': self.build_url(instance.picture.url)
             if instance.picture and self.request
@@ -31,6 +35,25 @@ class UserSerializer(BaseSerializer):
             'id': serializers.IntegerField(),
             'username': serializers.CharField(),
             'bio': serializers.CharField(),
-            'following': serializers.BooleanField(allow_null=True),
+            'is_friend': serializers.BooleanField(allow_null=True),
             'picture': serializers.URLField(allow_null=True),
+        }
+
+
+class FriendRequestSerializer(BaseSerializer):
+    def serialize_instance(self, instance) -> dict:
+        return {
+            'id': instance.pk,
+            'from_user': self.build_url(reverse('user-detail', args={instance.from_user})),
+            'to_user': self.build_url(reverse('user-detail', args={instance.to_user})),
+            'status': instance.status,
+        }
+
+    @staticmethod
+    def get_fields_dict():
+        return {
+            'id': serializers.IntegerField(),
+            'from_user': serializers.URLField(),
+            'to_user': serializers.URLField(),
+            'status': serializers.CharField(),
         }
