@@ -16,7 +16,7 @@ from reviews.serializers import (
     ReactionSerializer,
     ReviewSerializer,
 )
-from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_progressive_response
 from users.decorators import auth_required
 
@@ -297,6 +297,12 @@ def comment_wrapper(request, review: Review):
 
 @require_http_methods(['GET'])
 @get_query_params('limit', 'last_id')
+@cached_view(
+    make_key=lambda req, review, limit=10, last_id=None: (
+        f'review_comments:{review.pk}:{limit}:{last_id}'
+    ),
+    timeout=60 * 5,
+)
 def get_review_comments(request, review: Review, limit=10, last_id=None):
     return get_progressive_response(
         Comment.objects.filter(review=review, reply_comment=None),

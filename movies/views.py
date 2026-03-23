@@ -180,6 +180,12 @@ def movie_review_wrapper(request, movie: Movie) -> JsonResponse:
 
 @require_http_methods(['GET'])
 @get_query_params('limit', 'last_id')
+@cached_view(
+    make_key=lambda req, movie, limit=10, last_id=None: (
+        f'movie_reviews:{movie.pk}:{limit}:{last_id}'
+    ),
+    timeout=60 * 5,
+)
 def movie_reviews(request, movie: Movie, limit=10, last_id=None):
     return get_progressive_response(
         Review.objects.filter(movie=movie), ReviewSerializer, request, last_id, limit
