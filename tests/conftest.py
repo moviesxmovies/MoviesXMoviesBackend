@@ -1,11 +1,13 @@
+import re
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import jwt
 import pytest
 from django.conf import settings
-from pytest_factoryboy import register
 from django.core.cache import cache
+from django.core.cache.backends.locmem import LocMemCache
+from pytest_factoryboy import register
 
 from factories import (
     AwardFactory,
@@ -148,11 +150,13 @@ def auth_client(client, user_factory, generate_jwt):
 
     return client
 
+
 @pytest.fixture(autouse=True)
 def clear_cache():
     cache.clear()
     yield
-    cache.clear()  
+    cache.clear()
+
 
 @pytest.fixture(autouse=True)
 def disable_social_jobs():
@@ -165,3 +169,12 @@ def disable_social_jobs():
         mock.patch(delay2) as mock_delay2,
     ):
         yield {'handler': mock_handler, 'delay': mock_delay, 'delay2': mock_delay2}
+
+
+class ExtendedLocMemCache(LocMemCache):
+    def keys(self, pattern):
+        with self._lock:
+            all_keys = list(self._cache.keys())
+        
+        regex = re.escape(pattern).replace(r'\*', '.*')
+        return [k for k in all_keys if re.fullmatch(regex, k)]

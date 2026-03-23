@@ -1,6 +1,6 @@
+import logging
 from datetime import datetime
 from http import HTTPStatus
-import logging
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
@@ -28,6 +28,7 @@ LAST_NAME_HELPER = 'User last name'
 USER_PASSWORD_HELPER = 'User password'
 
 logger = logging.getLogger(__name__)
+
 
 class VerifyUserSerializer(serializers.Serializer):
     """Serializer for validating account verification payloads.
@@ -307,6 +308,7 @@ def self_user_wrapper(request) -> JsonResponse:
 
 
 @require_http_methods(['GET'])
+@cached_view(lambda req: f'self_user_detail:{req.user.pk}', timeout=60 * 60)
 def self_user_detail(request) -> JsonResponse:
     """Return the serialized profile of the authenticated user.
 
@@ -680,6 +682,10 @@ def set_preferred_language(request, body: dict) -> JsonResponse:
 @require_http_methods(['GET'])
 @auth_required
 @get_query_params('page', 'limit')
+@cached_view(
+    make_key=lambda req, user, page=1, limit=10: f'user_reviews:{user.pk}:{page}:{limit}',
+    timeout=60 * 5,
+)
 def user_reviews(request, user: User, page: int = 1, limit: int = 10) -> JsonResponse:
     """Return a paginated list of reviews written by a specific user.
 
@@ -728,7 +734,9 @@ def _invalidate_suggested_users(user_pk: int) -> None:
     if hasattr(cache, 'delete_pattern'):
         cache.delete_pattern(f'suggested_users:{user_pk}:*')
     else:
-        logger.warning('Cache backend does not support delete_pattern; manually deleting suggested users keys')
+        logger.warning(
+            'Cache backend does not support delete_pattern; manually deleting suggested users keys'
+        )
         for page in range(1, 10):
             for limit in [10, 20, 50]:
                 cache.delete(f'suggested_users:{user_pk}:{page}:{limit}')

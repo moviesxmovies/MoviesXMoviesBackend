@@ -112,7 +112,7 @@ else:
 if TESTING:
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'BACKEND': 'tests.conftest.ExtendedLocMemCache',
             'LOCATION': 'unique-snowflake-for-tests',
         }
     }

@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view
 
 from genres.models import Genre
 from persons.models import Person
-from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
 from users.decorators import auth_required
 
@@ -99,6 +99,9 @@ def movies_list_self_wrapper(request) -> JsonResponse:
 
 
 @get_query_params('page', 'limit')
+@cached_view(
+    lambda req, page, limit: f'movies_lists_self:{req.user.pk}:{page}:{limit}', timeout=60 * 60
+)
 def movies_list_self(request, page: int = 1, limit: int = 10) -> JsonResponse:
     """Return a paginated list of all movie lists owned by the authenticated user.
 
@@ -235,6 +238,10 @@ def _validate_intelligent_params(
 @require_http_methods(['GET'])
 @get_query_params('page', 'limit')
 @auth_required
+@cached_view(
+    lambda req, user, page, limit: f'movies_lists_user:{user.pk}:{page}:{limit}:{req.user.pk}',
+    timeout=60 * 60,
+)
 def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonResponse:
     """Return a paginated list of movie lists belonging to a specific user.
 
@@ -275,6 +282,10 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonRespo
 @api_view()
 @require_http_methods(['GET'])
 @auth_required
+@cached_view(
+    lambda req, user, movies_list: f'movie_list_detail:{user.pk}:{movies_list.pk}:{req.user.pk}',
+    timeout=60 * 60,
+)
 def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
     """Return the detail of a specific movie list, enforcing privacity rules.
 

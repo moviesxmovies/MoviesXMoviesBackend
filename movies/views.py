@@ -180,6 +180,12 @@ def movie_review_wrapper(request, movie: Movie) -> JsonResponse:
 
 @require_http_methods(['GET'])
 @get_query_params('limit', 'last_id')
+@cached_view(
+    make_key=lambda req, movie, limit=10, last_id=None: (
+        f'movie_reviews:{movie.pk}:{limit}:{last_id}'
+    ),
+    timeout=60 * 5,
+)
 def movie_reviews(request, movie: Movie, limit=10, last_id=None):
     return get_progressive_response(
         Review.objects.filter(movie=movie), ReviewSerializer, request, last_id, limit
@@ -258,6 +264,7 @@ def movie_rating_wrapper(request, movie: Movie) -> JsonResponse:
 
 
 @require_http_methods(['GET'])
+@cached_view(lambda req, movie: f'movie_rating:{req.user.pk}:{movie.pk}', timeout=60 * 5)
 def get_self_movie_rating(request, movie: Movie) -> JsonResponse:
     """Return the authenticated user's own rating for a specific movie.
 
