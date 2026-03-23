@@ -199,3 +199,4 @@ class FriendShip(models.Model):
 
     def __str__(self):
         return f'FriendShip(user1={self.user1.username}, user2={self.user2.username})'
+
