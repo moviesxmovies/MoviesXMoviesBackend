@@ -307,6 +307,7 @@ def self_user_wrapper(request) -> JsonResponse:
 
 
 @require_http_methods(['GET'])
+@cached_view(lambda req: f'self_user_detail:{req.user.pk}', timeout=60 * 60)
 def self_user_detail(request) -> JsonResponse:
     """Return the serialized profile of the authenticated user.
 

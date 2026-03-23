@@ -258,6 +258,7 @@ def movie_rating_wrapper(request, movie: Movie) -> JsonResponse:
 
 
 @require_http_methods(['GET'])
+@cached_view(lambda req, movie: f'movie_rating_{req.user.pk}_{movie.pk}', timeout=60 * 5)
 def get_self_movie_rating(request, movie: Movie) -> JsonResponse:
     """Return the authenticated user's own rating for a specific movie.
 

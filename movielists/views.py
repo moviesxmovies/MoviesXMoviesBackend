@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view
 
 from genres.models import Genre
 from persons.models import Person
-from shared.decorators import get_body, get_query_params, require_http_methods
+from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response
 from users.decorators import auth_required
 

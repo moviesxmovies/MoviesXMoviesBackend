@@ -39,19 +39,3 @@ urlpatterns = [
     path('api/reviews/', include('reviews.urls')),
     path('django-rq/', include('django_rq.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-
-# TODO: URLS to cache:
-# - /api/movies/{movie}/friends-ratings/
-# - /api/movies/{movie}/reviews/
-# - /api/movies/{movie}/ratings/
-
-# - /api/movies-list/
-# - /api/movies-list/{user}/
-# - /api/movies-list/{user}/{movies_list}/
-
-# - /api/reviews/{review}/comments/
-
-# - /api/users/
-# - /api/users/{user}/
-# - /api/users/{user}/reviews/
