@@ -1,6 +1,6 @@
 import factory
 
-from users.models import User
+from users.models import FriendRequest, User
 
 from .platforms import PlatformFactory
 
@@ -31,3 +31,12 @@ class UserFactory(factory.django.DjangoModelFactory):
             self.platforms.add(*extracted)
         else:
             self.platforms.add(PlatformFactory())
+
+
+class FriendRequestFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = FriendRequest
+
+    from_user = factory.SubFactory(UserFactory)
+    to_user = factory.SubFactory(UserFactory)
+    status = factory.Iterator(FriendRequest.Status.values)

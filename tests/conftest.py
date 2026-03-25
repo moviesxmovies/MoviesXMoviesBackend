@@ -23,6 +23,7 @@ from factories import (
     ReactionFactory,
     ReviewFactory,
     UserFactory,
+    FriendRequestFactory
 )
 from users.models import User
 
@@ -39,6 +40,7 @@ register(MovieTranslationFactory)
 register(GenreTranslationFactory)
 register(CommentFactory)
 register(ReactionFactory)
+register(FriendRequestFactory)
 
 # ===========================================
 # URLS
@@ -72,8 +74,10 @@ SUGGESTED_USERS_URL = '/api/users/suggested-users/'
 SELF_USER_WRAPPER_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
 USER_REVIEWS_URL = '/api/users/{username}/reviews/'
-FOLLOW_USER_URL = '/api/users/{username}/follow/'
 USER_PREFERRED_LANGUAGE_URL = '/api/users/preferred-language/'
+USER_FRIENDS_URL = '/api/users/{username}/friends/'
+USER_FRIEND_REQUESTS_URL = '/api/users/{username}/friend-requests/'
+
 
 # REVIEWS - COMMENTS - REACTIONS
 EDIT_DELETE_REVIEW_URL = '/api/reviews/{review_id}/'

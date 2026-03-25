@@ -820,19 +820,20 @@ def friend_requests_wrapper(request, user: User) -> JsonResponse:
 
 @require_http_methods(['POST'])
 def save_accept_friend_request(request, user: User) -> JsonResponse:
-    """Send a friend request to the specified user, or accept an incoming request if it exists.
-
-    If there is no existing friend relationship or pending request between the authenticated user and the target user, creates a new friend request. If there is a pending friend request from the target user to the authenticated user, accepts it by creating a friendship. If they are already friends, does nothing.
-
-    Args:
+    """
+    Create a new friend request or accept an incoming request between the authenticated user and the specified user.
+     - If they are already friends, returns an error.
+     - If there is a pending friend request from the authenticated user to the specified user, returns an error.
+     - If there is a pending friend request from the specified user to the authenticated user, accepts it and establishes the friendship.
+     - If there is no existing relationship, creates a new pending friend request from the authenticated user to the specified user.
+     Args:
         request: The authenticated incoming HTTP request.
         user (User): The target user instance resolved from the URL.
     Returns:
-        JsonResponse: ``{'is_friend': True}`` with HTTP 200 if they are now friends, or a JSON error body with HTTP 400 if the user tries to friend themselves.
-    """
+        JsonResponse: A JSON response with a 'status' message indicating the result of the operation"""
     if request.user.pk == user.pk:
         return JsonResponse(
-            {'error': _('You cannot friend yourself')}, status=HTTPStatus.BAD_REQUEST
+            {'status': _('You cannot friend yourself')}, status=HTTPStatus.BAD_REQUEST
         )
 
     if request.user.is_friend(user):
@@ -845,9 +846,20 @@ def save_accept_friend_request(request, user: User) -> JsonResponse:
     if existing_request is None:
         FriendRequest.objects.create(from_user=request.user, to_user=user)
         return JsonResponse({'status': _('Friend request sent')})
-    if existing_request.to_user == request.user:
+
+    if existing_request.status == FriendRequest.Status.REJECTED:
+        existing_request.from_user = request.user
+        existing_request.to_user = user
+        existing_request.reset()
+        return JsonResponse({'status': _('Friend request sent')})
+
+    if (
+        existing_request.to_user == request.user
+        and existing_request.status == FriendRequest.Status.PENDING
+    ):
         existing_request.accept()
         return JsonResponse({'status': _('Friend request accepted')})
+
     return JsonResponse({'status': _('Friend request already sent')}, status=HTTPStatus.BAD_REQUEST)
 
 
@@ -865,7 +877,7 @@ def delete_friend_request(request, user: User) -> JsonResponse:
     """
     if request.user.pk == user.pk:
         return JsonResponse(
-            {'error': _('You cannot unfriend yourself')}, status=HTTPStatus.BAD_REQUEST
+            {'status': _('You cannot unfriend yourself')}, status=HTTPStatus.BAD_REQUEST
         )
 
     friend_request = FriendRequest.objects.filter(

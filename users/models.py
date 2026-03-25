@@ -114,7 +114,7 @@ class User(AbstractUser):
             .values('friend_id')
         )
         return User.objects.filter(id__in=friend_ids)
-    
+
     def get_friend_request_status(self, check_user):
         if check_user is None or self.pk == check_user.pk:
             return None
@@ -157,7 +157,7 @@ class FriendRequest(models.Model):
         verbose_name_plural = _('Friend Requests')
 
     def __str__(self):
-        return f'FriendRequest(from={self.from_user.username}, to={self.to_user.username})'
+        return f'FriendRequest from {self.from_user.username} to {self.to_user.username}'
 
     def accept(self):
         """Accept the friend request, creating a FriendShip record."""
@@ -172,6 +172,12 @@ class FriendRequest(models.Model):
         if self.status != self.Status.PENDING:
             raise ValueError(_('Only pending friend requests can be rejected.'))
         self.status = self.Status.REJECTED
+        self.save()
+
+    def reset(self):
+        """Reset a rejected/accepted friend request back to pending."""
+        self.status = self.Status.PENDING
+        self.created_at = models.DateTimeField(auto_now_add=True)
         self.save()
 
 
@@ -199,4 +205,3 @@ class FriendShip(models.Model):
 
     def __str__(self):
         return f'FriendShip(user1={self.user1.username}, user2={self.user2.username})'
-

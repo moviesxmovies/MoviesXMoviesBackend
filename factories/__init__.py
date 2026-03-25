@@ -5,7 +5,7 @@ from .persons import PersonFactory
 from .platforms import PlatformFactory
 from .ratings import RatingFactory
 from .reviews import ReviewFactory, CommentFactory, ReactionFactory
-from .users import UserFactory
+from .users import UserFactory, FriendRequestFactory
 from .movielists import MovieListFactory
 
 
@@ -23,4 +23,5 @@ __all__ = [
     'GenreTranslationFactory',
     'CommentFactory',
     'ReactionFactory',
+    'FriendRequestFactory',
 ]
