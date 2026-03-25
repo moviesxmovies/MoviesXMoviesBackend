@@ -8,7 +8,7 @@ from movielists.models import MovieList
 from movies.models import Movie
 from ratings.models import Rating
 from reviews.models import Comment, Review
-from users.models import User
+from users.models import FriendRequest, FriendShip, User
 
 logger = logging.getLogger(__name__)
 
@@ -79,3 +79,15 @@ def invalidate_on_comment(sender, instance, created, **kwargs):
         f'Invalidating caches due to new comment by user {instance.user.pk} for review {instance.review.pk}'
     )
     cache.delete_many(keys=cache.keys(f'review_comments:{instance.review.pk}:*'))
+
+
+@receiver(post_save, sender=FriendShip)
+def invalidate_on_friendship(sender, instance, created, **kwargs):
+    if not created:
+        return
+    logger.debug(
+        f'Invalidating caches due to new friendship between users {instance.user1.pk} and {instance.user2.pk}'
+    )
+    cache.delete_many(keys=cache.keys(f'user_friends:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'user_friends:{instance.user2.pk}:*'))
+

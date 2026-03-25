@@ -17,8 +17,8 @@ from reviews.serializers import ReviewSerializer
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import activate_request_language, deactivate_language, get_paginated_response
 from users.decorators import auth_required
-from users.models import User
-from users.serializers import UserSerializer
+from users.models import FriendRequest, Q, User
+from users.serializers import FriendRequestSerializer, UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
 
 EMAIL_HELPER = 'User email'
@@ -41,16 +41,16 @@ class VerifyUserSerializer(serializers.Serializer):
     verification_code = serializers.CharField(required=True, help_text='Verification code')
 
 
-class FollowResponse(serializers.Serializer):
-    """Serializer for the follow/unfollow response payload.
+class FriendResponse(serializers.Serializer):
+    """Serializer for the friend request response payload.
 
     Attributes:
-        following (serializers.BooleanField): Whether the authenticated user
-            is currently following the target user.
+        is_friend (serializers.BooleanField): Whether the authenticated user
+            is currently friends with the target user.
     """
 
-    following = serializers.BooleanField(
-        help_text='Indicates if the authenticated user is following the target user'
+    status = serializers.CharField(
+        help_text='Request status indicating the result of the friend request action, e.g. "Friend request sent", "Unfriended", "Already friends", etc.'
     )
 
 
@@ -704,39 +704,191 @@ def user_reviews(request, user: User, page: int = 1, limit: int = 10) -> JsonRes
     return get_paginated_response(reviews_query, ReviewSerializer, request, page, limit)
 
 
-# FOLLOW
+# FRIENDS
+def _get_friends_response(request, user: User, page: int, limit: int) -> JsonResponse:
+    return get_paginated_response(user.get_friends(), UserSerializer, request, page, limit)
+
+
 @extend_schema(
-    responses={200: FollowResponse, 400: None, 404: None},
+    responses={200: UserSerializer.get_paginated_schema(), 400: None, 404: None},
+    description='Get paginated friends of a specific user',
+    parameters=[
+        OpenApiParameter(name='page', description='Page number', required=False, type=int),
+        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+    ],
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required
+@get_query_params('page', 'limit')
+@cached_view(
+    make_key=lambda req, user, page=1, limit=10: f'user_friends:{user.pk}:{page}:{limit}',
+    timeout=60 * 5,
+)
+def user_friends(request, user: User, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of a specific user's friends.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user instance resolved from the URL.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Serialized list of friends with HTTP 200.
+    """
+    return _get_friends_response(request, user, page, limit)
+
+
+@extend_schema(
+    responses={200: UserSerializer.get_paginated_schema(), 400: None, 404: None},
+    description='Get self paginated friends of the authenticated user',
+    parameters=[
+        OpenApiParameter(name='page', description='Page number', required=False, type=int),
+        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+    ],
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required
+@get_query_params('page', 'limit')
+def self_friends(request, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of the authenticated user's friends.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Paginated serialized friends with HTTP 200.
+    """
+    return _get_friends_response(request, request.user, page, limit)
+
+
+@extend_schema(
+    responses={200: FriendRequestSerializer.get_paginated_schema(), 400: None, 404: None},
+    description='Get paginated friend requests for a specific user',
+    parameters=[
+        OpenApiParameter(name='page', description='Page number', required=False, type=int),
+        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+    ],
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required
+@get_query_params('page', 'limit')
+def self_friend_requests(request, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of incoming friend requests for a specific user.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user instance resolved from the URL.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+    Returns:
+        JsonResponse: Paginated serialized friend requests with HTTP 200.
+    """
+    friend_requests_query = FriendRequest.objects.filter(
+        to_user=request.user, status=FriendRequest.Status.PENDING
+    ).order_by('-created_at')
+    return get_paginated_response(
+        friend_requests_query, FriendRequestSerializer, request, page, limit
+    )
+
+
+@extend_schema(
+    responses={200: FriendResponse, 400: FriendResponse, 404: None},
+    description='Send or accept friend requests for a specific user',
     methods=['POST'],
-    description='Follow a user',
 )
 @extend_schema(
-    responses={200: FollowResponse, 400: None, 404: None},
+    responses={200: FriendResponse, 400: FriendResponse, 404: None},
+    description='Delete a friend or reject a friend request for a specific user',
     methods=['DELETE'],
-    description='Unfollow a user',
 )
 @api_view(['POST', 'DELETE'])
 @require_http_methods(['POST', 'DELETE'])
 @auth_required
-def follow_user_wrapper(request, user: User) -> JsonResponse:
-    if request.method == 'POST':
-        request.user.follow(user)
-    else:
-        request.user.unfollow(user)
-
-    _invalidate_suggested_users(request.user.pk)
-    _invalidate_suggested_users(user.pk)
-
-    return JsonResponse({'following': request.user.is_following(user)})
+def friend_requests_wrapper(request, user: User) -> JsonResponse:
+    match request.method:
+        case 'POST':
+            return save_accept_friend_request(request, user)
+        case 'DELETE':
+            return delete_friend_request(request, user)
 
 
-def _invalidate_suggested_users(user_pk: int) -> None:
-    if hasattr(cache, 'delete_pattern'):
-        cache.delete_pattern(f'suggested_users:{user_pk}:*')
-    else:
-        logger.warning(
-            'Cache backend does not support delete_pattern; manually deleting suggested users keys'
+@require_http_methods(['POST'])
+def save_accept_friend_request(request, user: User) -> JsonResponse:
+    """
+    Create a new friend request or accept an incoming request between the authenticated user and the specified user.
+     - If they are already friends, returns an error.
+     - If there is a pending friend request from the authenticated user to the specified user, returns an error.
+     - If there is a pending friend request from the specified user to the authenticated user, accepts it and establishes the friendship.
+     - If there is no existing relationship, creates a new pending friend request from the authenticated user to the specified user.
+     Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The target user instance resolved from the URL.
+    Returns:
+        JsonResponse: A JSON response with a 'status' message indicating the result of the operation"""
+    if request.user.pk == user.pk:
+        return JsonResponse(
+            {'status': _('You cannot friend yourself')}, status=HTTPStatus.BAD_REQUEST
         )
-        for page in range(1, 10):
-            for limit in [10, 20, 50]:
-                cache.delete(f'suggested_users:{user_pk}:{page}:{limit}')
+
+    if request.user.is_friend(user):
+        return JsonResponse({'status': _('Already friends')}, status=HTTPStatus.BAD_REQUEST)
+
+    existing_request = FriendRequest.objects.filter(
+        Q(from_user=request.user, to_user=user) | Q(from_user=user, to_user=request.user)
+    ).first()
+
+    if existing_request is None:
+        FriendRequest.objects.create(from_user=request.user, to_user=user)
+        return JsonResponse({'status': _('Friend request sent')})
+
+    if existing_request.status == FriendRequest.Status.REJECTED:
+        existing_request.from_user = request.user
+        existing_request.to_user = user
+        existing_request.reset()
+        return JsonResponse({'status': _('Friend request sent')})
+
+    if (
+        existing_request.to_user == request.user
+        and existing_request.status == FriendRequest.Status.PENDING
+    ):
+        existing_request.accept()
+        return JsonResponse({'status': _('Friend request accepted')})
+
+    return JsonResponse({'status': _('Friend request already sent')}, status=HTTPStatus.BAD_REQUEST)
+
+
+@require_http_methods(['DELETE'])
+def delete_friend_request(request, user: User) -> JsonResponse:
+    """Delete the friend relationship or pending friend request between the authenticated user and the specified user.
+
+    If they are friends, deletes the friendship. If there is a pending friend request in either direction, deletes it. If there is no relationship, does nothing.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The target user instance resolved from the URL.
+    Returns:
+        JsonResponse: ``{'status': 'Unfriended'}`` with HTTP 200 if they were friends, ``{'status': 'Friend request deleted'}`` if a pending request was deleted, or a JSON error body with HTTP 400 if the user tries to unfriend themselves.
+    """
+    if request.user.pk == user.pk:
+        return JsonResponse(
+            {'status': _('You cannot unfriend yourself')}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    friend_request = FriendRequest.objects.filter(
+        Q(from_user=request.user, to_user=user, status=FriendRequest.Status.PENDING)
+        | Q(from_user=user, to_user=request.user, status=FriendRequest.Status.PENDING)
+    ).first()
+
+    if friend_request is None:
+        return JsonResponse(
+            {'status': _('No friend relationship to reject')}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    friend_request.reject()
+    return JsonResponse({'status': _('Friend request rejected')})

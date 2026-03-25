@@ -9,7 +9,6 @@ import jwt
 import pytest
 import requests
 from conftest import (
-    FOLLOW_USER_URL,
     FORGOT_PASSWORD_URL,
     LOGIN_URL,
     REFRESH_URL,
@@ -20,6 +19,7 @@ from conftest import (
     TEST_USER_PASSWORD,
     TEST_USER_USERNAME,
     USER_DETAIL_URL,
+    USER_FRIEND_REQUESTS_URL,
     USER_PREFERRED_LANGUAGE_URL,
     USER_REVIEWS_URL,
     VERIFY_USER_URL,
@@ -36,7 +36,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
 from users.decorators import auth_required
-from users.models import User
+from users.models import FriendRequest, FriendShip, User
 from users.serializers import UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
 
@@ -190,17 +190,6 @@ def test_refresh_token_contains_custom_claims(client, create_test_user):
 
 
 @pytest.mark.django_db
-def test_user_following_extracted(user_factory):
-    user1 = user_factory()
-    user2 = user_factory()
-
-    user_main = user_factory(following=[user2])
-
-    assert user2 in user_main.following.all()
-    assert user_main.following.count() == 1
-
-
-@pytest.mark.django_db
 def test_user_following_person_extracted(user_factory, person_factory):
     persona = person_factory()
 
@@ -243,18 +232,18 @@ def test_suggest_friends_logic():
 
     santi = User.objects.create_user(username='santi', email='santi@test.com')
     elena = User.objects.create_user(username='elena', email='elena@test.com')
-    me.following.add(santi, elena)
+    FriendShip.objects.create(user1=me, user2=santi)
 
     pedro = User.objects.create_user(username='pedro', email='pedro@test.com')
-    santi.following.add(pedro)
-    elena.following.add(pedro)
+    FriendShip.objects.create(user1=elena, user2=pedro)
+    FriendShip.objects.create(user1=santi, user2=pedro)
 
     maria = User.objects.create_user(username='maria', email='maria@test.com')
-    elena.following.add(maria)
+    FriendShip.objects.create(user1=santi, user2=maria)
 
     juan = User.objects.create_user(username='juan', email='juan@test.com')
-    santi.following.add(juan)
-    me.following.add(juan)
+    FriendShip.objects.create(user1=me, user2=juan)
+    FriendShip.objects.create(user1=juan, user2=pedro)
 
     suggestions = me.suggest_friends()
 
@@ -274,6 +263,53 @@ def test_suggest_friends_logic():
     assert suggestions.count() == 2, 'Should have exactly 2 unique suggestions'
 
 
+@pytest.mark.django_db
+def test_gest_user_friends(user_factory):
+    user1 = user_factory(username='user1')
+    user2 = user_factory(username='user2')
+    user3 = user_factory(username='user3')
+
+    FriendShip.objects.create(user1=user1, user2=user2)
+    FriendShip.objects.create(user1=user1, user2=user3)
+
+    friends_of_user1 = user1.get_friends()
+    assert set(friends_of_user1) == {user2, user3}
+
+
+# ==========================================================================
+# FRIENDREQUEST MODEL
+# ==========================================================================
+
+
+@pytest.mark.django_db
+def test_friend_request_str(friend_request_factory):
+    friend_request = friend_request_factory()
+    expected_str = f'FriendRequest from {friend_request.from_user.username} to {friend_request.to_user.username}'
+    assert str(friend_request) == expected_str
+
+
+@pytest.mark.django_db
+def test_friend_request_accept(friend_request_factory):
+    friend_request = friend_request_factory(status=FriendRequest.Status.PENDING)
+
+    friend_request.accept()
+
+    assert friend_request.status == FriendRequest.Status.ACCEPTED, (
+        'Friend request status should be ACCEPTED'
+    )
+
+
+@pytest.mark.django_db
+def test_friend_request_reject(friend_request_factory):
+    friend_request = friend_request_factory(status=FriendRequest.Status.PENDING)
+
+    friend_request.reject()
+
+    assert friend_request.status == FriendRequest.Status.REJECTED, (
+        'Friend request status should be REJECTED'
+    )
+
+
 # ===========================================================================
 # SERIALIZERS
 # ===========================================================================
@@ -285,14 +321,14 @@ def test_user_serializer(user_factory):
     assert serialized['id'] == user.pk
     assert serialized['username'] == user.username
     assert serialized['bio'] == user.bio
-    assert not serialized['following']
+    assert not serialized['is_friend']
 
 
 @pytest.mark.django_db
 def test_user_serializer_is_following(user_factory):
     user = user_factory()
     user_request = user_factory()
-    user_request.following.add(user)
+    FriendShip.objects.create(user1=user_request, user2=user)
     user_request.save()
     request = SimpleNamespace(
         user=user_request, build_absolute_uri=lambda x: f'http://testserver{x}'
@@ -302,7 +338,7 @@ def test_user_serializer_is_following(user_factory):
     assert serialized['id'] == user.pk
     assert serialized['username'] == user.username
     assert serialized['bio'] == user.bio
-    assert serialized['following']
+    assert serialized['is_friend']
 
 
 # ===========================================================================
@@ -548,15 +584,17 @@ def test_suggest_friends_with_suggestions(auth_client, user_factory):
     user2 = user_factory(username='user2')
     user3 = user_factory(username='user3')
 
-    auth_client.user.following.add(user1, user2)
-    user1.following.add(user3)
-    user2.following.add(user3)
+    FriendShip.objects.create(user1=auth_client.user, user2=user1)
+    FriendShip.objects.create(user1=auth_client.user, user2=user2)
+
+    FriendShip.objects.create(user1=user1, user2=user3)
+    FriendShip.objects.create(user1=user2, user2=user3)
 
     url = SUGGESTED_USERS_URL
     response = auth_client.get(url)
+
     assert response.status_code == HTTPStatus.OK
     assert response.json()['count'] == 1
-    assert len(response.json()['results']) == 1
     assert response.json()['results'][0]['username'] == 'user3'
     assert response.json()['current_page'] == 1
     assert response.json()['total_pages'] == 1
@@ -570,9 +608,9 @@ def test_suggest_friends_pagination(auth_client, user_factory):
 
     for i in range(5):
         bridge_user = user_factory(username=f'bridge{i}')
-        auth_client.user.following.add(bridge_user)
-
-        bridge_user.following.add(*targets)
+        for target in targets:
+            FriendShip.objects.create(user1=bridge_user, user2=target)
+        FriendShip.objects.create(user1=auth_client.user, user2=bridge_user)
 
     url = f'{SUGGESTED_USERS_URL}?page=2&limit=5'
     response = auth_client.get(url)
@@ -722,33 +760,6 @@ def test_user_reviews(auth_client, user_factory, review_factory, movie_factory):
     review_ids = {review['id'] for review in data['results']}
     assert review1.id in review_ids
     assert review2.id in review_ids
-
-
-@pytest.mark.django_db
-def test_follow_user(auth_client, user_factory):
-    user_to_follow = user_factory(username='followed_user')
-
-    response = auth_client.post(FOLLOW_USER_URL.format(username=user_to_follow.username))
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.json()['following'] is True
-
-    auth_client.user.refresh_from_db()
-    assert user_to_follow in auth_client.user.following.all()
-
-
-@pytest.mark.django_db
-def test_unfollow_user(auth_client, user_factory):
-    user_to_unfollow = user_factory(username='unfollowed_user')
-    auth_client.user.following.add(user_to_unfollow)
-
-    response = auth_client.delete(FOLLOW_USER_URL.format(username=user_to_unfollow.username))
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.json()['following'] is False
-
-    auth_client.user.refresh_from_db()
-    assert user_to_unfollow not in auth_client.user.following.all()
 
 
 @pytest.mark.django_db
@@ -983,7 +994,6 @@ def test_get_preferred_language(auth_client):
     assert response.json()['preferred_language'] == auth_client.user.preferred_language
 
 
-
 # =================================================================
 # ADAPTERS
 # =================================================================
@@ -1000,6 +1010,7 @@ class FakeUser:
         self.picture = MagicMock()
         self.picture.name = picture_name
         self.username = f'user{pk}'
+
     def save(self, *args, **kwargs):
         return self
 
@@ -1206,3 +1217,121 @@ class TestSaveUser:
 
         MockBytesIO.assert_called_once_with(image_bytes)
         MockFile.assert_called_once_with(MockBytesIO.return_value)
+
+
+@pytest.mark.django_db
+class TestFriendRequest:
+    def test_send_friend_request(
+        self,
+        auth_client,
+        user_factory,
+    ):
+        sender = auth_client.user
+        receiver = user_factory()
+
+        response = auth_client.post(USER_FRIEND_REQUESTS_URL.format(username=receiver.username))
+        assert response.status_code == HTTPStatus.OK
+        assert response.json()['status'] == 'Friend request sent'
+        assert FriendRequest.objects.filter(from_user=sender, to_user=receiver).exists()
+
+    def test_send_friend_request_to_self(self, auth_client):
+        response = auth_client.post(
+            USER_FRIEND_REQUESTS_URL.format(username=auth_client.user.username)
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.json()['status'] == 'You cannot friend yourself'
+
+    def test_send_duplicate_friend_request(self, auth_client, user_factory):
+        sender = auth_client.user
+        receiver = user_factory()
+
+        FriendRequest.objects.create(from_user=sender, to_user=receiver)
+
+        response = auth_client.post(USER_FRIEND_REQUESTS_URL.format(username=receiver.username))
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.json()['status'] == 'Friend request already sent'
+
+    def test_send_friend_request_to_existing_friend(self, auth_client, user_factory):
+        sender = auth_client.user
+        receiver = user_factory()
+
+        FriendShip.objects.create(user1=sender, user2=receiver)
+
+        response = auth_client.post(USER_FRIEND_REQUESTS_URL.format(username=receiver.username))
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.json()['status'] == 'Already friends'
+
+    def test_accept_friend_request(self, auth_client, user_factory):
+        sender = user_factory()
+        receiver = auth_client.user
+
+        friend_request = FriendRequest.objects.create(from_user=sender, to_user=receiver)
+
+        response = auth_client.post(
+            USER_FRIEND_REQUESTS_URL.format(username=sender.username),
+            data={'action': 'accept'},
+            content_type='application/json',
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert response.json()['status'] == 'Friend request accepted'
+        friend_request.refresh_from_db()
+        assert friend_request.status == FriendRequest.Status.ACCEPTED
+        assert (
+            FriendShip.objects.filter(user1=sender, user2=receiver).exists()
+            or FriendShip.objects.filter(user1=receiver, user2=sender).exists()
+        )
+
+    def test_reject_friend_request(self, auth_client, user_factory):
+        sender = user_factory()
+        receiver = auth_client.user
+
+        friend_request = FriendRequest.objects.create(from_user=sender, to_user=receiver)
+
+        response = auth_client.delete(
+            USER_FRIEND_REQUESTS_URL.format(username=sender.username),
+            data={'action': 'reject'},
+            content_type='application/json',
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert response.json()['status'] == 'Friend request rejected'
+        friend_request.refresh_from_db()
+        assert friend_request.status == FriendRequest.Status.REJECTED
+        assert (
+            not FriendShip.objects.filter(user1=sender, user2=receiver).exists()
+            and not FriendShip.objects.filter(user1=receiver, user2=sender).exists()
+        )
+
+    def test_reject_nonexistent_friend_request(self, auth_client, user_factory):
+        sender = user_factory()
+        receiver = auth_client.user
+
+        response = auth_client.delete(
+            USER_FRIEND_REQUESTS_URL.format(username=sender.username),
+            data={'action': 'reject'},
+            content_type='application/json',
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.json()['status'] == 'No friend relationship to reject'
+
+    def test_reject_self_friend_request(self, auth_client):
+        response = auth_client.delete(
+            USER_FRIEND_REQUESTS_URL.format(username=auth_client.user.username),
+            data={'action': 'reject'},
+            content_type='application/json',
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.json()['status'] == 'You cannot unfriend yourself'
+
+    def test_send_friend_request_after_rejection(self, auth_client, user_factory):
+        sender = auth_client.user
+        receiver = user_factory()
+
+        friend_request = FriendRequest.objects.create(from_user=sender, to_user=receiver)
+        friend_request.status = FriendRequest.Status.REJECTED
+        friend_request.save()
+
+        response = auth_client.post(USER_FRIEND_REQUESTS_URL.format(username=receiver.username))
+        assert response.status_code == HTTPStatus.OK
+        assert response.json()['status'] == 'Friend request sent'
+        friend_request.refresh_from_db()
+        assert friend_request.status == FriendRequest.Status.PENDING

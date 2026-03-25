@@ -1,12 +1,13 @@
 import pickle
+
 from django.core.cache import cache
 from django.db import models
+from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 
 from movies.models import Movie
 from ratings.models import Rating
 from shared.models import BaseModel
-from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
 
 
 class MovieList(BaseModel):
@@ -26,7 +27,7 @@ class MovieList(BaseModel):
             models.UniqueConstraint(
                 fields=['slug', 'user'],
                 name='unique_movielist_slug_user',
-                violation_error_message=_('A movie list with this name already exists.')
+                violation_error_message=_('A movie list with this name already exists.'),
             )
         ]
         verbose_name = _('Movie List')
@@ -37,13 +38,14 @@ class MovieList(BaseModel):
 
         Attributes:
             PUBLIC: The movie list is visible to everyone.
-            FOLLOWERS: The movie list is visible to the creator's followers.
+            FRIENDS: The movie list is visible to the creator's friends.
             PRIVATE: The movie list is only visible to the creator.
         """
 
         PUBLIC = 'P', 'Public'
-        FOLLOWERS = 'F', 'Followers'
+        FRIENDS = 'F', 'Friends'
         PRIVATE = 'R', 'Private'
+
         class Meta:
             verbose_name = _('Privacy Setting')
             verbose_name_plural = _('Privacy Settings')
