@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-15 15:34+0000\n"
+"POT-Creation-Date: 2026-03-25 20:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -19,41 +19,41 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
 
-#: movielists/models.py:29
-msgid "A movie list with this name already exists."
-msgstr "Ya existe una lista de películas con este nombre."
-
-#: movielists/models.py:32
-msgid "Movie List"
-msgstr "Lista de Películas"
-
-#: movielists/models.py:33
+#: movielists/apps.py:7 movielists/models.py:34
 msgid "Movie Lists"
 msgstr "Listas de Películas"
 
-#: movielists/models.py:48
+#: movielists/models.py:30
+msgid "A movie list with this name already exists."
+msgstr "Ya existe una lista de películas con este nombre."
+
+#: movielists/models.py:33
+msgid "Movie List"
+msgstr "Lista de Películas"
+
+#: movielists/models.py:50
 msgid "Privacy Setting"
 msgstr "Configuración de Privacidad"
 
-#: movielists/models.py:49
+#: movielists/models.py:51
 msgid "Privacy Settings"
 msgstr "Configuraciones de Privacidad"
 
-#: movielists/views.py:200
+#: movielists/views.py:203
 #, python-brace-format
 msgid "Genre `{g}` does not exist"
 msgstr "El género `{g}` no existe"
 
-#: movielists/views.py:211
+#: movielists/views.py:214
 #, python-brace-format
 msgid "Celebrity `{c}` does not exist"
 msgstr "La celebridad `{c}` no existe"
 
-#: movielists/views.py:222
+#: movielists/views.py:225
 #, python-brace-format
 msgid "Friend `{f}` is not in your list"
 msgstr "`{f}` no está en tu lista de amigos"
 
-#: movielists/views.py:304 movielists/views.py:343
+#: movielists/views.py:315 movielists/views.py:354
 msgid "This movies list doesn't exist or you're not allowed to see it"
 msgstr "Esta lista de películas no existe o no tienes permiso para verla"
