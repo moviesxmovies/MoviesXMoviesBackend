@@ -124,7 +124,7 @@ class User(AbstractUser):
             friend_request = FriendRequest.objects.get(
                 Q(from_user=self, to_user=check_user) | Q(from_user=check_user, to_user=self)
             )
-            return friend_request.get_status_display()
+            return friend_request.status
         except FriendRequest.DoesNotExist:
             return None
 
