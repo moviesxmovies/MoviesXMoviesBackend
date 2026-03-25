@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-15 15:34+0000\n"
+"POT-Creation-Date: 2026-03-25 20:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
+
+#: users/apps.py:7 users/models.py:26
+msgid "Users"
+msgstr "Usuarios"
 
 #: users/decorators.py:52
 msgid "Token type is invalid"
@@ -42,14 +46,45 @@ msgstr "El token es inválido o tiene un formato incorrecto"
 msgid "Token has expired"
 msgstr "El token ha expirado"
 
-#: users/models.py:24
+#: users/models.py:25
 msgid "User"
 msgstr "Usuario"
 
-#: users/models.py:25
-msgid "Users"
-msgstr "Usuarios"
+#: users/models.py:143
+msgid "Pending"
+msgstr "Pendiente"
 
+#: users/models.py:144
+msgid "Accepted"
+msgstr "Aceptada"
+#: users/models.py:145
+msgid "Rejected"
+msgstr "Rechazada"
+
+#: users/models.py:158
+msgid "Friend Request"
+msgstr "Solicitud de Amistad"
+
+#: users/models.py:159
+msgid "Friend Requests"
+msgstr "Solicitudes de Amistad"
+
+#: users/models.py:167
+msgid "Only pending friend requests can be accepted."
+msgstr "Solo se pueden aceptar solicitudes de amistad pendientes."
+
+#: users/models.py:175
+msgid "Only pending friend requests can be rejected."
+msgstr "Solo se pueden rechazar solicitudes de amistad pendientes."
+
+#: users/models.py:202
+msgid "Friendship"
+msgstr "Amistad"
+
+#: users/models.py:203
+msgid "Friendships"
+msgstr "Amistades"
+    
 #: users/templates/users/email/base.html:116
 #, python-format
 msgid "Hello, %(name)s!"
@@ -96,49 +131,81 @@ msgstr ""
 msgid "If you did not create an account, you can ignore this email."
 msgstr "Si no creaste una cuenta, puedes ignorar este correo."
 
-#: users/views.py:194
+#: users/views.py:197
 msgid "Verification code is incorrect"
 msgstr "El código de verificación es incorrecto"
 
-#: users/views.py:221
+#: users/views.py:224
 msgid "User is already verified"
 msgstr "El usuario ya está verificado"
 
-#: users/views.py:228
+#: users/views.py:231
 #, python-brace-format
 msgid "You can resend the verification email in {remaining_time} seconds"
 msgstr "Puedes reenviar el correo de verificación en {remaining_time} segundos"
 
-#: users/views.py:235
+#: users/views.py:238
 msgid "Verification email resent"
 msgstr "Correo de verificación reenviado"
 
-#: users/views.py:436
+#: users/views.py:444
 msgid "User not found"
 msgstr "Usuario no encontrado"
 
-#: users/views.py:443
+#: users/views.py:451
 #, python-brace-format
 msgid "You can resend the password reset email in {remaining_time} seconds"
 msgstr ""
 "Puedes reenviar el correo de restablecimiento de contraseña en "
 "{remaining_time} segundos"
 
-#: users/views.py:450
+#: users/views.py:458
 msgid "Password reset email sent"
 msgstr "Correo de restablecimiento de contraseña enviado"
 
-#: users/views.py:475 users/views.py:486
+#: users/views.py:483 users/views.py:494
 msgid "Invalid verification code"
 msgstr "Código de verificación inválido"
 
-#: users/views.py:483
+#: users/views.py:491
 msgid "Password reset successful"
 msgstr "Contraseña restablecida correctamente"
 
-#: users/views.py:657
+#: users/views.py:666
 msgid "Invalid language code"
 msgstr "Código de idioma inválido"
+
+#: users/views.py:836
+msgid "You cannot friend yourself"
+msgstr "No puedes agregarte como amigo"
+
+#: users/views.py:840
+msgid "Already friends"
+msgstr "Ya son amigos"
+
+#: users/views.py:848 users/views.py:854
+msgid "Friend request sent"
+msgstr "Solicitud de amistad enviada"
+
+#: users/views.py:861
+msgid "Friend request accepted"
+msgstr "Solicitud de amistad aceptada"
+
+#: users/views.py:863
+msgid "Friend request already sent"
+msgstr "Solicitud de amistad ya enviada"
+
+#: users/views.py:880
+msgid "You cannot unfriend yourself"
+msgstr "No puedes eliminar a ti mismo como amigo"
+
+#: users/views.py:890
+msgid "No friend relationship to reject"
+msgstr "No hay relación de amistad para rechazar"
+
+#: users/views.py:894
+msgid "Friend request rejected"
+msgstr "Solicitud de amistad rechazada"
 
 #, python-brace-format
 msgid "Verification of MoviesXMovies account for {username}"
@@ -146,5 +213,4 @@ msgstr "Verificación de la cuenta de MoviesXMovies de {username}"
 
 #, python-brace-format
 msgid "Password reset for MoviesXMovies account of {username}"
-msgstr ""
-"Restablecimiento de contraseña de la cuenta de MoviesXMovies de {username}"
+msgstr "Restablecimiento de contraseña de la cuenta de MoviesXMovies de {username}"

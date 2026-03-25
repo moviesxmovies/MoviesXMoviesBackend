@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-09 11:30+0000\n"
+"POT-Creation-Date: 2026-03-25 20:10+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,15 +18,15 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: shared/decorators.py:49
+#: shared/decorators.py:54
 msgid "Method not allowed"
 msgstr ""
 
-#: shared/decorators.py:177
+#: shared/decorators.py:182
 msgid "Invalid JSON body"
 msgstr ""
 
-#: shared/decorators.py:185
+#: shared/decorators.py:190
 msgid "Missing required fields"
 msgstr ""
 

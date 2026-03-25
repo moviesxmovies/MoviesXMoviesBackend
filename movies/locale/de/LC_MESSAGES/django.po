@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-15 15:34+0000\n"
+"POT-Creation-Date: 2026-03-25 20:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,13 +18,13 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: movies/apps.py:8 movies/models.py:24
+msgid "Movies"
+msgstr "Filme"
+
 #: movies/models.py:23
 msgid "Movie"
 msgstr "Film"
-
-#: movies/models.py:24
-msgid "Movies"
-msgstr "Filme"
 
 #: movies/models.py:39
 msgid "Movie Translation"
@@ -34,10 +34,18 @@ msgstr "Filmübersetzung"
 msgid "Movie Translations"
 msgstr "Filmübersetzungen"
 
-#: movies/views.py:268 movies/views.py:331
+#: movies/views.py:283 movies/views.py:346
 msgid "Rating not found"
 msgstr "Bewertung nicht gefunden"
 
-#: movies/views.py:291
+#: movies/views.py:306
 msgid "You have already rated this movie"
 msgstr "Du hast diesen Film bereits bewertet"
+
+
+msgid "Movie already marked as unseen"
+msgstr "Film bereits als ungesehen markiert"
+
+#: movies/views.py:528
+msgid "Movie not marked as unseen"
+msgstr "Film nicht als ungesehen markiert"
