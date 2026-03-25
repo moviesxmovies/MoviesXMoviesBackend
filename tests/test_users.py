@@ -1321,3 +1321,17 @@ class TestFriendRequest:
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
         assert response.json()['status'] == 'You cannot unfriend yourself'
+
+    def test_send_friend_request_after_rejection(self, auth_client, user_factory):
+        sender = auth_client.user
+        receiver = user_factory()
+
+        friend_request = FriendRequest.objects.create(from_user=sender, to_user=receiver)
+        friend_request.status = FriendRequest.Status.REJECTED
+        friend_request.save()
+
+        response = auth_client.post(USER_FRIEND_REQUESTS_URL.format(username=receiver.username))
+        assert response.status_code == HTTPStatus.OK
+        assert response.json()['status'] == 'Friend request sent'
+        friend_request.refresh_from_db()
+        assert friend_request.status == FriendRequest.Status.PENDING

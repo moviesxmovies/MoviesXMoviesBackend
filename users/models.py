@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
@@ -177,8 +179,8 @@ class FriendRequest(models.Model):
     def reset(self):
         """Reset a rejected/accepted friend request back to pending."""
         self.status = self.Status.PENDING
-        self.created_at = models.DateTimeField(auto_now_add=True)
-        self.save()
+        self.created_at = datetime.datetime.now()
+        self.save(update_fields=['status', 'created_at'])
 
 
 class FriendShip(models.Model):
