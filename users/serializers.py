@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from shared.serializers import BaseSerializer
 
-from .models import User
+from .models import FriendRequest, User
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -14,15 +14,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 class UserSerializer(BaseSerializer):
     def serialize_instance(self, instance) -> dict:
+        has_request = self.request and self.request.user
+        is_other = has_request and instance.pk != self.request.user.pk
+
         return {
             'id': instance.pk,
             'username': instance.username,
             'bio': instance.bio,
-            'is_friend': instance.is_friend(self.request.user)
-            if self.request and self.request.user and self.request.user != instance
-            else None,
-            'requested_friendship_status': instance.get_friend_request_status(self.request.user)
-            if self.request and self.request.user and self.request.user != instance
+            'friendship': {
+                'is_friend': instance.is_friend(self.request.user),
+                'status': instance.get_friend_request_status(self.request.user),
+            }
+            if is_other
             else None,
             'picture': self.build_url(instance.picture.url)
             if instance.picture and self.request
@@ -34,11 +37,15 @@ class UserSerializer(BaseSerializer):
         return {
             'id': serializers.IntegerField(),
             'username': serializers.CharField(),
-            'bio': serializers.CharField(),
-            'is_friend': serializers.BooleanField(allow_null=True),
-            'requested_friendship_status': serializers.CharField(allow_null=True),
+            'bio': serializers.CharField(allow_null=True),
+            'friendship': FriendshipSerializer(allow_null=True),
             'picture': serializers.URLField(allow_null=True),
         }
+
+
+class FriendshipSerializer(serializers.Serializer):
+    is_friend = serializers.BooleanField()
+    status = serializers.ChoiceField(choices=FriendRequest.Status.choices, allow_null=True)
 
 
 class FriendRequestSerializer(BaseSerializer):

@@ -321,7 +321,7 @@ def test_user_serializer(user_factory):
     assert serialized['id'] == user.pk
     assert serialized['username'] == user.username
     assert serialized['bio'] == user.bio
-    assert not serialized['is_friend']
+    assert not serialized['friendship']
 
 
 @pytest.mark.django_db
@@ -338,7 +338,7 @@ def test_user_serializer_is_following(user_factory):
     assert serialized['id'] == user.pk
     assert serialized['username'] == user.username
     assert serialized['bio'] == user.bio
-    assert serialized['is_friend']
+    assert serialized['friendship']['is_friend'] is True
 
 
 # ===========================================================================
