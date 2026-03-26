@@ -16,7 +16,7 @@ class UserSerializer(BaseSerializer):
     def serialize_instance(self, instance) -> dict:
         has_request = self.request and self.request.user
         is_other = has_request and instance.pk != self.request.user.pk
-
+        is_authenticated = has_request and self.request.user.is_authenticated
         return {
             'id': instance.pk,
             'username': instance.username,
@@ -25,7 +25,7 @@ class UserSerializer(BaseSerializer):
                 'is_friend': instance.is_friend(self.request.user),
                 'status': instance.get_friend_request_status(self.request.user),
             }
-            if is_other
+            if is_other and is_authenticated
             else None,
             'picture': self.build_url(instance.picture.url)
             if instance.picture and self.request

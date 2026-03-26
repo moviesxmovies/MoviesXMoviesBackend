@@ -49,7 +49,7 @@ class User(AbstractUser):
         Returns:
             Boolean: If they are friends or not
         """
-        if check_user is None or self.pk == check_user.pk:
+        if check_user is None or not check_user.is_authenticated or self.pk == check_user.pk:
             return False
         return FriendShip.objects.filter(
             Q(user1=self, user2=check_user) | Q(user1=check_user, user2=self)
