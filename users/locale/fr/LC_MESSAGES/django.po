@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:10+0000\n"
+"POT-Creation-Date: 2026-03-27 22:26+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -90,11 +90,7 @@ msgstr "Amitiés"
 msgid "Hello, %(name)s!"
 msgstr "Bonjour, %(name)s !"
 
-#: users/templates/users/email/base.html:119
-msgid "Open MoviesXMovies"
-msgstr "Ouvrir MoviesXMovies"
-
-#: users/templates/users/email/base.html:123
+#: users/templates/users/email/base.html:122
 msgid "MoviesXMovies Team. Cinema for everyone."
 msgstr "Équipe MoviesXMovies. Le cinéma pour tous."
 
@@ -105,7 +101,6 @@ msgstr ""
 "compte :"
 
 #: users/templates/users/email/password-reset-email.html:6
-#: users/templates/users/email/verification-email.html:6
 msgid "Your security code"
 msgstr "Votre code de sécurité"
 
@@ -113,7 +108,11 @@ msgstr "Votre code de sécurité"
 msgid "This code is private and will expire soon."
 msgstr "Ce code est privé et expirera bientôt."
 
-#: users/templates/users/email/password-reset-email.html:12
+#: users/templates/users/email/password-reset-email.html:11
+msgid "Reset Password"
+msgstr "Réinitialiser le mot de passe"
+
+#: users/templates/users/email/password-reset-email.html:15
 msgid "If you did not request a password reset, you can ignore this email."
 msgstr ""
 "Si vous n'avez pas demandé de réinitialisation du mot de passe, vous pouvez "
@@ -128,6 +127,10 @@ msgstr ""
 "inscription, entrez le code suivant :"
 
 #: users/templates/users/email/verification-email.html:11
+msgid "Verify Account"
+msgstr "Vérifier le compte"
+
+#: users/templates/users/email/verification-email.html:16
 msgid "If you did not create an account, you can ignore this email."
 msgstr "Si vous n'avez pas créé de compte, vous pouvez ignorer cet e-mail."
 
@@ -207,6 +210,9 @@ msgstr "Aucune relation d'amitié à rejeter"
 #: users/views.py:894
 msgid "Friend request rejected"
 msgstr "Demande d'ami rejetée"
+
+#~ msgid "Open MoviesXMovies"
+#~ msgstr "Ouvrir MoviesXMovies"
 
 #, python-brace-format
 msgid "Verification of MoviesXMovies account for {username}"

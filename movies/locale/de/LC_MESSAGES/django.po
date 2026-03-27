@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-03-27 22:26+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,7 +42,7 @@ msgstr "Bewertung nicht gefunden"
 msgid "You have already rated this movie"
 msgstr "Du hast diesen Film bereits bewertet"
 
-
+#: movies/views.py:507
 msgid "Movie already marked as unseen"
 msgstr "Film bereits als ungesehen markiert"
 
