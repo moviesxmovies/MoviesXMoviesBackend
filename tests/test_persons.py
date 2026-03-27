@@ -41,7 +41,7 @@ def test_person_creation_with_extracted_relations(person_factory, award_factory)
 
 @pytest.mark.django_db
 def test_person_str(person_factory):
-    person = person_factory(name='John Doe')
+    person = person_factory(name='John Doe', slug='john-doe')
     assert str(person) == 'john-doe'
 
 
@@ -50,7 +50,7 @@ def test_person_str(person_factory):
 # ===========================================================================
 @pytest.mark.django_db
 def test_person_serializer(person_factory):
-    person = person_factory(name='John Doe')
+    person = person_factory(name='John Doe', slug='john-doe')
     serialized = PersonSerializer(person).serialize()
 
     assert serialized['id'] == person.pk
