@@ -3,9 +3,14 @@
 {% block content %}
 <p>{% trans "Thank you for joining our film community. To complete your registration, enter the following code:" %}</p>
 <div class="code-container">
-<p style="color: #bcbbdd; margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">{% trans "Your security code" %}</p>
-<h2 class="verification-code">{{ user.verification_code }}</h2>
+    <p style="color: #bcbbdd; margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">{%
+        trans "Your security code" %}</p>
+    <h2 class="verification-code">{{ user.verification_code }}</h2>
 </div>
+<a href="https://moviesxmovies.jonaykb.com/verify-account?code={{ user.verification_code }}" class="btn">
+    {% trans "Verify Account" %}
+</a>
+
 {% endblock %}
 {% block footer_text %}
 <p>{% trans "If you did not create an account, you can ignore this email." %}</p>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-03-27 22:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -57,6 +57,7 @@ msgstr "Pendiente"
 #: users/models.py:144
 msgid "Accepted"
 msgstr "Aceptada"
+
 #: users/models.py:145
 msgid "Rejected"
 msgstr "Rechazada"
@@ -84,17 +85,13 @@ msgstr "Amistad"
 #: users/models.py:203
 msgid "Friendships"
 msgstr "Amistades"
-    
+
 #: users/templates/users/email/base.html:116
 #, python-format
 msgid "Hello, %(name)s!"
 msgstr "¡Hola, %(name)s!"
 
-#: users/templates/users/email/base.html:119
-msgid "Open MoviesXMovies"
-msgstr "Abrir MoviesXMovies"
-
-#: users/templates/users/email/base.html:123
+#: users/templates/users/email/base.html:122
 msgid "MoviesXMovies Team. Cinema for everyone."
 msgstr "Equipo MoviesXMovies. Cine para todos."
 
@@ -105,7 +102,6 @@ msgstr ""
 "cuenta:"
 
 #: users/templates/users/email/password-reset-email.html:6
-#: users/templates/users/email/verification-email.html:6
 msgid "Your security code"
 msgstr "Tu código de seguridad"
 
@@ -113,7 +109,11 @@ msgstr "Tu código de seguridad"
 msgid "This code is private and will expire soon."
 msgstr "Este código es privado y expirará pronto."
 
-#: users/templates/users/email/password-reset-email.html:12
+#: users/templates/users/email/password-reset-email.html:11
+msgid "Reset Password"
+msgstr "Restablecer Contraseña"
+
+#: users/templates/users/email/password-reset-email.html:15
 msgid "If you did not request a password reset, you can ignore this email."
 msgstr ""
 "Si no solicitaste un restablecimiento de contraseña, puedes ignorar este "
@@ -128,6 +128,10 @@ msgstr ""
 "introduce el siguiente código:"
 
 #: users/templates/users/email/verification-email.html:11
+msgid "Verify Account"
+msgstr "Verificar Cuenta"
+
+#: users/templates/users/email/verification-email.html:16
 msgid "If you did not create an account, you can ignore this email."
 msgstr "Si no creaste una cuenta, puedes ignorar este correo."
 
@@ -207,10 +211,14 @@ msgstr "No hay relación de amistad para rechazar"
 msgid "Friend request rejected"
 msgstr "Solicitud de amistad rechazada"
 
+#~ msgid "Open MoviesXMovies"
+#~ msgstr "Abrir MoviesXMovies"
+
 #, python-brace-format
 msgid "Verification of MoviesXMovies account for {username}"
 msgstr "Verificación de la cuenta de MoviesXMovies de {username}"
 
 #, python-brace-format
 msgid "Password reset for MoviesXMovies account of {username}"
-msgstr "Restablecimiento de contraseña de la cuenta de MoviesXMovies de {username}"
+msgstr ""
+"Restablecimiento de contraseña de la cuenta de MoviesXMovies de {username}"
