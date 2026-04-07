@@ -680,7 +680,7 @@ class OnboardingResponse(serializers.Serializer):
 
 
 @extend_schema(
-    responses={200: OnboardingResponse, 400: None},
+    responses={200: OnboardingResponse},
     description='Complete onboarding for the authenticated user by setting boarded to true',
 )
 @api_view(['POST'])
@@ -695,17 +695,12 @@ def complete_onboarding(request) -> JsonResponse:
         request: The authenticated incoming HTTP request.
 
     Returns:
-        JsonResponse: ``{'status': True}`` with HTTP 200 on success, or
-        ``{'status': False}`` with HTTP 400 on failure.
+        JsonResponse: ``{'status': True}`` with HTTP 200.
     """
-    try:
-        user = request.user
-        user.boarded = True
-        user.save(update_fields=['boarded'])
-        return JsonResponse({'status': True})
-    except Exception:
-        logger.exception('Failed to complete onboarding for user %s', request.user.pk)
-        return JsonResponse({'status': False}, status=HTTPStatus.BAD_REQUEST)
+    user = request.user
+    user.boarded = True
+    user.save(update_fields=['boarded'])
+    return JsonResponse({'status': True})
 
 
 # REVIEWS
