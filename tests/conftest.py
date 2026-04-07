@@ -75,6 +75,7 @@ SELF_USER_WRAPPER_URL = '/api/users/'
 USER_DETAIL_URL = '/api/users/{username}/'
 USER_REVIEWS_URL = '/api/users/{username}/reviews/'
 USER_PREFERRED_LANGUAGE_URL = '/api/users/preferred-language/'
+USER_ONBOARDING_URL = '/api/users/onboarding/'
 USER_FRIENDS_URL = '/api/users/{username}/friends/'
 USER_FRIEND_REQUESTS_URL = '/api/users/{username}/friend-requests/'
 
