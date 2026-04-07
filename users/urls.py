@@ -27,6 +27,7 @@ urlpatterns = [
     path('oauth/', include('dj_rest_auth.urls')),
     path('oauth/google/', GoogleLogin.as_view(), name='google_rest_login'),
     # USERS
+    path('users/onboarding/', views.complete_onboarding, name='complete_onboarding'),
     path('users/suggested-users/', views.suggested_users, name='suggested_users'),
     path(
         'users/preferred-language/',

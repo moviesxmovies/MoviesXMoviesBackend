@@ -20,6 +20,7 @@ from conftest import (
     TEST_USER_USERNAME,
     USER_DETAIL_URL,
     USER_FRIEND_REQUESTS_URL,
+    USER_ONBOARDING_URL,
     USER_PREFERRED_LANGUAGE_URL,
     USER_REVIEWS_URL,
     VERIFY_USER_URL,
@@ -995,8 +996,43 @@ def test_get_preferred_language(auth_client):
 
 
 # =================================================================
-# ADAPTERS
+# ONBOARDING
 # =================================================================
+
+
+@pytest.mark.django_db
+def test_complete_onboarding_success(auth_client):
+    auth_client.user.boarded = False
+    auth_client.user.save()
+
+    response = auth_client.post(USER_ONBOARDING_URL)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] is True
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.boarded is True
+
+
+@pytest.mark.django_db
+def test_complete_onboarding_already_boarded(auth_client):
+    auth_client.user.boarded = True
+    auth_client.user.save()
+
+    response = auth_client.post(USER_ONBOARDING_URL)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] is True
+
+    auth_client.user.refresh_from_db()
+    assert auth_client.user.boarded is True
+
+
+@pytest.mark.django_db
+def test_complete_onboarding_unauthenticated(client):
+    response = client.post(USER_ONBOARDING_URL)
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+
 
 # =================================================================
 # Stubs

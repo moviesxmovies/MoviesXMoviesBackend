@@ -669,6 +669,45 @@ def set_preferred_language(request, body: dict) -> JsonResponse:
     return JsonResponse({'status': True})
 
 
+class OnboardingResponse(serializers.Serializer):
+    """Serializer for the onboarding response.
+
+    Attributes:
+        status (serializers.BooleanField): Whether the onboarding was completed.
+    """
+
+    status = serializers.BooleanField(help_text='Whether the onboarding was successfully completed')
+
+
+@extend_schema(
+    responses={200: OnboardingResponse, 400: None},
+    description='Complete onboarding for the authenticated user by setting boarded to true',
+)
+@api_view(['POST'])
+@require_http_methods(['POST'])
+@auth_required
+def complete_onboarding(request) -> JsonResponse:
+    """Mark the authenticated user's onboarding as complete.
+
+    Sets the ``boarded`` field to ``True`` for the requesting user.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+
+    Returns:
+        JsonResponse: ``{'status': True}`` with HTTP 200 on success, or
+        ``{'status': False}`` with HTTP 400 on failure.
+    """
+    try:
+        user = request.user
+        user.boarded = True
+        user.save(update_fields=['boarded'])
+        return JsonResponse({'status': True})
+    except Exception:
+        logger.exception('Failed to complete onboarding for user %s', request.user.pk)
+        return JsonResponse({'status': False}, status=HTTPStatus.BAD_REQUEST)
+
+
 # REVIEWS
 @extend_schema(
     responses={200: ReviewSerializer.get_paginated_schema(), 400: None, 404: None},
