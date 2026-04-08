@@ -10,6 +10,7 @@ class PlatformSerializer(BaseSerializer):
             'name': instance.name,
             'slug': instance.slug,
             'url': instance.url,
+            'image': instance.image.url if instance.image else None,
         }
 
     @staticmethod
@@ -19,4 +20,5 @@ class PlatformSerializer(BaseSerializer):
             'name': serializers.CharField(),
             'slug': serializers.CharField(),
             'url': serializers.URLField(),
+            'image': serializers.URLField(allow_null=True),
         }
