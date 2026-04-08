@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Movie)
 def invalidate_movie_detail(sender, instance, **kwargs):
-    cache.delete(f'movie_detail:{instance.pk}')
+    cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
     logger.debug(f'Invalidated movie_detail cache for movie {instance.pk}')
 
 
@@ -28,7 +28,7 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
     user = instance.user
     movie = instance.movie
 
-    cache.delete(f'recommendations:{user.pk}')
+    cache.delete_many(keys=cache.keys(f'recommendations:{user.pk}:*'))
     logger.debug(
         f'Invalidated recommendations cache for user {user.pk} due to new rating for movie {movie.pk}'
     )

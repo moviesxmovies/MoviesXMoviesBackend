@@ -83,7 +83,7 @@ class MoviesInListSerializer(serializers.ModelSerializer):
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
-@cached_view(lambda req, movie: f'movie_detail_{movie.pk}', timeout=60 * 60 * 6)
+@cached_view(lambda req, movie: f'movie_detail_{movie.pk}:{req.user.preferred_language}', timeout=60 * 60 * 6)
 def movie_detail(request, movie: Movie) -> JsonResponse:
     """Return the full detail representation of a single movie.
 
@@ -356,7 +356,7 @@ def update_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
 @api_view(['GET'])
 @auth_required
 @require_http_methods(['GET'])
-@cached_view(make_key=lambda req: f'recommendations:{req.user.pk}', timeout=60 * 30)
+@cached_view(make_key=lambda req: f'recommendations:{req.user.pk}:{req.user.preferred_language}', timeout=60 * 30)
 def get_movie_recommendations(request) -> JsonResponse:
     """Return a ranked list of movie recommendations for the authenticated user.
 
