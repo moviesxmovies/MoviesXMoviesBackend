@@ -90,6 +90,8 @@ def test_movie_serializer(movie_factory, person_factory, genre_factory, platform
     genre = genre_factory(name='Sci-Fi')
     actor = person_factory(name='Leonardo DiCaprio')
     platform = platform_factory(name='Netflix')
+    request = RequestFactory().get('/')
+    request.user = Mock(preferred_language='en')
 
     movie = movie_factory(
         title='Inception',
@@ -98,7 +100,7 @@ def test_movie_serializer(movie_factory, person_factory, genre_factory, platform
         actors=[actor],
         platforms=[platform],
     )
-    serialized = MovieSerializer(movie).serialize()
+    serialized = MovieSerializer(movie, request=request).serialize()
 
     assert serialized['id'] == movie.pk
     assert serialized['title'] == 'Inception'
@@ -111,10 +113,10 @@ def test_movie_serializer(movie_factory, person_factory, genre_factory, platform
     assert serialized['genres'][0]['name'] == 'Sci-Fi'
     assert isinstance(serialized['actors'], list)
     assert len(serialized['actors']) == 1
-    assert serialized['actors'][0]['name'] == 'Leonardo DiCaprio'
+    assert serialized['actors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{actor.slug}/'
     assert isinstance(serialized['directors'], list)
     assert len(serialized['directors']) == 1
-    assert serialized['directors'][0]['name'] == 'Christopher Nolan'
+    assert serialized['directors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{director.slug}/'
     assert isinstance(serialized['platforms'], list)
     assert len(serialized['platforms']) == 1
     assert serialized['platforms'][0]['name'] == 'Netflix'
@@ -157,10 +159,10 @@ def test_movie_serializer_with_translations(
     assert serialized['genres'][0]['name'] == 'Sci-Fi'
     assert isinstance(serialized['actors'], list)
     assert len(serialized['actors']) == 1
-    assert serialized['actors'][0]['name'] == 'Leonardo DiCaprio'
+    assert serialized['actors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{actor.slug}/'
     assert isinstance(serialized['directors'], list)
     assert len(serialized['directors']) == 1
-    assert serialized['directors'][0]['name'] == 'Christopher Nolan'
+    assert serialized['directors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{director.slug}/'
     assert isinstance(serialized['platforms'], list)
     assert len(serialized['platforms']) == 1
     assert serialized['platforms'][0]['name'] == 'Netflix'
@@ -190,7 +192,6 @@ def test_movie_friends_ratings_view(movie_factory, user_factory, rating_factory,
 
     FriendShip.objects.create(user1=auth_client.user, user2=user1)
     FriendShip.objects.create(user1=auth_client.user, user2=user2)
-
 
     response = auth_client.get(MOVIE_FRIENDS_RATINGS_URL.format(movie_slug=movie.slug))
     assert response.status_code == 200
@@ -791,6 +792,7 @@ def test_unseen_movie_view_remove_unseen(movie_factory, auth_client):
     auth_client.user.refresh_from_db()
     assert movie not in auth_client.user.unseen_movies.all()
 
+
 @pytest.mark.django_db
 def test_unseen_movie_view_already_unseen(movie_factory, auth_client):
     movie = movie_factory(title='Inception')
@@ -806,6 +808,7 @@ def test_unseen_movie_view_already_unseen(movie_factory, auth_client):
     assert data['error'] == 'Movie already marked as unseen'
     auth_client.user.refresh_from_db()
     assert movie in auth_client.user.unseen_movies.all()
+
 
 @pytest.mark.django_db
 def test_unseen_movie_view_not_marked_unseen(movie_factory, auth_client):
