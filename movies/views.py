@@ -20,7 +20,7 @@ from shared.decorators import cached_view, get_body, get_query_params, require_h
 from shared.utils import get_paginated_response, get_progressive_response
 from users.decorators import auth_required
 
-LIMIT_RECOMMENDATIONS = 5
+LIMIT_RECOMMENDATIONS = 20
 
 
 class ReviewSaveSerializer(serializers.Serializer):
