@@ -56,7 +56,7 @@ class Movie(BaseModel):
     directors = models.ManyToManyField('persons.Person', related_name='directed_movies')
     actors = models.ManyToManyField('persons.Person', related_name='acted_movies')
     genres = models.ManyToManyField('genres.Genre', related_name='movies')
-    platforms = models.ManyToManyField('platforms.Platform', related_name='movies')
+    platforms = models.ManyToManyField('platforms.Platform', related_name='movies', blank=True)
     awards = models.ManyToManyField('awards.Award', related_name='movies', blank=True)
 
     def __str__(self):

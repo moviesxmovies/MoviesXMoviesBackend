@@ -29,6 +29,7 @@ class BaseSerializer(ABC):
     """
     Base serializer class that provides a structure for serializing objects or iterables of objects into JSON format. This class includes methods for building absolute URLs, serializing individual instances, and generating JSON responses. It also provides class methods for defining the schema of the serialized data, which can be used for documentation purposes with tools like drf-spectacular.
     """
+
     def __init__(
         self,
         to_serialize: object | Iterable[object],

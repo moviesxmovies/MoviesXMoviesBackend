@@ -4,8 +4,10 @@ from django.core.cache import cache
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from awards.models import Award
 from movielists.models import MovieList
 from movies.models import Movie
+from persons.models import Person
 from ratings.models import Rating
 from reviews.models import Comment, Review
 from users.models import FriendRequest, FriendShip, User
@@ -91,3 +93,18 @@ def invalidate_on_friendship(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys(f'user_friends:{instance.user1.pk}:*'))
     cache.delete_many(keys=cache.keys(f'user_friends:{instance.user2.pk}:*'))
 
+
+@receiver(post_save, sender=Award)
+def invalidate_on_award(sender, instance, created, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to {"creation" if created else "update"} of award {instance.pk}'
+    )
+    cache.delete(f'award_detail:{instance.pk}')
+
+
+@receiver(post_save, sender=Person)
+def invalidate_on_person(sender, instance, created, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to {"creation" if created else "update"} of person {instance.pk}'
+    )
+    cache.delete(f'person_detail:{instance.pk}')

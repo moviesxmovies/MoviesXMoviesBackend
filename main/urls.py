@@ -5,8 +5,10 @@ from django.urls import include, path, register_converter
 from django.urls.converters import get_converters
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from awards.conversors import AwardConverter
 from movielists.converters import MovieListConverter
 from movies.converters import MovieConverter
+from persons.conversors import PersonConverter
 from reviews.converters import CommentConverter, ReactionConverter, ReviewConverter
 from users.converters import UserConverter
 
@@ -18,6 +20,8 @@ CUSTOM_CONVERTERS = {
     'review': ReviewConverter,
     'comment': CommentConverter,
     'reaction': ReactionConverter,
+    'person': PersonConverter,
+    'award': AwardConverter,
 }
 
 registered = get_converters()
@@ -36,6 +40,8 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/', include('users.urls')),
     path('api/movies/', include('movies.urls')),
+    path('api/awards/', include('awards.urls')),
+    path('api/persons/', include('persons.urls')),
     path('api/reviews/', include('reviews.urls')),
     path('django-rq/', include('django_rq.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
