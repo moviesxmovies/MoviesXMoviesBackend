@@ -72,5 +72,7 @@ def retrain_professional_model() -> str:
         pickle.dumps(trained_data),
         timeout=None,
     )
-    logger.info('Successfully trained model')
+    logger.info(
+        f'Successfully trained model for {len(users_list)} users and {len(movies_list)} movies relating by {len(ratings_qs)} ratings'
+    )
     return 'Model Implicit (ALS) trained'
