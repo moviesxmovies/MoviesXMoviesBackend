@@ -7,7 +7,6 @@ def post_fork(server, worker):
 def when_ready(server):
     """Called just after the master process is initialized."""
     import os
-
     import django
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'main.settings')
@@ -15,11 +14,12 @@ def when_ready(server):
     django.setup()
 
     from datetime import datetime, time, timedelta
-
     import django_rq
     from django.utils import timezone
-
     from movies.tasks import retrain_professional_model
+
+    server.log.info('Starting retrain_professional_model...')
+    retrain_professional_model.delay()
 
     scheduler = django_rq.get_scheduler('default')
 
@@ -33,13 +33,14 @@ def when_ready(server):
     now = timezone.now()
     scheduled_time = datetime.combine(now.date(), time(3, 0))
     scheduled_time = timezone.make_aware(scheduled_time)
+
     if scheduled_time < now:
         scheduled_time += timedelta(days=1)
 
     scheduler.schedule(
         scheduled_time=scheduled_time,
         func=retrain_professional_model,
-        interval=86400,
+        interval=86400,  # 24 horas
         repeat=None,
     )
-    server.log.info(f'Job scheduled from gunicorn master: {scheduled_time}')
+    server.log.info(f'Job programado en el master de gunicorn para: {scheduled_time}')
