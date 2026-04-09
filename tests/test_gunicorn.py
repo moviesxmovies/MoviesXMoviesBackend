@@ -16,44 +16,10 @@ def test_post_fork_sets_gunicorn_worker_env(monkeypatch):
     monkeypatch.delenv('GUNICORN_WORKER', raising=False)
 
     import gunicorn_conf
+
     gunicorn_conf.post_fork(MagicMock(), MagicMock())
 
     assert os.environ.get('GUNICORN_WORKER') == 'true'
-
-
-def test_when_ready_cancels_existing_job_and_schedules():
-    mock_job = MagicMock()
-    mock_job.func_name = 'movies.tasks.retrain_professional_model'
-
-    mock_scheduler = MagicMock()
-    mock_scheduler.get_jobs.return_value = [mock_job]
-    mock_server = MagicMock()
-
-    with patch('django.setup'), \
-         patch('django_rq.get_scheduler', return_value=mock_scheduler), \
-         patch('movies.tasks.retrain_professional_model', MagicMock()):
-        import gunicorn_conf
-        gunicorn_conf.when_ready(mock_server)
-
-    mock_scheduler.cancel.assert_called_once_with(mock_job)
-    mock_scheduler.schedule.assert_called_once()
-    mock_server.log.info.assert_called_once()
-
-
-def test_when_ready_schedules_job_no_existing():
-    mock_scheduler = MagicMock()
-    mock_scheduler.get_jobs.return_value = []
-    mock_server = MagicMock()
-
-    with patch('django.setup'), \
-         patch('django_rq.get_scheduler', return_value=mock_scheduler), \
-         patch('movies.tasks.retrain_professional_model', MagicMock()):
-        import gunicorn_conf
-        gunicorn_conf.when_ready(mock_server)
-
-    mock_scheduler.cancel.assert_not_called()
-    mock_scheduler.schedule.assert_called_once()
-    mock_server.log.info.assert_called_once()
 
 
 def test_when_ready_adjusts_scheduled_time_if_past():
@@ -67,13 +33,17 @@ def test_when_ready_adjusts_scheduled_time_if_past():
 
     mock_scheduler.schedule.side_effect = capture_schedule
 
-    with patch('django.setup'), \
-         patch('django_rq.get_scheduler', return_value=mock_scheduler), \
-         patch('movies.tasks.retrain_professional_model', MagicMock()):
+    with (
+        patch('django.setup'),
+        patch('django_rq.get_scheduler', return_value=mock_scheduler),
+        patch('movies.tasks.retrain_professional_model', MagicMock()),
+    ):
         import gunicorn_conf
+
         gunicorn_conf.when_ready(mock_server)
 
     from django.utils import timezone
+
     assert captured['scheduled_time'] > timezone.now()
 
 
@@ -86,10 +56,58 @@ def test_when_ready_cancel_exception_is_silenced():
     mock_scheduler.cancel.side_effect = Exception('Redis error')
     mock_server = MagicMock()
 
-    with patch('django.setup'), \
-         patch('django_rq.get_scheduler', return_value=mock_scheduler), \
-         patch('movies.tasks.retrain_professional_model', MagicMock()):
+    with (
+        patch('django.setup'),
+        patch('django_rq.get_scheduler', return_value=mock_scheduler),
+        patch('movies.tasks.retrain_professional_model', MagicMock()),
+    ):
         import gunicorn_conf
+
         gunicorn_conf.when_ready(mock_server)
 
     mock_scheduler.schedule.assert_called_once()
+
+
+def test_when_ready_cancels_existing_job_and_schedules():
+    mock_job = MagicMock()
+    mock_job.func_name = 'movies.tasks.retrain_professional_model'
+
+    mock_scheduler = MagicMock()
+    mock_scheduler.get_jobs.return_value = [mock_job]
+    mock_server = MagicMock()
+
+    with (
+        patch('django.setup'),
+        patch('django_rq.get_scheduler', return_value=mock_scheduler),
+        patch('movies.tasks.retrain_professional_model.delay') as mock_delay,
+    ):  # Mockeamos el .delay()
+        import gunicorn_conf
+
+        gunicorn_conf.when_ready(mock_server)
+
+    mock_scheduler.cancel.assert_called_once_with(mock_job)
+    mock_scheduler.schedule.assert_called_once()
+    mock_delay.assert_called_once()
+
+    assert mock_server.log.info.call_count == 2
+    last_call_args = mock_server.log.info.call_args[0][0]
+    assert 'Job programado' in last_call_args
+
+
+def test_when_ready_schedules_job_no_existing():
+    mock_scheduler = MagicMock()
+    mock_scheduler.get_jobs.return_value = []
+    mock_server = MagicMock()
+
+    with (
+        patch('django.setup'),
+        patch('django_rq.get_scheduler', return_value=mock_scheduler),
+        patch('movies.tasks.retrain_professional_model.delay'),
+    ):
+        import gunicorn_conf
+
+        gunicorn_conf.when_ready(mock_server)
+
+    mock_scheduler.cancel.assert_not_called()
+    mock_scheduler.schedule.assert_called_once()
+    assert mock_server.log.info.call_count == 2
