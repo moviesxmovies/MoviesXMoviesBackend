@@ -43,5 +43,7 @@ urlpatterns = [
     path('api/awards/', include('awards.urls')),
     path('api/persons/', include('persons.urls')),
     path('api/reviews/', include('reviews.urls')),
+    path('api/genres/', include('genres.urls')),
+    path('api/platforms/', include('platforms.urls')),
     path('django-rq/', include('django_rq.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

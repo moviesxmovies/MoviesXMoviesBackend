@@ -634,6 +634,13 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
     'page',
     'limit',
 )
+@cached_view(
+    make_key=lambda req, **kwargs: (
+        f'movie_search:{req.user.pk}:{req.user.preferred_language}:'
+        + req.META.get('QUERY_STRING', '')
+    ),
+    timeout=60 * 5,
+)
 def movie_search(
     request,
     marked_unseen: bool | None = None,

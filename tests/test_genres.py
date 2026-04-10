@@ -4,6 +4,7 @@ import pytest
 from django.test import RequestFactory
 
 from genres.serializers import GenreSerializer
+from tests.conftest import GENRES_LIST_URL
 
 # ===========================================================================
 #  MODELS
@@ -57,3 +58,21 @@ def test_genre_serializer_with_translations(genre_factory, genre_translation_fac
     assert serialized['id'] == genre.pk
     assert serialized['name'] == translation.name
     assert serialized['slug'] == 'comedy'
+
+
+# ===========================================================================
+#  VIEWS
+# ===========================================================================
+
+
+@pytest.mark.django_db
+def test_genre_list_view( genre_factory, auth_client):
+    genre_factory(name='Action')
+    genre_factory(name='Comedy')
+
+    response = auth_client.get(GENRES_LIST_URL)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]['name'] == 'Action'
+    assert data[1]['name'] == 'Comedy'

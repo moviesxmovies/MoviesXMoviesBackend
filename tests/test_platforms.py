@@ -1,6 +1,7 @@
 import pytest
 
 from platforms.serializers import PlatformSerializer
+from tests.conftest import PLATFORMS_LIST_URL
 
 # ===========================================================================
 #  MODELS
@@ -40,3 +41,19 @@ def test_platform_serializer(platform_factory):
     assert serialized['name'] == 'Netflix'
     assert serialized['slug'] == 'netflix'
     assert serialized['url'] == 'https://www.netflix.com'
+
+
+# ===========================================================================
+#  VIEWS
+# ===========================================================================
+@pytest.mark.django_db
+def test_platform_list_view(platform_factory, auth_client):
+    platform_factory(name='Netflix', url='https://www.netflix.com')
+    platform_factory(name='Hulu', url='https://www.hulu.com')
+
+    response = auth_client.get(PLATFORMS_LIST_URL)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert 'Netflix' in {platform['name'] for platform in data}
+    assert 'Hulu' in {platform['name'] for platform in data}
