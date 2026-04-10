@@ -940,3 +940,29 @@ class TestMovieSearchView:
         assert data['count'] == 15
 
         assert data['results'][0]['release_date'] > data['results'][9]['release_date']
+
+    def test_search_by_platforms(self, movie_factory, platform_factory, auth_client):
+        platform_netflix = platform_factory(slug='netflix')
+        platform_hbo = platform_factory(slug='hbo')
+
+        m1 = movie_factory(title='Netflix Movie')
+        m1.platforms.add(platform_netflix)
+
+        movie_factory(title='HBO Movie').platforms.add(platform_hbo)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?platforms=netflix')
+        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == m1.id
+
+    def test_search_by_directors(self, movie_factory, person_factory, auth_client):
+        director_nolan = person_factory(slug='christopher-nolan')
+        director_spielberg = person_factory(slug='steven-spielberg')
+
+        m1 = movie_factory(title='Nolan Movie')
+        m1.directors.add(director_nolan)
+
+        movie_factory(title='Spielberg Movie').directors.add(director_spielberg)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?directors=christopher-nolan')
+        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == m1.id
