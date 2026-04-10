@@ -5,7 +5,7 @@ from django.db.models import Case, IntegerField, Q, When
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema, OpenApiTypes
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
@@ -83,7 +83,9 @@ class MoviesInListSerializer(serializers.ModelSerializer):
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
-@cached_view(lambda req, movie: f'movie_detail_{movie.pk}:{req.user.preferred_language}', timeout=60 * 60 * 6)
+@cached_view(
+    lambda req, movie: f'movie_detail_{movie.pk}:{req.user.preferred_language}', timeout=60 * 60 * 6
+)
 def movie_detail(request, movie: Movie) -> JsonResponse:
     """Return the full detail representation of a single movie.
 
@@ -356,7 +358,10 @@ def update_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
 @api_view(['GET'])
 @auth_required
 @require_http_methods(['GET'])
-@cached_view(make_key=lambda req: f'recommendations:{req.user.pk}:{req.user.preferred_language}', timeout=60 * 30)
+@cached_view(
+    make_key=lambda req: f'recommendations:{req.user.pk}:{req.user.preferred_language}',
+    timeout=60 * 30,
+)
 def get_movie_recommendations(request) -> JsonResponse:
     """Return a ranked list of movie recommendations for the authenticated user.
 
@@ -530,3 +535,165 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
 
     user.unseen_movies.remove(movie)
     return True
+
+
+@extend_schema(
+    description='Search for movies by params',
+    parameters=[
+        OpenApiParameter(
+            name='genres',
+            description='List of genre slugs to filter by',
+            required=False,
+            type=OpenApiTypes.STR,
+            many=True,
+            location=OpenApiParameter.QUERY,
+            style='form',
+            explode=True,
+        ),
+        OpenApiParameter(
+            name='platforms',
+            description='List of platform slugs to filter by',
+            required=False,
+            type=OpenApiTypes.STR,
+            many=True,
+            location=OpenApiParameter.QUERY,
+            style='form',
+            explode=True,
+        ),
+        OpenApiParameter(
+            name='directors',
+            description='List of director slugs to filter by',
+            required=False,
+            type=OpenApiTypes.STR,
+            many=True,
+            location=OpenApiParameter.QUERY,
+            style='form',
+            explode=True,
+        ),
+        OpenApiParameter(
+            name='actors',
+            description='List of actor slugs to filter by',
+            required=False,
+            type=OpenApiTypes.STR,
+            many=True,
+            location=OpenApiParameter.QUERY,
+            style='form',
+            explode=True,
+        ),
+        OpenApiParameter(
+            name='marked_unseen',
+            description='Whether to include only movies marked as unseen',
+            required=False,
+            type=bool,
+        ),
+        OpenApiParameter(
+            name='stars',
+            description='List of star ratings (1-5) to filter by',
+            required=False,
+            type=OpenApiTypes.INT,
+            many=True,
+            location=OpenApiParameter.QUERY,
+            style='form',
+            explode=True,
+        ),
+        OpenApiParameter(
+            name='reviewed',
+            description='Whether to include only movies the user has reviewed',
+            required=False,
+            type=bool,
+        ),
+        OpenApiParameter(
+            name='name',
+            description='The name of the movie to search for',
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name='page',
+            description='The page number to retrieve (for pagination)',
+            required=False,
+            type=int,
+        ),
+        OpenApiParameter(
+            name='limit',
+            description='The number of items per page (for pagination)',
+            required=False,
+            type=int,
+        ),
+    ],
+    responses={200: MovieSerializer.get_schema(), 400: None},
+    operation_id='search_movies',
+)
+@api_view(['GET'])
+@auth_required
+@require_http_methods(['GET'])
+@get_query_params(
+    'marked_unseen',
+    'reviewed',
+    'name',
+    'page',
+    'limit',
+)
+def movie_search(
+    request,
+    marked_unseen: bool | None = None,
+    reviewed: bool | None = None,
+    name: str | None = None,
+    page: int = 1,
+    limit: int = 10,
+) -> JsonResponse:
+    """Search for movies matching the specified query parameters.
+
+    Supports filtering by genres, platforms, directors, actors, unseen status,
+    user ratings, reviews, and name.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        genres: Optional list of genre slugs to filter by.
+        platforms: Optional list of platform slugs to filter by.
+        directors: Optional list of director names to filter by.
+        actors: Optional list of actor names to filter by.
+        marked_unseen: If true, include only movies marked as unseen by the user.
+        stars: Optional dict mapping star ratings (1-5) to booleans indicating
+            whether to include movies with that rating from the user.
+        reviewed: If true, include only movies reviewed by the user.
+        name: Optional substring to search for in movie titles.
+    Returns:
+        JsonResponse: Paginated serialized list of movies matching the search criteria with HTTP 200,
+        or a JSON error body with HTTP 400 on invalid parameters.
+    """
+    user = request.user
+    movies_qs = Movie.objects.all()
+    genres = request.GET.getlist('genres')
+    platforms = request.GET.getlist('platforms')
+    directors = request.GET.getlist('directors')
+    actors = request.GET.getlist('actors')
+    stars = request.GET.getlist('stars')
+
+    if genres:
+        movies_qs = movies_qs.filter(genres__slug__in=genres)
+    if platforms:
+        movies_qs = movies_qs.filter(platforms__slug__in=platforms)
+    if directors:
+        movies_qs = movies_qs.filter(directors__slug__in=directors)
+    if actors:
+        movies_qs = movies_qs.filter(actors__slug__in=actors)
+
+    if marked_unseen == 'true':
+        movies_qs = movies_qs.filter(users_unseen=user)
+    if stars:
+        rating_filters = Q()
+        for star in stars:
+            rating_filters |= Q(ratings__user=user, ratings__rating=star)
+        movies_qs = movies_qs.filter(rating_filters)
+    if reviewed == 'true':
+        movies_qs = movies_qs.filter(reviews__user=user)
+    if name:
+        movies_qs = movies_qs.filter(
+            Q(title__icontains=name)
+            | Q(translations__title__icontains=name, translations__language=user.preferred_language)
+        )
+
+    movies_qs = movies_qs.distinct().order_by('-release_date')
+
+    return get_paginated_response(movies_qs, MovieSerializer, request, page, limit)

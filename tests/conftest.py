@@ -23,7 +23,7 @@ from factories import (
     ReactionFactory,
     ReviewFactory,
     UserFactory,
-    FriendRequestFactory
+    FriendRequestFactory,
 )
 from users.models import User
 
@@ -63,6 +63,7 @@ MOVIE_LIST_MOVIE_WRAPPER_URL = '/api/movies-lists/{username}/{movies_list_slug}/
 
 # MOVIES
 MOVIE_RECOMMENDATIONS_URL = '/api/movies/'
+MOVIE_SEARCHING_URL = '/api/movies/searching/'
 MOVIE_DETAIL_URL = '/api/movies/{movie_slug}/'
 MOVIE_REVIEWS_URL = '/api/movies/{movie_slug}/reviews/'
 MOVIE_FRIENDS_RATINGS_URL = '/api/movies/{movie_slug}/friends-ratings/'
@@ -180,6 +181,6 @@ class ExtendedLocMemCache(LocMemCache):
     def keys(self, pattern):
         with self._lock:
             all_keys = list(self._cache.keys())
-        
+
         regex = re.escape(pattern).replace(r'\*', '.*')
         return [k for k in all_keys if re.fullmatch(regex, k)]
