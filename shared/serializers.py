@@ -64,7 +64,12 @@ class BaseSerializer(ABC):
         return JsonResponse(self.serialize(), safe=False)
 
     @classmethod
-    def get_schema(cls, name: str = None):
+    def get_schema(cls, name: str = None, many=False):
+        if many:
+            return inline_serializer(
+                name=f'{name or cls.__name__}List',
+                fields={'results': cls.get_fields_schema(many=True)},
+            )
         return inline_serializer(name=name or cls.__name__, fields=cls.get_fields_schema())
 
     @classmethod

@@ -5,12 +5,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from awards.models import Award
+from genres.models import Genre
 from movielists.models import MovieList
 from movies.models import Movie
 from persons.models import Person
+from platforms.models import Platform
 from ratings.models import Rating
 from reviews.models import Comment, Review
-from users.models import FriendRequest, FriendShip, User
+from users.models import FriendShip, User
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,9 @@ logger = logging.getLogger(__name__)
 def invalidate_movie_detail(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
     logger.debug(f'Invalidated movie_detail cache for movie {instance.pk}')
+
+    cache.delete_many(keys=cache.keys('movie_search:*'))
+    logger.debug(f'Invalidated movie_search cache due to update of movie {instance.pk}')
 
 
 @receiver(post_save, sender=Rating)
@@ -35,6 +40,9 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
 
     cache.delete(f'movie_rating:{user.pk}:{movie.pk}')
     logger.debug(f'Invalidated movie_rating cache for user {user.pk} and movie {movie.pk}')
+
+    cache.delete_many(keys=cache.keys('movie_search:*'))
+    logger.debug(f'Invalidated movie_search cache for user {user.pk} by rating movie {movie.pk}')
 
     for friend in user.friends.all():
         cache.delete(f'friends_ratings:{friend.pk}:{movie.pk}')
@@ -108,3 +116,22 @@ def invalidate_on_person(sender, instance, created, **kwargs):
         f'Invalidating caches due to {"creation" if created else "update"} of person {instance.pk}'
     )
     cache.delete(f'person_detail:{instance.pk}')
+
+    cache.delete_many(keys=cache.keys('actor_pagination:*'))
+    cache.delete_many(keys=cache.keys('director_pagination:*'))
+
+
+@receiver(post_save, sender=Genre)
+def invalidate_on_genre(sender, instance, created, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to {"creation" if created else "update"} of genre {instance.pk}'
+    )
+    cache.delete('genre_list')
+
+
+@receiver(post_save, sender=Platform)
+def invalidate_on_platform(sender, instance, created, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to {"creation" if created else "update"} of platform {instance.pk}'
+    )
+    cache.delete('platform_list')
