@@ -1,6 +1,6 @@
 import json
 import pickle
-from socketserver import DatagramRequestHandler
+from django.utils import timezone
 from unittest.mock import Mock
 
 import pytest
@@ -15,6 +15,7 @@ from tests.conftest import (
     MOVIE_FRIENDS_RATINGS_URL,
     MOVIE_RECOMMENDATIONS_URL,
     MOVIE_REVIEWS_URL,
+    MOVIE_SEARCHING_URL,
     MOVIE_SELF_RATING_URL,
     MOVIE_UNSEEN_URL,
 )
@@ -113,10 +114,16 @@ def test_movie_serializer(movie_factory, person_factory, genre_factory, platform
     assert serialized['genres'][0]['name'] == 'Sci-Fi'
     assert isinstance(serialized['actors'], list)
     assert len(serialized['actors']) == 1
-    assert serialized['actors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{actor.slug}/'
+    assert (
+        serialized['actors'][0]
+        == f'{request.scheme}://{request.get_host()}/api/persons/{actor.slug}/'
+    )
     assert isinstance(serialized['directors'], list)
     assert len(serialized['directors']) == 1
-    assert serialized['directors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{director.slug}/'
+    assert (
+        serialized['directors'][0]
+        == f'{request.scheme}://{request.get_host()}/api/persons/{director.slug}/'
+    )
     assert isinstance(serialized['platforms'], list)
     assert len(serialized['platforms']) == 1
     assert serialized['platforms'][0]['name'] == 'Netflix'
@@ -159,10 +166,16 @@ def test_movie_serializer_with_translations(
     assert serialized['genres'][0]['name'] == 'Sci-Fi'
     assert isinstance(serialized['actors'], list)
     assert len(serialized['actors']) == 1
-    assert serialized['actors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{actor.slug}/'
+    assert (
+        serialized['actors'][0]
+        == f'{request.scheme}://{request.get_host()}/api/persons/{actor.slug}/'
+    )
     assert isinstance(serialized['directors'], list)
     assert len(serialized['directors']) == 1
-    assert serialized['directors'][0] == f'{request.scheme}://{request.get_host()}/api/persons/{director.slug}/'
+    assert (
+        serialized['directors'][0]
+        == f'{request.scheme}://{request.get_host()}/api/persons/{director.slug}/'
+    )
     assert isinstance(serialized['platforms'], list)
     assert len(serialized['platforms']) == 1
     assert serialized['platforms'][0]['name'] == 'Netflix'
@@ -823,3 +836,133 @@ def test_unseen_movie_view_not_marked_unseen(movie_factory, auth_client):
     assert data['error'] == 'Movie not marked as unseen'
     auth_client.user.refresh_from_db()
     assert movie not in auth_client.user.unseen_movies.all()
+
+
+# ===========================================================================
+# (VIEWS) movie_search
+# ===========================================================================
+@pytest.mark.django_db
+class TestMovieSearchView:
+    def test_search_by_name_and_translation(
+        self, movie_factory, auth_client, movie_translation_factory
+    ):
+        user = auth_client.user
+        user.preferred_language = 'es'
+        user.save()
+
+        the_great_war_es = movie_translation_factory(
+            language='es',
+            title='La Gran Guerra',
+            synopsis='Una película sobre la Primera Guerra Mundial.',
+        )
+
+        movie_factory(title='The Great War', translations=[the_great_war_es])
+        inception_es = movie_translation_factory(
+            language='es',
+            title='El Origen',
+            synopsis='Una película sobre sueños dentro de sueños.',
+        )
+        movie_factory(title='Inception', translations=[inception_es])
+        movie_factory(title='Inside Out')
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?name=Great')
+        assert len(response.json()['results']) == 1
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?name=Origen')
+        assert len(response.json()['results']) == 1
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?name=Vice-versa')
+        assert len(response.json()['results']) == 0
+
+    def test_search_by_relations(self, movie_factory, genre_factory, person_factory, auth_client):
+        genre_action = genre_factory(slug='action')
+        actor_pitt = person_factory(slug='brad-pitt')
+
+        m1 = movie_factory(title='Action Movie')
+        m1.genres.add(genre_action)
+        m1.actors.add(actor_pitt)
+
+        movie_factory(title='Drama Movie')
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?genres=action')
+        assert len(response.json()['results']) == 1
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?actors=brad-pitt')
+        assert len(response.json()['results']) == 1
+
+    def test_search_marked_unseen(self, movie_factory, auth_client):
+        user = auth_client.user
+        m1 = movie_factory(title='Unseen')
+        movie_factory(title='Seen')
+
+        user.unseen_movies.add(m1)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?marked_unseen=true')
+        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == m1.id
+
+    def test_search_by_stars(self, movie_factory, rating_factory, auth_client):
+        user = auth_client.user
+        m1 = movie_factory()
+        m2 = movie_factory()
+
+        rating_factory(movie=m1, user=user, rating=5)
+        rating_factory(movie=m2, user=user, rating=1)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?stars=5')
+        data = response.json()
+        assert len(data['results']) == 1
+        assert data['results'][0]['id'] == m1.id
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?stars=1&stars=5')
+        assert len(response.json()['results']) == 2
+
+    def test_search_reviewed(self, movie_factory, review_factory, auth_client):
+        user = auth_client.user
+        m1 = movie_factory()
+        movie_factory()
+
+        review_factory(movie=m1, user=user)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?reviewed=true')
+        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == m1.id
+
+    def test_search_pagination_and_order(self, movie_factory, auth_client):
+        for i in range(15):
+            movie_factory(
+                title=f'Movie {i}', release_date=timezone.now().date() - timezone.timedelta(days=i)
+            )
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?page=1&limit=10')
+        data = response.json()
+        assert len(data['results']) == 10
+        assert data['count'] == 15
+
+        assert data['results'][0]['release_date'] > data['results'][9]['release_date']
+
+    def test_search_by_platforms(self, movie_factory, platform_factory, auth_client):
+        platform_netflix = platform_factory(slug='netflix')
+        platform_hbo = platform_factory(slug='hbo')
+
+        m1 = movie_factory(title='Netflix Movie')
+        m1.platforms.add(platform_netflix)
+
+        movie_factory(title='HBO Movie').platforms.add(platform_hbo)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?platforms=netflix')
+        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == m1.id
+
+    def test_search_by_directors(self, movie_factory, person_factory, auth_client):
+        director_nolan = person_factory(slug='christopher-nolan')
+        director_spielberg = person_factory(slug='steven-spielberg')
+
+        m1 = movie_factory(title='Nolan Movie')
+        m1.directors.add(director_nolan)
+
+        movie_factory(title='Spielberg Movie').directors.add(director_spielberg)
+
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?directors=christopher-nolan')
+        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == m1.id
