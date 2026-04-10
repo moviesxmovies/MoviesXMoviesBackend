@@ -93,6 +93,17 @@ COMMENT_REACTION_DETAIL_URL = (
     '/api/reviews/{review_id}/comments/{comment_id}/reactions/{reaction_id}/'
 )
 
+# GENRES
+GENRES_LIST_URL = '/api/genres/'
+
+# PLATFORMS
+PLATFORMS_LIST_URL = '/api/platforms/'
+
+# PERSONS
+PERSON_DETAIL_URL = '/api/persons/{person_slug}/'
+PERSON_ACTORS_SEARCH_URL = '/api/persons/actors/'
+PERSON_DIRECTORS_SEARCH_URL = '/api/persons/directors/'
+
 # ===========================================
 # TEST USERS
 # ===========================================
