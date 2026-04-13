@@ -232,7 +232,7 @@ def _validate_intelligent_params(
 @extend_schema(
     responses={200: MovieListSerializer.get_paginated_schema(), 404: None},
     description='Get a specific movie list of a user',
-    operation_id='get_self_movie_list_detail',
+    operation_id='get_self_movie_list_list',
 )
 @api_view()
 @require_http_methods(['GET'])

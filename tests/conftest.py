@@ -46,6 +46,11 @@ register(FriendRequestFactory)
 # URLS
 # ===========================================
 
+# SWAGGET/ADMIN
+SWAGGER_URL = '/api/docs/'
+ADMIN_URL = '/admin/'
+SCHEMA_URL = '/api/schema/'
+
 # AUTH
 LOGIN_URL = '/api/auth/login/'
 SIGNUP_URL = '/api/auth/signup/'
