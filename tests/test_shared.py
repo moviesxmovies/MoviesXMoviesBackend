@@ -15,6 +15,8 @@ from shared.utils import get_paginated_response, get_progressive_response
 from shared.views import GoogleLogin
 from django.core.cache import cache
 
+from tests.conftest import ADMIN_URL, SCHEMA_URL, SWAGGER_URL
+
 
 # =================================================================
 # BASE MODEL TESTS
@@ -425,6 +427,7 @@ def test_get_paginated_response(movie_factory, auth_client, user_factory):
     assert data['current_page'] == 1
     assert data['total_pages'] == 2
 
+
 # =================================================================
 # GET PROGRESSIVE RESPONSE
 # =================================================================
@@ -433,9 +436,7 @@ def test_get_progressive_response(movie_factory, user_factory):
     movie = movie_factory(title='The Matrix')
     for i in range(15):
         user = user_factory()
-        movie.reviews.create(
-            title=f'Review {i}', content='Amazing!', is_positive=True, user=user
-        )
+        movie.reviews.create(title=f'Review {i}', content='Amazing!', is_positive=True, user=user)
     response = get_progressive_response(
         movie.reviews.all().order_by('-created_at'),
         ReviewSerializer,
@@ -448,6 +449,7 @@ def test_get_progressive_response(movie_factory, user_factory):
     assert 'results' in data
     assert len(data['results']) == 10
     assert data['next_last_id'] is not None
+
 
 @pytest.mark.django_db
 def test_get_progressive_response_no_more_items(movie_factory, user_factory):
@@ -470,6 +472,7 @@ def test_get_progressive_response_no_more_items(movie_factory, user_factory):
     assert len(data['results']) == 5
     assert data['next_last_id'] is None
 
+
 # =================================================================
 # CACHED VIEW
 # =================================================================
@@ -478,7 +481,9 @@ def mock_view_cached():
     @cached_view(make_key=lambda req: 'test_cache_key', timeout=60)
     def view(request):
         return JsonResponse({'message': 'This is a cached response'})
+
     return view
+
 
 @pytest.mark.django_db
 def test_cached_view(mock_view_cached):
@@ -498,3 +503,43 @@ def test_cached_view(mock_view_cached):
     data2 = json.loads(response2.content)
     assert data2['message'] == 'This is to test repsonse is taking it'
 
+
+# =================================================================
+# SWAGGER / ADMIN SMOKE TESTS
+# =================================================================
+
+
+@pytest.mark.django_db
+def test_swagger_ui_loads(client):
+    response = client.get(SWAGGER_URL)
+    assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.django_db
+def test_swagger_schema_loads(client):
+    response = client.get(SCHEMA_URL)
+    assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.django_db
+def test_admin_loads(client):
+    response = client.get(ADMIN_URL)
+    assert response.status_code in (HTTPStatus.OK, HTTPStatus.FOUND)
+
+
+@pytest.mark.django_db
+def test_admin_login_page_loads(client):
+    response = client.get(ADMIN_URL + 'login/')
+    assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.django_db
+def test_admin_accessible_by_superuser(client, django_user_model):
+    superuser = django_user_model.objects.create_superuser(
+        username='admin',
+        email='admin@test.com',
+        password='adminpassword123',
+    )
+    client.force_login(superuser)
+    response = client.get(ADMIN_URL)
+    assert response.status_code == HTTPStatus.OK

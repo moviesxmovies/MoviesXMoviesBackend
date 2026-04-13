@@ -621,7 +621,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
             type=int,
         ),
     ],
-    responses={200: MovieSerializer.get_schema(), 400: None},
+    responses={200: MovieSerializer.get_paginated_schema(), 400: None},
     operation_id='search_movies',
 )
 @api_view(['GET'])

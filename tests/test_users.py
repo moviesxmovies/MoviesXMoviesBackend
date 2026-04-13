@@ -23,6 +23,7 @@ from conftest import (
     USER_ONBOARDING_URL,
     USER_PREFERRED_LANGUAGE_URL,
     USER_REVIEWS_URL,
+    USER_SEARCH_URL,
     VERIFY_USER_URL,
 )
 from django.conf import settings
@@ -1371,3 +1372,81 @@ class TestFriendRequest:
         assert response.json()['status'] == 'Friend request sent'
         friend_request.refresh_from_db()
         assert friend_request.status == FriendRequest.Status.PENDING
+
+# =================================================================
+# USER SEARCH
+# =================================================================
+
+@pytest.mark.django_db
+def test_user_search_by_username(auth_client, user_factory):
+    user_factory(username='pythondev', first_name='John', last_name='Doe')
+    user_factory(username='djangofan', first_name='Jane', last_name='Smith')
+
+    response = auth_client.get(USER_SEARCH_URL + '?search_query=pythondev')
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['username'] == 'pythondev'
+
+
+@pytest.mark.django_db
+def test_user_search_by_first_name(auth_client, user_factory):
+    user_factory(username='user1', first_name='Santiago', last_name='Doe')
+    user_factory(username='user2', first_name='Elena', last_name='Smith')
+
+    response = auth_client.get(USER_SEARCH_URL + '?search_query=Santiago')
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['username'] == 'user1'
+
+
+@pytest.mark.django_db
+def test_user_search_by_last_name(auth_client, user_factory):
+    user_factory(username='user1', first_name='John', last_name='Martinez')
+    user_factory(username='user2', first_name='Jane', last_name='Smith')
+
+    response = auth_client.get(USER_SEARCH_URL + '?search_query=Martinez')
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['username'] == 'user1'
+
+
+@pytest.mark.django_db
+def test_user_search_empty_query_returns_all(auth_client, user_factory):
+    user_factory(username='user1')
+    user_factory(username='user2')
+    user_factory(username='user3')
+
+    response = auth_client.get(USER_SEARCH_URL)
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    # auth_client.user + 3 created = 4 total
+    assert data['count'] == 4
+
+
+@pytest.mark.django_db
+def test_user_search_no_results(auth_client, user_factory):
+    user_factory(username='user1', first_name='John', last_name='Doe')
+
+    response = auth_client.get(USER_SEARCH_URL + '?search_query=zzznomatch')
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 0
+    assert data['results'] == []
+
+
+@pytest.mark.django_db
+def test_user_search_case_insensitive(auth_client, user_factory):
+    user_factory(username='PythonDev')
+
+    response = auth_client.get(USER_SEARCH_URL + '?search_query=pythondev')
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['count'] == 1
