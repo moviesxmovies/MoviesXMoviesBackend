@@ -926,3 +926,54 @@ def delete_friend_request(request, user: User) -> JsonResponse:
 
     friend_request.reject()
     return JsonResponse({'status': _('Friend request rejected')})
+
+
+@extend_schema(
+    description='Search for movies by params',
+    parameters=[
+        OpenApiParameter(
+            name='search_query',
+            description='The search query to find users by username, first name, or last name (case-insensitive substring match)',
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name='page', description='Page number', required=False, type=int, default=1
+        ),
+        OpenApiParameter(
+            name='limit', description='Items per page', required=False, type=int, default=10
+        ),
+    ],
+    responses={200: UserSerializer.get_paginated_schema(), 400: None},
+    operation_id='user_search',
+)
+@api_view(['GET'])
+@auth_required
+@require_http_methods(['GET'])
+@get_query_params(
+    'search_query',
+    'page',
+    'limit',
+)
+@cached_view(
+    make_key=lambda req, **kwargs: f'user_search:{req.user.pk}:' + req.META.get('QUERY_STRING', ''),
+    timeout=60 * 5,
+)
+def user_search(request, search_query: str, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Search for users by username or name.
+
+    Accepts a 'search_query' parameter and returns a list of users whose username, first name, or last name contains the query string (case-insensitive).
+
+    Args:
+        request: The authenticated incoming HTTP request with a 'search_query' GET parameter.
+    Returns:
+        JsonResponse: A JSON response containing a list of matching users serialized with UserSerializer.
+    """
+    if search_query is None :
+        search_query = ''
+    users_query = User.objects.filter(
+        Q(username__icontains=search_query)
+        | Q(first_name__icontains=search_query)
+        | Q(last_name__icontains=search_query)
+    ).order_by('username')
+    return get_paginated_response(users_query, UserSerializer, request, page, limit)

@@ -1,0 +1,302 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Log Viewer | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    #log-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 0 14px;
+    }
+
+    #log-toolbar label {
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    #log-toolbar select,
+    #log-toolbar button {
+        padding: 5px 10px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        cursor: pointer;
+    }
+
+    #log-toolbar button {
+        background: #417690;
+        color: #fff;
+        border-color: #417690;
+    }
+
+    #log-toolbar button:hover {
+        background: #205067;
+    }
+
+    #log-toolbar .badge {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: #28a745;
+        color: #fff;
+        display: none;
+    }
+
+    #log-toolbar .badge.disconnected {
+        background: #dc3545;
+    }
+
+    #filter-box {
+        flex: 1;
+        min-width: 160px;
+        padding: 5px 10px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    #log-output-wrapper {
+        position: relative;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #1e1e1e;
+    }
+
+    #log-output {
+        font-family: "Courier New", Courier, monospace;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #d4d4d4;
+        background: transparent;
+        padding: 12px 14px;
+        height: 560px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    #log-output .log-line {
+        display: block;
+    }
+
+    #log-output .log-line.hidden {
+        display: none;
+    }
+
+    #log-output .level-ERROR,
+    #log-output .level-CRITICAL {
+        color: #f48771;
+    }
+
+    #log-output .level-WARNING {
+        color: #dcdcaa;
+    }
+
+    #log-output .level-INFO {
+        color: #9cdcfe;
+    }
+
+    #log-output .level-DEBUG {
+        color: #808080;
+    }
+
+    #scroll-lock-btn {
+        position: absolute;
+        bottom: 10px;
+        right: 14px;
+        font-size: 11px;
+        padding: 3px 9px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #ccc;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+    }
+
+    #scroll-lock-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    #log-count {
+        font-size: 12px;
+        color: #666;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>📋 Log Viewer</h1>
+
+<div id="log-toolbar">
+    <label for="log-select">Archivo:</label>
+    <select id="log-select">
+        {% for name in log_files %}
+        <option value="{{ name }}" {% if name == log_type %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+    </select>
+
+    <input id="filter-box" type="text" placeholder="Filtrar líneas (ej: ERROR, /api/)…" />
+
+    <select id="level-filter">
+        <option value="">Todos los niveles</option>
+        <option value="DEBUG">DEBUG</option>
+        <option value="INFO">INFO</option>
+        <option value="WARNING">WARNING</option>
+        <option value="ERROR">ERROR</option>
+        <option value="CRITICAL">CRITICAL</option>
+    </select>
+
+    <button id="clear-btn">🗑 Limpiar</button>
+    <button id="download-btn">⬇ Descargar</button>
+    <span class="badge" id="status-badge">● EN VIVO</span>
+</div>
+
+<div id="log-output-wrapper">
+    <div id="log-output"></div>
+    <button id="scroll-lock-btn">🔒 Auto-scroll: ON</button>
+</div>
+<div id="log-count">0 líneas mostradas</div>
+
+<script>
+    (function () {
+        const output = document.getElementById('log-output');
+        const logSelect = document.getElementById('log-select');
+        const filterBox = document.getElementById('filter-box');
+        const levelFilter = document.getElementById('level-filter');
+        const clearBtn = document.getElementById('clear-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const scrollLockBtn = document.getElementById('scroll-lock-btn');
+        const badge = document.getElementById('status-badge');
+        const logCount = document.getElementById('log-count');
+
+        let autoScroll = true;
+        let evtSource = null;
+        const MAX_LINES = 2000; // prevent DOM from growing forever
+
+        // ── Helpers ──────────────────────────────────────────────────────────────
+
+        function levelClass(line) {
+            for (const lvl of ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']) {
+                if (line.includes(lvl)) return 'level-' + lvl;
+            }
+            return '';
+        }
+
+        function matchesFilters(text) {
+            const txt = filterBox.value.toLowerCase();
+            const lvl = levelFilter.value;
+            if (txt && !text.toLowerCase().includes(txt)) return false;
+            if (lvl && !text.includes(lvl)) return false;
+            return true;
+        }
+
+        function appendLine(text) {
+            const span = document.createElement('span');
+            span.className = 'log-line ' + levelClass(text);
+            span.textContent = text;
+            if (!matchesFilters(text)) span.classList.add('hidden');
+            output.appendChild(span);
+
+            // Trim old lines
+            while (output.children.length > MAX_LINES) {
+                output.removeChild(output.firstChild);
+            }
+
+            updateCount();
+            if (autoScroll) output.scrollTop = output.scrollHeight;
+        }
+
+        function updateCount() {
+            const visible = output.querySelectorAll('.log-line:not(.hidden)').length;
+            logCount.textContent = visible + ' líneas mostradas';
+        }
+
+        function reapplyFilters() {
+            output.querySelectorAll('.log-line').forEach(el => {
+                el.classList.toggle('hidden', !matchesFilters(el.textContent));
+            });
+            updateCount();
+        }
+
+        // ── Populate initial lines ────────────────────────────────────────────────
+
+        const initial = {{ initial_lines| escapejs
+    }};
+    initial.split('\n').forEach(line => { if (line.trim()) appendLine(line); });
+
+    // ── SSE stream ────────────────────────────────────────────────────────────
+
+    function connect(logType) {
+        if (evtSource) evtSource.close();
+
+        const url = "{% url 'admin_log_stream' %}?log=" + logType;
+        evtSource = new EventSource(url);
+        badge.style.display = 'inline';
+        badge.classList.remove('disconnected');
+        badge.textContent = '● EN VIVO';
+
+        evtSource.onmessage = function (e) {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.line) appendLine(data.line);
+            } catch (_) { }
+        };
+
+        evtSource.onerror = function () {
+            badge.classList.add('disconnected');
+            badge.textContent = '● DESCONECTADO';
+            // Auto-reconnect after 5 s
+            setTimeout(() => connect(logSelect.value), 5000);
+        };
+    }
+
+    connect(logSelect.value);
+
+    // ── Controls ──────────────────────────────────────────────────────────────
+
+    logSelect.addEventListener('change', () => {
+        output.innerHTML = '';
+        updateCount();
+        connect(logSelect.value);
+        // reload the page to get fresh initial lines for the new file
+        const url = new URL(window.location.href);
+        url.searchParams.set('log', logSelect.value);
+        window.location.href = url.toString();
+    });
+
+    filterBox.addEventListener('input', reapplyFilters);
+    levelFilter.addEventListener('change', reapplyFilters);
+
+    clearBtn.addEventListener('click', () => {
+        output.innerHTML = '';
+        updateCount();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        const text = Array.from(output.querySelectorAll('.log-line'))
+            .map(el => el.textContent).join('\n');
+        const blob = new Blob([text], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'django_' + logSelect.value + '_logs.txt';
+        a.click();
+    });
+
+    output.addEventListener('scroll', () => {
+        const atBottom = output.scrollHeight - output.scrollTop <= output.clientHeight + 10;
+        autoScroll = atBottom;
+        scrollLockBtn.textContent = '🔒 Auto-scroll: ' + (autoScroll ? 'ON' : 'OFF');
+    });
+
+    scrollLockBtn.addEventListener('click', () => {
+        autoScroll = !autoScroll;
+        scrollLockBtn.textContent = '🔒 Auto-scroll: ' + (autoScroll ? 'ON' : 'OFF');
+        if (autoScroll) output.scrollTop = output.scrollHeight;
+    });
+}) ();
+</script>
+{% endblock %}

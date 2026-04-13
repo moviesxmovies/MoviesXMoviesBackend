@@ -67,8 +67,12 @@ def invalidate_on_review(sender, instance, created, **kwargs):
 def invalidate_user_detail(sender, instance, **kwargs):
     cache.delete(f'user_detail:{instance.pk}')
     logger.debug(f'Invalidated user_detail cache for user {instance.pk}')
+
     cache.delete(f'self_user_detail:{instance.pk}')
     logger.debug(f'Invalidated self_user_detail cache for user {instance.pk}')
+
+    cache.delete_many(keys=cache.keys('user_search:*'))
+    logger.debug(f'Invalidated user_search cache due to update of user {instance.pk}')
 
 
 @receiver(post_save, sender=MovieList)
