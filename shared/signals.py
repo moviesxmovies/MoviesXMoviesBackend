@@ -119,7 +119,7 @@ def invalidate_on_person(sender, instance, created, **kwargs):
     logger.debug(
         f'Invalidating caches due to {"creation" if created else "update"} of person {instance.pk}'
     )
-    cache.delete(f'person_detail:{instance.pk}')
+    cache.delete_many(keys=cache.keys(f'person_detail:{instance.pk}:*'))
 
     cache.delete_many(keys=cache.keys('actor_pagination:*'))
     cache.delete_many(keys=cache.keys('director_pagination:*'))
