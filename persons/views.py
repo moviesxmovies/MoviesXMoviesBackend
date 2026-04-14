@@ -17,7 +17,10 @@ from users.decorators import auth_required
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required
-@cached_view(lambda req, person: f'person_detail:{person.pk}', timeout=60 * 60 * 24)
+@cached_view(
+    lambda req, person: f'person_detail:{person.pk}:{req.user.preferred_language}',
+    timeout=60 * 60 * 24,
+)
 def person_detail(request, person: Person):
     return PersonSerializer(person, request=request).json_response()
 
@@ -62,7 +65,9 @@ def _get_person_response(queryset, request, page: int, limit: int, name: str = N
 @auth_required
 @get_query_params('page', 'limit', 'name')
 @cached_view(
-    make_key=lambda req, page, limit, name: f'actors_pagination:{page}:{limit}:{name}',
+    make_key=lambda req, page, limit, name: (
+        f'actors_pagination:{page}:{limit}:{name}:{req.user.preferred_language}'
+    ),
     timeout=60 * 60 * 24,
 )
 def actors_pagination(request, page: int = 1, limit: int = 10, name: str = None):
@@ -103,7 +108,9 @@ def actors_pagination(request, page: int = 1, limit: int = 10, name: str = None)
 @auth_required
 @get_query_params('page', 'limit', 'name')
 @cached_view(
-    make_key=lambda req, page, limit, name: f'directors_pagination:{page}:{limit}:{name}',
+    make_key=lambda req, page, limit, name: (
+        f'directors_pagination:{page}:{limit}:{name}:{req.user.preferred_language}'
+    ),
     timeout=60 * 60 * 24,
 )
 def directors_pagination(request, page: int = 1, limit: int = 10, name: str = None):
