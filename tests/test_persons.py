@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock
+
 import pytest
+from django.test import RequestFactory
 
 from persons.serializers import PersonSerializer
 from tests.conftest import PERSON_ACTORS_SEARCH_URL, PERSON_DIRECTORS_SEARCH_URL
@@ -59,6 +62,28 @@ def test_person_serializer(person_factory):
     assert serialized['slug'] == 'john-doe'
     assert serialized['image'] is not None
     assert serialized['awards'] is not None
+    assert serialized['biography'] == person.biography
+    assert serialized['birthday'] == person.birthday.isoformat() if person.birthday else None
+    assert serialized['deathday'] == person.deathday.isoformat() if person.deathday else None
+    assert serialized['gender'] == person.gender
+
+
+@pytest.mark.django_db
+def test_person_serializer_with_translation(person_factory, person_translation_factory):
+    translation_es = person_translation_factory(language='es', biography='Biografía en español')
+    translation_fr = person_translation_factory(language='fr', biography='Biographie en français')
+
+    person = person_factory(name='John Doe', slug='john-doe', translations=[translation_es, translation_fr])
+
+    request = RequestFactory().get('/')
+    request.user = MagicMock(preferred_language='es')
+    serialized = PersonSerializer(person, request=request).serialize()
+
+    assert serialized['biography'] == 'Biografía en español'
+
+    request.user.preferred_language = 'fr'
+    serialized = PersonSerializer(person, request=request).serialize()
+    assert serialized['biography'] == 'Biographie en français'
 
 
 # ===========================================================================
