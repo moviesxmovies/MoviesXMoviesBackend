@@ -30,7 +30,9 @@ def make_movie_detail(movie_id=123, title='Test Movie', lang='en', **overrides):
         'watch/providers': {
             'results': {
                 'ES': {
-                    'flatrate': [{'provider_id': 8, 'provider_name': 'Netflix', 'logo_path': '/netflix.jpg'}]
+                    'flatrate': [
+                        {'provider_id': 8, 'provider_name': 'Netflix', 'logo_path': '/netflix.jpg'}
+                    ]
                 }
             }
         },
@@ -76,7 +78,6 @@ def person_detail_mock(person_id, **overrides):
 
 @pytest.mark.django_db
 class TestFetchMoviesCommand:
-
     # ==================================================================
     # HELPERS
     # ==================================================================
@@ -105,9 +106,9 @@ class TestFetchMoviesCommand:
         """
         mocks = []
         for pid in person_ids:
-            mocks.append(person_detail_mock(pid))           # base call (no lang)
+            mocks.append(person_detail_mock(pid))  # base call (no lang)
             for _ in range(n_languages):
-                mocks.append(person_detail_mock(pid))       # per-language call
+                mocks.append(person_detail_mock(pid))  # per-language call
         return mocks
 
     # ==================================================================
@@ -122,11 +123,26 @@ class TestFetchMoviesCommand:
         # 1 director (id=1001) + 5 actors (ids 2001-2005)
         person_ids = [1001, 2001, 2002, 2003, 2004, 2005]
 
-        mock_get.side_effect = (
-            [mock_list, detail_mock(123)]
-            + self._person_detail_mocks(person_ids, n_languages=1)
-            + img_mocks(7)  # 1 poster + 6 persons
-        )
+        # Función de enrutamiento para el mock
+        def dynamic_mock_get(url, *args, **kwargs):
+            if 'movie/popular' in url:
+                return mock_list
+            elif '/movie/' in url:
+                return detail_mock(123)
+            elif '/person/' in url:
+                # Extraemos el ID de la persona de la URL
+                person_id_str = url.split('/person/')[1].split('?')[0]
+                return person_detail_mock(int(person_id_str))
+            elif 'image.tmdb.org' in url:
+                return make_image_mock()
+
+            # Fallback seguro en caso de que haga una petición no esperada
+            fallback = MagicMock(status_code=404)
+            fallback.json.return_value = {}
+            return fallback
+
+        # Asignamos la función en lugar de la lista concatenada
+        mock_get.side_effect = dynamic_mock_get
 
         data, stdout = self._run(tmp_path, mock_get)
 
@@ -185,8 +201,7 @@ class TestFetchMoviesCommand:
 
             data, _ = self._run(tmp_path, mock_get)
             translations = {
-                t['fields']['language']: t
-                for t in self._by_model(data, 'movies.movietranslation')
+                t['fields']['language']: t for t in self._by_model(data, 'movies.movietranslation')
             }
             assert translations['en']['fields']['title'] == 'The Movie'
             assert translations['es']['fields']['title'] == 'La Película'
@@ -230,7 +245,8 @@ class TestFetchMoviesCommand:
 
             data, _ = self._run(tmp_path, mock_get)
             es = next(
-                t for t in self._by_model(data, 'movies.movietranslation')
+                t
+                for t in self._by_model(data, 'movies.movietranslation')
                 if t['fields']['language'] == 'es'
             )
             assert es['fields']['title'] == 'Original Title'
@@ -353,7 +369,9 @@ class TestFetchMoviesCommand:
         providers = {
             'results': {
                 'ES': {
-                    'flatrate': [{'provider_id': 8, 'provider_name': 'Netflix', 'logo_path': '/netflix.jpg'}]
+                    'flatrate': [
+                        {'provider_id': 8, 'provider_name': 'Netflix', 'logo_path': '/netflix.jpg'}
+                    ]
                 }
             }
         }
