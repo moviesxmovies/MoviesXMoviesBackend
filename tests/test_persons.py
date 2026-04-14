@@ -1,4 +1,8 @@
+import datetime
+from unittest.mock import MagicMock
+
 import pytest
+from django.test import RequestFactory
 
 from persons.serializers import PersonSerializer
 from tests.conftest import PERSON_ACTORS_SEARCH_URL, PERSON_DIRECTORS_SEARCH_URL
@@ -51,7 +55,7 @@ def test_person_str(person_factory):
 # ===========================================================================
 @pytest.mark.django_db
 def test_person_serializer(person_factory):
-    person = person_factory(name='John Doe', slug='john-doe')
+    person = person_factory(name='John Doe', slug='john-doe', biography='A famous actor.', birthday=datetime.date(1980, 1, 1), deathday=datetime.date(2020, 1, 1), gender=1)
     serialized = PersonSerializer(person).serialize()
 
     assert serialized['id'] == person.pk
@@ -59,6 +63,28 @@ def test_person_serializer(person_factory):
     assert serialized['slug'] == 'john-doe'
     assert serialized['image'] is not None
     assert serialized['awards'] is not None
+    assert serialized['biography'] == 'A famous actor.'
+    assert serialized['birthday'] == '1980-01-01'
+    assert serialized['deathday'] == '2020-01-01'
+    assert serialized['gender'] == 1
+
+
+@pytest.mark.django_db
+def test_person_serializer_with_translation(person_factory, person_translation_factory):
+    translation_es = person_translation_factory(language='es', biography='Biografía en español')
+    translation_fr = person_translation_factory(language='fr', biography='Biographie en français')
+
+    person = person_factory(name='John Doe', slug='john-doe', translations=[translation_es, translation_fr])
+
+    request = RequestFactory().get('/')
+    request.user = MagicMock(preferred_language='es')
+    serialized = PersonSerializer(person, request=request).serialize()
+
+    assert serialized['biography'] == 'Biografía en español'
+
+    request.user.preferred_language = 'fr'
+    serialized = PersonSerializer(person, request=request).serialize()
+    assert serialized['biography'] == 'Biographie en français'
 
 
 # ===========================================================================

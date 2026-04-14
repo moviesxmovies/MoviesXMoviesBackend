@@ -22,6 +22,7 @@ class Command(BaseCommand):
     MOVIE_SUBDIR = 'movies/covers'
     MOVIE_TRANSLATION_SUBDIR = 'movies/translations/covers'
     PERSON_SUBDIR = 'person'
+    PLATFORM_SUBDIR = 'platforms'
 
     LANGUAGES = settings.SUPPORTED_LANGUAGES
 
@@ -42,18 +43,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.api_key = config('TMDB_API_KEY', default='')
         self.headers = {'Authorization': f'Bearer {self.api_key}'}
-
         self.now = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
 
         self.processed_movie_ids = set()
-        self.pks = {
-            'movie': 1,
-            'movie_translation': 1,
-            'person': {},
-            'genre': {},
-            'genre_translation': 1,
-            'platform': {},
-        }
+        self.processed_genre_ids = set()
+        self.processed_person_ids = set()
+        self.processed_platform_ids = set()
+
+        self.lang_index = {lang: i for i, lang in enumerate(self.LANGUAGES)}
+
         self.fixtures = {
             'genres': [],
             'genre_translations': [],
@@ -61,6 +59,7 @@ class Command(BaseCommand):
             'platforms': [],
             'movies': [],
             'movie_translations': [],
+            'person_translations': [],
         }
 
         self.setup_directories()
@@ -78,22 +77,30 @@ class Command(BaseCommand):
             + self.fixtures['platforms']
             + self.fixtures['movies']
             + self.fixtures['movie_translations']
+            + self.fixtures['person_translations']
         )
 
         with open(options['output'], 'w', encoding='utf-8') as f:
             json.dump(final_data, f, indent=4, ensure_ascii=False)
 
         self.stdout.write(
-            self.style.SUCCESS(f'Extraction completed: {len(self.fixtures["movies"])} movies')
+            self.style.SUCCESS(
+                f'Extraction completed: {len(self.fixtures["movies"])} movies, {len(self.fixtures["genres"])} genres, {len(self.fixtures["platforms"])} platforms, {len(self.fixtures["persons"])} persons.'
+            )
         )
 
     def setup_directories(self):
-        for subdir in [self.MOVIE_SUBDIR, self.MOVIE_TRANSLATION_SUBDIR, self.PERSON_SUBDIR]:
+        for subdir in [
+            self.MOVIE_SUBDIR,
+            self.MOVIE_TRANSLATION_SUBDIR,
+            self.PERSON_SUBDIR,
+            self.PLATFORM_SUBDIR,
+        ]:
             os.makedirs(os.path.join(self.MEDIA_ROOT, subdir), exist_ok=True)
 
     def download_image(self, path, subdir):
         if not path:
-            return f'{subdir}/no-image.png'
+            return f'{subdir}/default.png'
 
         filename = path.lstrip('/')
         full_path = os.path.join(self.MEDIA_ROOT, subdir, filename)
@@ -109,11 +116,10 @@ class Command(BaseCommand):
                             f.write(chunk)
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'Error downloading image {url}: {e}'))
-                return f'{subdir}/no-image.png'
+                return f'{subdir}/default.png'
         return db_path
 
     def fetch_movie_detail(self, movie_id, language):
-        """Fetch full movie detail for a given language."""
         url = (
             f'{self.BASE_URL}/movie/{movie_id}'
             f'?append_to_response=credits,watch/providers&language={language}-{language.upper()}'
@@ -154,7 +160,7 @@ class Command(BaseCommand):
 
         cover_path = self.download_image(m.get('poster_path'), self.MOVIE_SUBDIR)
 
-        movie_pk = self.pks['movie']
+        movie_pk = m['id']
 
         self.fixtures['movies'].append(
             {
@@ -180,53 +186,45 @@ class Command(BaseCommand):
             lang_data = data_by_lang.get(lang, {})
             title_translated = lang_data.get('title') or m['title']
             synopsis_translated = lang_data.get('overview') or m['overview']
-
-            translated_poster_path = lang_data.get('poster_path')
             translated_cover = self.download_image(
-                translated_poster_path, self.MOVIE_TRANSLATION_SUBDIR
+                lang_data.get('poster_path'), self.MOVIE_TRANSLATION_SUBDIR
             )
+
+            translation_pk = movie_pk * 100 + self.lang_index[lang]
 
             self.fixtures['movie_translations'].append(
                 {
                     'model': 'movies.movietranslation',
-                    'pk': self.pks['movie_translation'],
+                    'pk': translation_pk,
                     'fields': {
                         'movie': movie_pk,
                         'language': lang,
                         'title': title_translated,
                         'synopsis': synopsis_translated,
                         'image': translated_cover,
+                        'created_at': self.now,
+                        'updated_at': self.now,
                     },
                 }
             )
-            self.pks['movie_translation'] += 1
 
         self.processed_movie_ids.add(movie_id)
-        self.pks['movie'] += 1
         self.stdout.write(self.style.SUCCESS(f'Movie "{m["title"]}" processed.'))
 
     def get_or_create_genres(self, genres_data, data_by_lang):
-        """
-        Create Genre fixtures from the primary language data,
-        then add GenreTranslation fixtures for every language.
-
-        TMDB genre IDs are stable across languages, so we match translations
-        by TMDB genre ID.
-        """
         primary_lang = self.LANGUAGES[0]
         ids = []
 
         for g in genres_data:
-            name = g['name']
             tmdb_genre_id = g['id']
+            name = g['name']
 
-            if name not in self.pks['genre']:
-                pk = len(self.pks['genre']) + 1
-                self.pks['genre'][name] = pk
+            if tmdb_genre_id not in self.processed_genre_ids:
+                self.processed_genre_ids.add(tmdb_genre_id)
                 self.fixtures['genres'].append(
                     {
                         'model': 'genres.genre',
-                        'pk': pk,
+                        'pk': tmdb_genre_id,
                         'fields': {
                             'name': name,
                             'slug': slugify(name),
@@ -238,52 +236,63 @@ class Command(BaseCommand):
 
                 for lang in self.LANGUAGES:
                     lang_genres = (
-                        data_by_lang.get(lang, {}).get('genres', [])
-                        if lang != primary_lang
-                        else genres_data
+                        genres_data
+                        if lang == primary_lang
+                        else data_by_lang.get(lang, {}).get('genres', [])
                     )
                     translated_name = next(
                         (lg['name'] for lg in lang_genres if lg['id'] == tmdb_genre_id),
                         name,
                     )
+                    translation_pk = tmdb_genre_id * 100 + self.lang_index[lang]
                     self.fixtures['genre_translations'].append(
                         {
                             'model': 'genres.genretranslation',
-                            'pk': self.pks['genre_translation'],
+                            'pk': translation_pk,
                             'fields': {
-                                'genre': pk,
+                                'genre': tmdb_genre_id,
                                 'language': lang,
                                 'name': translated_name,
+                                'created_at': self.now,
+                                'updated_at': self.now,
                             },
                         }
                     )
-                    self.pks['genre_translation'] += 1
 
-            ids.append(self.pks['genre'][name])
+            ids.append(tmdb_genre_id)
         return list(set(ids))
 
     def get_or_create_platforms(self, providers_data):
         ids = []
         flatrate = providers_data.get('results', {}).get('ES', {}).get('flatrate', [])
         for p in flatrate:
+            provider_id = p['provider_id']
             name = p['provider_name']
-            if name not in self.pks['platform']:
-                pk = len(self.pks['platform']) + 1
-                self.pks['platform'][name] = pk
+
+            if provider_id not in self.processed_platform_ids:
+                self.processed_platform_ids.add(provider_id)
+                logo = self.download_image(p.get('logo_path'), self.PLATFORM_SUBDIR)
                 self.fixtures['platforms'].append(
                     {
                         'model': 'platforms.platform',
-                        'pk': pk,
+                        'pk': provider_id,
                         'fields': {
                             'name': name,
                             'slug': slugify(name),
+                            'image': logo,
                             'created_at': self.now,
                             'updated_at': self.now,
                         },
                     }
                 )
-            ids.append(self.pks['platform'][name])
+            ids.append(provider_id)
         return list(set(ids))
+
+    def fetch_person_detail(self, person_id, language=None):
+        url = f'{self.BASE_URL}/person/{person_id}'
+        if language:
+            url += f'?language={language}-{language.upper()}'
+        return requests.get(url, headers=self.headers).json()
 
     def get_or_create_persons(self, credits):
         dir_ids, act_ids = [], []
@@ -294,28 +303,56 @@ class Command(BaseCommand):
         ]
 
         for p_data, p_type in people:
+            person_id = p_data['id']
             name = p_data['name']
-            if name not in self.pks['person']:
-                pk = len(self.pks['person']) + 1
-                self.pks['person'][name] = pk
+
+            if person_id not in self.processed_person_ids:
+                self.processed_person_ids.add(person_id)
+
+                detail = self.fetch_person_detail(person_id)
+                time.sleep(0.05)
+
                 photo = self.download_image(p_data.get('profile_path'), self.PERSON_SUBDIR)
                 self.fixtures['persons'].append(
                     {
                         'model': 'persons.person',
-                        'pk': pk,
+                        'pk': person_id,
                         'fields': {
                             'name': name,
-                            'slug': slugify(name, allow_unicode=True) + f'-{pk}',
+                            'slug': slugify(name, allow_unicode=True) + f'-{person_id}',
                             'image': photo,
+                            'gender': detail.get('gender', 0),
+                            'biography': detail.get('biography') or '',
+                            'birthday': detail.get('birthday'),
+                            'deathday': detail.get('deathday'),
                             'created_at': self.now,
                             'updated_at': self.now,
                         },
                     }
                 )
 
+                for lang in self.LANGUAGES:
+                    lang_detail = self.fetch_person_detail(person_id, lang)
+                    time.sleep(0.05)
+
+                    translation_pk = person_id * 100 + self.lang_index[lang]
+                    self.fixtures['person_translations'].append(
+                        {
+                            'model': 'persons.persontranslation',
+                            'pk': translation_pk,
+                            'fields': {
+                                'person': person_id,
+                                'language': lang,
+                                'biography': lang_detail.get('biography') or '',
+                                'created_at': self.now,
+                                'updated_at': self.now,
+                            },
+                        }
+                    )
+
             if p_type == 'dir':
-                dir_ids.append(self.pks['person'][name])
+                dir_ids.append(person_id)
             else:
-                act_ids.append(self.pks['person'][name])
+                act_ids.append(person_id)
 
         return list(set(dir_ids)), list(set(act_ids))

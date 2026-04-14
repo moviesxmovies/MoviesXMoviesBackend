@@ -25,6 +25,7 @@ from factories import (
     UserFactory,
     FriendRequestFactory,
 )
+from factories.persons import PersonTranslationFactory
 from users.models import User
 
 register(UserFactory)
@@ -41,6 +42,7 @@ register(GenreTranslationFactory)
 register(CommentFactory)
 register(ReactionFactory)
 register(FriendRequestFactory)
+register(PersonTranslationFactory)
 
 # ===========================================
 # URLS
