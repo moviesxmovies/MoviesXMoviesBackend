@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from datetime import datetime
 
 import requests
@@ -124,6 +123,11 @@ class Command(BaseCommand):
             f'{self.BASE_URL}/movie/{movie_id}'
             f'?append_to_response=credits,watch/providers&language={language}-{language.upper()}'
         )
+        self.stdout.write(
+            self.style.HTTP_SERVER_ERROR(
+                f'Fetching details for movie ID {movie_id} (lang={language})...'
+            )
+        )
         return requests.get(url, headers=self.headers).json()
 
     def process_page(self, page):
@@ -134,7 +138,6 @@ class Command(BaseCommand):
             results = response.json().get('results', [])
             for item in results:
                 self.process_movie_detail(item['id'])
-                time.sleep(0.05)
             self.stdout.write(self.style.SUCCESS(f'Page {page} processed successfully.'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error on page {page}: {e}'))
@@ -146,7 +149,6 @@ class Command(BaseCommand):
         data_by_lang = {}
         for lang in self.LANGUAGES:
             data_by_lang[lang] = self.fetch_movie_detail(movie_id, lang)
-            time.sleep(0.05)
 
         primary_lang = self.LANGUAGES[0]
         m = data_by_lang[primary_lang]
@@ -292,6 +294,11 @@ class Command(BaseCommand):
         url = f'{self.BASE_URL}/person/{person_id}'
         if language:
             url += f'?language={language}-{language.upper()}'
+        self.stdout.write(
+            self.style.HTTP_SERVER_ERROR(
+                f'Fetching details for person ID {person_id} (lang={language})...'
+            )
+        )
         return requests.get(url, headers=self.headers).json()
 
     def get_or_create_persons(self, credits):
@@ -310,7 +317,6 @@ class Command(BaseCommand):
                 self.processed_person_ids.add(person_id)
 
                 detail = self.fetch_person_detail(person_id)
-                time.sleep(0.05)
 
                 photo = self.download_image(p_data.get('profile_path'), self.PERSON_SUBDIR)
                 self.fixtures['persons'].append(
@@ -333,7 +339,6 @@ class Command(BaseCommand):
 
                 for lang in self.LANGUAGES:
                     lang_detail = self.fetch_person_detail(person_id, lang)
-                    time.sleep(0.05)
 
                     translation_pk = person_id * 100 + self.lang_index[lang]
                     self.fixtures['person_translations'].append(
@@ -349,7 +354,10 @@ class Command(BaseCommand):
                             },
                         }
                     )
-
+            else:
+                self.stdout.write(
+                    self.style.NOTICE(f'Person "{name}" (ID {person_id}) already processed.')
+                )
             if p_type == 'dir':
                 dir_ids.append(person_id)
             else:
