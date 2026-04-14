@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -54,7 +55,7 @@ def test_person_str(person_factory):
 # ===========================================================================
 @pytest.mark.django_db
 def test_person_serializer(person_factory):
-    person = person_factory(name='John Doe', slug='john-doe')
+    person = person_factory(name='John Doe', slug='john-doe', biography='A famous actor.', birthday=datetime.date(1980, 1, 1), deathday=datetime.date(2020, 1, 1), gender=1)
     serialized = PersonSerializer(person).serialize()
 
     assert serialized['id'] == person.pk
@@ -62,10 +63,10 @@ def test_person_serializer(person_factory):
     assert serialized['slug'] == 'john-doe'
     assert serialized['image'] is not None
     assert serialized['awards'] is not None
-    assert serialized['biography'] == person.biography
-    assert serialized['birthday'] == person.birthday.isoformat() if person.birthday else None
-    assert serialized['deathday'] == person.deathday.isoformat() if person.deathday else None
-    assert serialized['gender'] == person.gender
+    assert serialized['biography'] == 'A famous actor.'
+    assert serialized['birthday'] == '1980-01-01'
+    assert serialized['deathday'] == '2020-01-01'
+    assert serialized['gender'] == 1
 
 
 @pytest.mark.django_db
