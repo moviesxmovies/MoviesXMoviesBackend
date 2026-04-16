@@ -1,7 +1,7 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from shared.models import BaseModel
-from django.utils.translation import gettext_lazy as _
 
 
 class Genre(BaseModel):
@@ -12,6 +12,7 @@ class Genre(BaseModel):
         name (models.CharField): The name of the genre.
         slug (models.SlugField): A URL-friendly version of the genre's name.
     """
+
     class Meta:
         verbose_name = _('Genre')
         verbose_name_plural = _('Genres')
@@ -34,6 +35,7 @@ class Genre(BaseModel):
         genre = models.ForeignKey('Genre', related_name='translations', on_delete=models.CASCADE)
         language = models.CharField(max_length=2)
         name = models.CharField(max_length=32)
+
         def __str__(self):
             return f'{self.genre.name} ({self.language})'
 
@@ -43,11 +45,15 @@ class Genre(BaseModel):
     def __str__(self):
         return self.slug
 
+    def _get_prefetched_translation(self, language):
+        if hasattr(self, 'prefetched_translations'):
+            for t in self.prefetched_translations:
+                if t.language == language:
+                    return t
+            return None
+
+        return self.translations.filter(language=language).first()
+
     def translate_name(self, language):
-        try:
-            translation = self.translations.get(language=language)
-        except self.GenreTranslation.DoesNotExist:
-            translation = None
-        if translation:
-            return translation.name
-        return self.name
+        translation = self._get_prefetched_translation(language)
+        return translation.name if translation else self.name

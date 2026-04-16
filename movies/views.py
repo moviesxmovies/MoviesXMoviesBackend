@@ -1,12 +1,12 @@
 from http import HTTPStatus
 
+import pyinstrument
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-import pyinstrument
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
@@ -401,22 +401,21 @@ def get_movie_recommendations(request) -> JsonResponse:
     exclude_ids = proxy._get_exclude_ids()
     candidates_qs = proxy._get_base_candidates(exclude_ids)
     candidates_qs = proxy._apply_hard_filters(candidates_qs, genres=None)
-    scored_movies = proxy._score_candidates(
-        candidates_qs,
-        celebrities=None,
-        friends=list(user.friends.values_list('username', flat=True)),
-    )
 
-    recommended = [movie for movie, _score in scored_movies]
+    recommended = list(
+        proxy._score_candidates(
+            candidates_qs,
+            celebrities=None,
+            friends=list(user.friends.values_list('username', flat=True)),
+            limit=LIMIT_RECOMMENDATIONS,
+        )
+    )
 
     if len(recommended) < LIMIT_RECOMMENDATIONS:
         recommended = _pad_with_algorithmic(recommended, exclude_ids, user, LIMIT_RECOMMENDATIONS)
 
-    recommended = recommended[:LIMIT_RECOMMENDATIONS]
-    response =MovieSerializer(recommended, request=request).json_response()
-
+    response = MovieSerializer(recommended, request=request).json_response()
     profiler.stop()
-    profiler.print()
     return response
 
 
@@ -444,22 +443,40 @@ def _pad_with_algorithmic(
         needed - len(existing) additional Movie instances,
         ordered by -release_date.
     """
-    existing_ids = {m.id for m in existing}
+    amount_missing = needed - len(existing)
+    if amount_missing <= 0:
+        return existing
 
-    user_platforms = user.platforms.values_list('slug', flat=True)
+    existing_ids = {m.id for m in existing}
+    all_excludes = exclude_ids | existing_ids
+
+    lang = getattr(user, 'preferred_language', 'en')
+    translations_qs = Movie.MovieTranslation.objects.filter(language=lang)
 
     fallback_qs = (
-        Movie.objects.exclude(id__in=exclude_ids | existing_ids)
-        .prefetch_related('actors', 'directors', 'awards', 'genres', 'platforms')
+        Movie.objects.exclude(id__in=all_excludes)
+        .prefetch_related(
+            'actors',
+            'directors',
+            'awards',
+            'genres',
+            'platforms',
+            Prefetch('translations', queryset=translations_qs, to_attr='prefetched_translations'),
+        )
         .order_by('-release_date')
     )
 
+    user_platforms = user.platforms.values_list('slug', flat=True)
     if user_platforms:
         fallback_qs = fallback_qs.filter(
             Q(platforms__slug__in=user_platforms) | Q(platforms__isnull=True)
         ).distinct()
 
-    return existing + list(fallback_qs[: needed - len(existing)])
+    additional = list(fallback_qs[:amount_missing])
+
+    final_list = existing + additional
+
+    return final_list[:needed]
 
 
 @extend_schema(
