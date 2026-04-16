@@ -22,6 +22,9 @@ class Command(BaseCommand):
     MOVIE_TRANSLATION_SUBDIR = 'movies/translations/covers'
     PERSON_SUBDIR = 'person'
     PLATFORM_SUBDIR = 'platforms'
+    EXCLUDED_KEYWORDS = (
+        '190370,155477,445,260863,10084,157201,246827,267122,41404,155301,155535,321739'
+    )
 
     LANGUAGES = settings.SUPPORTED_LANGUAGES
 
@@ -132,10 +135,20 @@ class Command(BaseCommand):
 
     def process_page(self, page):
         primary_lang = self.LANGUAGES[0]
-        url = f'{self.BASE_URL}/movie/popular?language={primary_lang}-{primary_lang.upper()}&page={page}'
+        params = {
+            'language': f'{primary_lang}-{primary_lang.upper()}',
+            'page': page,
+            'include_adult': 'false',
+            'sort_by': 'popularity.desc',
+            'release_date.lte': datetime.now().strftime('%Y-%m-%d'),
+            'vote_count.gte': 50,
+            'without_keywords': self.EXCLUDED_KEYWORDS,
+        }
+        url = f'{self.BASE_URL}/discover/movie'
         try:
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, params=params)
             results = response.json().get('results', [])
+            self.stdout.write(self.style.NOTICE(f'Processing page {page} with {len(results)} movies...'))
             for item in results:
                 self.process_movie_detail(item['id'])
             self.stdout.write(self.style.SUCCESS(f'Page {page} processed successfully.'))
@@ -145,6 +158,8 @@ class Command(BaseCommand):
     def process_movie_detail(self, movie_id):
         if movie_id in self.processed_movie_ids:
             return
+        
+        
 
         data_by_lang = {}
         for lang in self.LANGUAGES:
@@ -180,6 +195,7 @@ class Command(BaseCommand):
                     'platforms': platform_ids,
                     'created_at': self.now,
                     'updated_at': self.now,
+                    'popularity': m.get('popularity'),
                 },
             }
         )
@@ -211,7 +227,7 @@ class Command(BaseCommand):
             )
 
         self.processed_movie_ids.add(movie_id)
-        self.stdout.write(self.style.SUCCESS(f'Movie "{m["title"]}" processed.'))
+        self.stdout.write(self.style.SUCCESS(f'Movie "{m["title"]}" processed with popularity {m.get("popularity")}.'))
 
     def get_or_create_genres(self, genres_data, data_by_lang):
         primary_lang = self.LANGUAGES[0]
