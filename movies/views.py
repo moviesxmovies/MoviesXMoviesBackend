@@ -6,6 +6,7 @@ from django.forms import ValidationError
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+import pyinstrument
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
@@ -392,6 +393,8 @@ def get_movie_recommendations(request) -> JsonResponse:
         JsonResponse: Serialized list of up to LIMIT_RECOMMENDATIONS
         recommended movies with HTTP 200.
     """
+    profiler = pyinstrument.Profiler()
+    profiler.start()
     user = request.user
     proxy = MovieList(user=user)
 
@@ -410,7 +413,11 @@ def get_movie_recommendations(request) -> JsonResponse:
         recommended = _pad_with_algorithmic(recommended, exclude_ids, user, LIMIT_RECOMMENDATIONS)
 
     recommended = recommended[:LIMIT_RECOMMENDATIONS]
-    return MovieSerializer(recommended, request=request).json_response()
+    response =MovieSerializer(recommended, request=request).json_response()
+
+    profiler.stop()
+    profiler.print()
+    return response
 
 
 def _pad_with_algorithmic(
