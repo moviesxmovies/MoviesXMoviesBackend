@@ -283,7 +283,7 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonRespo
 @require_http_methods(['GET'])
 @auth_required
 @cached_view(
-    lambda req, user, movies_list: f'movie_list_detail:{user.pk}:{movies_list.pk}:{req.user.pk}',
+    lambda req, user, movies_list: f'movies_lists_detail:{user.pk}:{movies_list.pk}:{req.user.pk}',
     timeout=60 * 60,
 )
 def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:

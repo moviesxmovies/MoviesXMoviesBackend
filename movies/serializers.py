@@ -1,9 +1,7 @@
 from django.urls import reverse
 from rest_framework import serializers
 
-from awards.serializers import AwardSerializer
 from genres.serializers import GenreSerializer
-from persons.serializers import PersonSerializer
 from platforms.serializers import PlatformSerializer
 from shared.serializers import BaseSerializer
 
