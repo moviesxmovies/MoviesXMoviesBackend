@@ -111,6 +111,8 @@ PLATFORMS_LIST_URL = '/api/platforms/'
 PERSON_DETAIL_URL = '/api/persons/{person_slug}/'
 PERSON_ACTORS_SEARCH_URL = '/api/persons/actors/'
 PERSON_DIRECTORS_SEARCH_URL = '/api/persons/directors/'
+PERSON_ACTED_MOVIES_URL = '/api/persons/{person_slug}/acted-movies/'
+PERSON_DIRECTED_MOVIES_URL = '/api/persons/{person_slug}/directed-movies/'
 
 # ===========================================
 # TEST USERS
