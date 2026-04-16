@@ -5,7 +5,12 @@ import pytest
 from django.test import RequestFactory
 
 from persons.serializers import PersonSerializer
-from tests.conftest import PERSON_ACTORS_SEARCH_URL, PERSON_DIRECTORS_SEARCH_URL
+from tests.conftest import (
+    PERSON_ACTED_MOVIES_URL,
+    PERSON_ACTORS_SEARCH_URL,
+    PERSON_DIRECTED_MOVIES_URL,
+    PERSON_DIRECTORS_SEARCH_URL,
+)
 
 # ===========================================================================
 #  MODELS
@@ -55,7 +60,14 @@ def test_person_str(person_factory):
 # ===========================================================================
 @pytest.mark.django_db
 def test_person_serializer(person_factory):
-    person = person_factory(name='John Doe', slug='john-doe', biography='A famous actor.', birthday=datetime.date(1980, 1, 1), deathday=datetime.date(2020, 1, 1), gender=1)
+    person = person_factory(
+        name='John Doe',
+        slug='john-doe',
+        biography='A famous actor.',
+        birthday=datetime.date(1980, 1, 1),
+        deathday=datetime.date(2020, 1, 1),
+        gender=1,
+    )
     serialized = PersonSerializer(person).serialize()
 
     assert serialized['id'] == person.pk
@@ -74,7 +86,9 @@ def test_person_serializer_with_translation(person_factory, person_translation_f
     translation_es = person_translation_factory(language='es', biography='Biografía en español')
     translation_fr = person_translation_factory(language='fr', biography='Biographie en français')
 
-    person = person_factory(name='John Doe', slug='john-doe', translations=[translation_es, translation_fr])
+    person = person_factory(
+        name='John Doe', slug='john-doe', translations=[translation_es, translation_fr]
+    )
 
     request = RequestFactory().get('/')
     request.user = MagicMock(preferred_language='es')
@@ -135,7 +149,9 @@ def test_person_directors_search_view(person_factory, auth_client, movie_factory
 def test_person_actors_search_by_name(person_factory, auth_client, movie_factory):
     john = person_factory(name='John Doe', slug='john-doe')
     ruben = person_factory(name='Ruben Abreu', slug='ruben-abreu')
-    movie_factory(title='Movie 1', actors=[john, ruben], directors=[])
+    movie_factory(
+        title='Movie 1', actors=[john, ruben], directors=[], release_date=datetime.date(2020, 1, 1)
+    )
 
     response = auth_client.get(PERSON_ACTORS_SEARCH_URL, {'name': 'Ruben Abreu'})
     assert response.status_code == 200
@@ -143,3 +159,102 @@ def test_person_actors_search_by_name(person_factory, auth_client, movie_factory
 
     assert len(data['results']) == 1
     assert data['results'][0]['name'] == 'Ruben Abreu'
+
+
+@pytest.mark.django_db
+def test_person_acted_movies_view(person_factory, auth_client, movie_factory):
+    john = person_factory(name='John Doe', slug='john-doe')
+
+    movie_factory(
+        title='Movie 1', actors=[john], directors=[], release_date=datetime.date(2020, 1, 1)
+    )
+    movie_factory(
+        title='Movie 2', actors=[john], directors=[], release_date=datetime.date(2020, 1, 1)
+    )
+
+    response = auth_client.get(PERSON_ACTED_MOVIES_URL.format(person_slug=john.slug))
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 2
+    assert data['results'][0]['title'] == 'Movie 2'
+    assert data['results'][1]['title'] == 'Movie 1'
+
+
+@pytest.mark.django_db
+def test_person_acted_movies_view_with_last_id(person_factory, auth_client, movie_factory):
+    john = person_factory(name='John Doe', slug='john-doe')
+
+    movie_factory(
+        title='Movie 1', actors=[john], directors=[], release_date=datetime.date(2020, 1, 1)
+    )
+    movie2 = movie_factory(
+        title='Movie 2', actors=[john], directors=[], release_date=datetime.date(2020, 2, 1)
+    )
+    movie3 = movie_factory(
+        title='Movie 3', actors=[john], directors=[], release_date=datetime.date(2020, 3, 1)
+    )
+
+    response = auth_client.get(
+        PERSON_ACTED_MOVIES_URL.format(person_slug=john.slug), {'last_id': movie3.pk, 'limit': 1}
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 1
+    assert data['results'][0]['title'] == 'Movie 2'
+
+    response2 = auth_client.get(
+        PERSON_ACTED_MOVIES_URL.format(person_slug=john.slug), {'last_id': movie2.pk, 'limit': 1}
+    )
+    assert response2.status_code == 200
+    data2 = response2.json()
+    assert len(data2['results']) == 1
+    assert data2['results'][0]['title'] == 'Movie 1'
+
+
+@pytest.mark.django_db
+def test_person_directed_movies_view(person_factory, auth_client, movie_factory):
+    jane = person_factory(name='Jane Smith', slug='jane-smith')
+
+    movie_factory(
+        title='Movie 1', actors=[], directors=[jane], release_date=datetime.date(2020, 1, 1)
+    )
+    movie_factory(
+        title='Movie 2', actors=[], directors=[jane], release_date=datetime.date(2020, 2, 1)
+    )
+
+    response = auth_client.get(PERSON_DIRECTED_MOVIES_URL.format(person_slug=jane.slug))
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 2
+    assert data['results'][0]['title'] == 'Movie 2'
+    assert data['results'][1]['title'] == 'Movie 1'
+
+
+@pytest.mark.django_db
+def test_person_directed_movies_view_with_last_id(person_factory, auth_client, movie_factory):
+    jane = person_factory(name='Jane Smith', slug='jane-smith')
+
+    movie_factory(title='Movie 1', actors=[], directors=[jane])
+    movie2 = movie_factory(title='Movie 2', actors=[], directors=[jane], release_date=datetime.date(2020, 2, 1))
+
+    movie3 = movie_factory(title='Movie 3', actors=[], directors=[jane], release_date=datetime.date(2020, 3, 1))
+
+    response = auth_client.get(
+        PERSON_DIRECTED_MOVIES_URL.format(person_slug=jane.slug), {'last_id': movie3.pk, 'limit': 1}
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 1
+    assert data['results'][0]['title'] == 'Movie 2'
+
+    response2 = auth_client.get(
+        PERSON_DIRECTED_MOVIES_URL.format(person_slug=jane.slug), {'last_id': movie2.pk, 'limit': 1}
+    )
+    assert response2.status_code == 200
+    data2 = response2.json()
+    assert len(data2['results']) == 1
+    assert data2['results'][0]['title'] == 'Movie 1'

@@ -1,8 +1,9 @@
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import _get_queryset
-from django.utils.translation import gettext as _
 from django.utils import translation
+from django.utils.translation import gettext as _
 
 from main import settings
 
@@ -84,19 +85,50 @@ def deactivate_language(previous_language):
     else:
         translation.deactivate()
 
-def get_progressive_response(queryset, serializer_class, request, last_id=None, limit=10):
+
+def __get_cursor_filter(queryset, last_id, ordering_field):
+    if not last_id:
+        return queryset
+
+    fields = ordering_field if isinstance(ordering_field, list) else [ordering_field]
+
+    if '-release_date' in fields:
+        try:
+            last_item = queryset.model.objects.get(pk=last_id)
+            return queryset.filter(
+                Q(release_date__lt=last_item.release_date)
+                | Q(release_date=last_item.release_date, pk__lt=last_id)
+            )
+        except queryset.model.DoesNotExist:
+            return queryset
+
+    return queryset.filter(pk__lt=last_id)
+
+
+def __apply_ordering(queryset, ordering_field):
+    if isinstance(ordering_field, list):
+        return queryset.order_by(*ordering_field, '-pk')
+    return queryset.order_by(ordering_field, '-pk')
+
+
+def get_progressive_response(
+    queryset, serializer_class, request, last_id=None, limit=10, ordering_field='-pk'
+):
     limit = int(limit) if limit else 10
     last_id = int(last_id) if last_id else None
 
-    if last_id:
-        queryset = queryset.filter(pk__lt=last_id)
+    queryset = __get_cursor_filter(queryset, last_id, ordering_field)
 
-    items = list(queryset.order_by('-pk')[:limit + 1])
+    queryset = __apply_ordering(queryset, ordering_field)
+    items = list(queryset[: limit + 1])
+
     has_more = len(items) > limit
     if has_more:
         items = items[:-1]
 
-    return JsonResponse({
-        'results': serializer_class(items, request=request).serialize(),
-        'next_last_id': items[-1].pk if has_more and items else None,
-    })
+    return JsonResponse(
+        {
+            'results': serializer_class(items, request=request).serialize(),
+            'next_last_id': items[-1].pk if has_more and items else None,
+        }
+    )
