@@ -17,6 +17,7 @@ jobs:
               with:
                 host: ${{ secrets.SSH_HOST }}
                 username: ${{ secrets.SSH_USERNAME }}
+                port: 6454
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
                   cd ${{ secrets.SSH_TARGET }}
