@@ -416,6 +416,7 @@ def get_movie_recommendations(request) -> JsonResponse:
 
     response = MovieSerializer(recommended, request=request).json_response()
     profiler.stop()
+    profiler.print()
     return response
 
 
