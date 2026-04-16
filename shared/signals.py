@@ -25,18 +25,6 @@ def invalidate_movie_detail(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys('movie_search:*'))
     logger.debug(f'Invalidated movie_search cache due to update of movie {instance.pk}')
 
-    for actor in instance.actors.all():
-        cache.delete_many(keys=cache.keys(f'person_acted_movies:{actor.pk}:*'))
-        logger.debug(
-            f'Invalidated person_acted_movies cache for actor {actor.pk} due to update of movie {instance.pk}'
-        )
-
-    for director in instance.directors.all():
-        cache.delete_many(keys=cache.keys(f'person_directed_movies:{director.pk}:*'))
-        logger.debug(
-            f'Invalidated person_directed_movies cache for director {director.pk} due to update of movie {instance.pk}'
-        )
-
 
 @receiver(post_save, sender=Rating)
 def invalidate_on_rating(sender, instance, created, **kwargs):
