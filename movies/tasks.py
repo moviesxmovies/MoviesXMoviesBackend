@@ -69,6 +69,10 @@ def retrain_professional_model() -> str:
     }
 
     cache.set('movie_recommendation_model', pickle.dumps(trained_data), timeout=None)
+
+    import time
+
+    cache.set('ml_model_version', time.time(), timeout=None)
     logger.info(
         f'Successfully trained model for {len(users_list)} users and '
         f'{len(movies_list)} movies with {len(ratings)} ratings'

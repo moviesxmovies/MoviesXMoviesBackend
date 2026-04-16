@@ -16,6 +16,7 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy as _
 
+from movielists.recommender import RecommenderModel
 from movies.models import Movie
 from ratings.models import Rating
 from shared.models import BaseModel
@@ -214,11 +215,11 @@ class MovieList(BaseModel):
 
         if raw_data:
             try:
-                data = pickle.loads(raw_data)
+                data = RecommenderModel.get_data()
                 internal_id = data['user_id_map'].get(self.user.id)
 
                 if internal_id is not None:
-                    n_candidates = min(300 + len(exclude_ids), 1000)
+                    n_candidates = min(50 + len(exclude_ids), 1000)
 
                     ids, _ = data['model'].recommend(
                         internal_id,
@@ -282,13 +283,13 @@ class MovieList(BaseModel):
 
         user_ratings = self.user.ratings.filter(rating__gte=4).values_list('movie_id', flat=True)
         if user_ratings.exists():
-            favourite_genre_ids = list(  
+            favourite_genre_ids = list(
                 Movie.objects.filter(id__in=user_ratings)
                 .values_list('genres__id', flat=True)
                 .distinct()
             )
-            favourite_genre_ids = [gid for gid in favourite_genre_ids if gid is not None]  
-            if favourite_genre_ids:  
+            favourite_genre_ids = [gid for gid in favourite_genre_ids if gid is not None]
+            if favourite_genre_ids:
                 qs = qs.filter(genres__id__in=favourite_genre_ids)
 
         return (
@@ -303,4 +304,3 @@ class MovieList(BaseModel):
             .order_by('-popularity_score', '-release_date')
             .distinct()
         )
-

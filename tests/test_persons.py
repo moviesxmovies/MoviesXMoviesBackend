@@ -237,7 +237,7 @@ def test_person_directed_movies_view(person_factory, auth_client, movie_factory)
 def test_person_directed_movies_view_with_last_id(person_factory, auth_client, movie_factory):
     jane = person_factory(name='Jane Smith', slug='jane-smith')
 
-    movie_factory(title='Movie 1', actors=[], directors=[jane])
+    movie_factory(title='Movie 1', actors=[], directors=[jane], release_date=datetime.date(2020, 1, 1))
     movie2 = movie_factory(title='Movie 2', actors=[], directors=[jane], release_date=datetime.date(2020, 2, 1))
 
     movie3 = movie_factory(title='Movie 3', actors=[], directors=[jane], release_date=datetime.date(2020, 3, 1))
