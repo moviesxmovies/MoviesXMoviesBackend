@@ -1,7 +1,7 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from shared.models import BaseModel
-from django.utils.translation import gettext_lazy as _
 
 
 class Movie(BaseModel):
@@ -19,6 +19,7 @@ class Movie(BaseModel):
         genres (models.ManyToManyField): A many-to-many relationship to the Genre model.
         platforms (models.ManyToManyField): A many-to-many relationship to the Platform model
     """
+
     class Meta:
         verbose_name = _('Movie')
         verbose_name_plural = _('Movies')
@@ -41,15 +42,15 @@ class Movie(BaseModel):
 
         movie = models.ForeignKey('Movie', related_name='translations', on_delete=models.CASCADE)
         language = models.CharField(max_length=2)
-        title = models.CharField()
+        title = models.CharField(max_length=255)
         synopsis = models.TextField()
         image = models.ImageField(upload_to='movies/translations/covers', null=True, blank=True)
 
         def __str__(self):
             return f'{self.movie.title} ({self.language})'
 
-    title = models.CharField()
-    slug = models.SlugField( unique=True, allow_unicode=True)
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, allow_unicode=True)
     synopsis = models.TextField()
     release_date = models.DateField()
     cover = models.ImageField(upload_to='movies/covers', default='movies/covers/no-movie.png')
