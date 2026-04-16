@@ -61,19 +61,20 @@ def test_movie_list_str(movie_list_factory):
 
 @pytest.mark.django_db
 def test_movie_list_intelligent_fill_no_filters(
-    movie_list_factory, user_factory, movie_factory, rating_factory, platform_factory
+    movie_list_factory, user_factory, movie_factory, rating_factory, platform_factory, genre_factory
 ):
     netflix = platform_factory(slug='netflix')
+    drama = genre_factory(name='Drama', slug='drama')
     user = user_factory()
     user.platforms.add(netflix)
 
-    movie_watched = movie_factory(title='Watched Movie')
+    movie_watched = movie_factory(title='Watched Movie', genres=[drama])
     rating_factory(movie=movie_watched, user=user, rating=5)
 
-    movie_unseen = movie_factory(title='Unseen Movie')
+    movie_unseen = movie_factory(title='Unseen Movie', genres=[drama])
     user.unseen_movies.add(movie_unseen)
 
-    movie_recommendation = movie_factory(title='Recommended Movie')
+    movie_recommendation = movie_factory(title='Recommended Movie', genres=[drama])
     movie_recommendation.platforms.add(netflix)
 
     movie_list = movie_list_factory(user=user, name='Intelligent List')
@@ -342,18 +343,19 @@ def test_movies_list_save(auth_client):
 
 
 @pytest.mark.django_db
-def test_movies_list_save_intelligent(auth_client, movie_factory, rating_factory, platform_factory):
+def test_movies_list_save_intelligent(auth_client, movie_factory, rating_factory, platform_factory, genre_factory):
     netflix = platform_factory(slug='netflix')
+    drama = genre_factory(name='Drama', slug='drama')
     user = auth_client.user
     user.platforms.add(netflix)
 
-    movie_watched = movie_factory(title='Watched Movie')
+    movie_watched = movie_factory(title='Watched Movie', genres=[drama])
     rating_factory(movie=movie_watched, user=user, rating=5)
 
-    movie_unseen = movie_factory(title='Unseen Movie')
+    movie_unseen = movie_factory(title='Unseen Movie', genres=[drama])
     user.unseen_movies.add(movie_unseen)
 
-    movie_recommendation = movie_factory(title='Recommended Movie')
+    movie_recommendation = movie_factory(title='Recommended Movie', genres=[drama])
     movie_recommendation.platforms.add(netflix)
 
     response = auth_client.post(

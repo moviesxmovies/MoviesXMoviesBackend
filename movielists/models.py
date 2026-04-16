@@ -1,13 +1,27 @@
+import logging
 import pickle
 
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    ExpressionWrapper,
+    F,
+    FloatField,
+    IntegerField,
+    Q,
+    When,
+)
 from django.utils.translation import gettext_lazy as _
 
+from movielists.recommender import RecommenderModel
 from movies.models import Movie
 from ratings.models import Rating
 from shared.models import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class MovieList(BaseModel):
@@ -107,7 +121,9 @@ class MovieList(BaseModel):
         """
         watched = self.user.ratings.values_list('movie_id', flat=True)
         unseen = self.user.unseen_movies.values_list('id', flat=True)
-        not_launched = Movie.objects.filter(release_date__gt=models.functions.Now()).values_list('id', flat=True)
+        not_launched = Movie.objects.filter(release_date__gt=models.functions.Now()).values_list(
+            'id', flat=True
+        )
         return set(list(watched) + list(unseen) + list(not_launched))
 
     def _score_candidates(
@@ -136,23 +152,25 @@ class MovieList(BaseModel):
             list[tuple]: List of ``(Movie, float)`` tuples sorted by score
             in descending order.
         """
-        friends_favs = self._get_friends_favorites(friends)
-        scored_list = []
+        friends_favs = set(self._get_friends_favorites(friends))
 
-        for movie in candidates_qs:
+        candidates = list(candidates_qs)
+
+        scored_list = []
+        for movie in candidates:
             score = 1.0
 
             if celebrities:
-                celebs_in_movie = set(movie.actors.values_list('slug', flat=True)) | set(
-                    movie.directors.values_list('slug', flat=True)
-                )
+                celebs_in_movie = {a.slug for a in movie.actors.all()} | {
+                    d.slug for d in movie.directors.all()
+                }
                 if any(c in celebs_in_movie for c in celebrities):
                     score += 3.0
 
             if movie.id in friends_favs:
                 score += 2.5
 
-            if movie.awards.exists():
+            if len(movie.awards.all()) > 0:
                 score += 0.7
 
             scored_list.append((movie, score))
@@ -197,23 +215,41 @@ class MovieList(BaseModel):
 
         if raw_data:
             try:
-                data = pickle.loads(raw_data)
+                data = RecommenderModel.get_data()
                 internal_id = data['user_id_map'].get(self.user.id)
 
                 if internal_id is not None:
+                    n_candidates = min(50 + len(exclude_ids), 1000)
+
                     ids, _ = data['model'].recommend(
-                        internal_id, data['user_items_matrix'][internal_id], N=300
+                        internal_id,
+                        data['user_items_matrix'][internal_id],
+                        N=n_candidates,
+                        filter_already_liked_items=False,
                     )
+
                     candidate_ids = [
                         data['reverse_movie_map'][i]
                         for i in ids
-                        if data['reverse_movie_map'][i] not in exclude_ids
+                        if i in data['reverse_movie_map']
+                        and data['reverse_movie_map'][i] not in exclude_ids
                     ]
-                    return Movie.objects.filter(id__in=candidate_ids)
-            except Exception:
-                pass
 
-        return Movie.objects.exclude(id__in=exclude_ids).order_by('-release_date')
+                    if candidate_ids:
+                        preserved = Case(
+                            *[When(id=pk, then=pos) for pos, pk in enumerate(candidate_ids)],
+                            output_field=IntegerField(),
+                        )
+                        return (
+                            Movie.objects.filter(id__in=candidate_ids)
+                            .annotate(als_rank=preserved)
+                            .order_by('als_rank')
+                        )
+
+            except Exception as e:
+                logger.warning(f'ALS recommendation failed for user {self.user.id}: {e}')
+
+        return self._get_fallback_candidates(exclude_ids)
 
     def _apply_hard_filters(self, queryset, genres: list[str] | None):
         """Apply mandatory filters to a candidate queryset.
@@ -235,8 +271,36 @@ class MovieList(BaseModel):
         if genres:
             qs = qs.filter(genres__slug__in=genres)
 
-        user_platforms = self.user.platforms.values_list('slug', flat=True)
+        user_platforms = list(self.user.platforms.values_list('slug', flat=True))
         if user_platforms:
-            qs = qs.filter(Q(platforms__slug__in=user_platforms) | Q(platforms__isnull=True))
+            no_platform_ids = Movie.objects.filter(platforms=None).values_list('id', flat=True)
+            qs = qs.filter(Q(platforms__slug__in=user_platforms) | Q(id__in=no_platform_ids))
 
         return qs.distinct()[:300]
+
+    def _get_fallback_candidates(self, exclude_ids: set[int]):
+        qs = Movie.objects.exclude(id__in=exclude_ids)
+
+        user_ratings = self.user.ratings.filter(rating__gte=4).values_list('movie_id', flat=True)
+        if user_ratings.exists():
+            favourite_genre_ids = list(
+                Movie.objects.filter(id__in=user_ratings)
+                .values_list('genres__id', flat=True)
+                .distinct()
+            )
+            favourite_genre_ids = [gid for gid in favourite_genre_ids if gid is not None]
+            if favourite_genre_ids:
+                qs = qs.filter(genres__id__in=favourite_genre_ids)
+
+        return (
+            qs.annotate(
+                avg_rating=Avg('ratings__rating'),
+                rating_count=Count('ratings'),
+                popularity_score=ExpressionWrapper(
+                    (F('avg_rating') * F('rating_count')) / (F('rating_count') + 10),
+                    output_field=FloatField(),
+                ),
+            )
+            .order_by('-popularity_score', '-release_date')
+            .distinct()
+        )

@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 from django.core.cache import cache
-from django.db.models import Case, IntegerField, Q, When
+from django.db.models import Q
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
@@ -393,7 +393,6 @@ def get_movie_recommendations(request) -> JsonResponse:
         recommended movies with HTTP 200.
     """
     user = request.user
-
     proxy = MovieList(user=user)
 
     exclude_ids = proxy._get_exclude_ids()
@@ -402,25 +401,16 @@ def get_movie_recommendations(request) -> JsonResponse:
     scored_movies = proxy._score_candidates(
         candidates_qs,
         celebrities=None,
-        friends=list(request.user.friends.values_list('username', flat=True)),
+        friends=list(user.friends.values_list('username', flat=True)),
     )
 
     recommended = [movie for movie, _score in scored_movies]
+
     if len(recommended) < LIMIT_RECOMMENDATIONS:
         recommended = _pad_with_algorithmic(recommended, exclude_ids, user, LIMIT_RECOMMENDATIONS)
 
-    ordered_ids = [m.id for m in recommended]
-    preserved_order = Case(
-        *[When(id=pk, then=pos) for pos, pk in enumerate(ordered_ids)],
-        output_field=IntegerField(),
-    )
-    queryset = (
-        Movie.objects.filter(id__in=ordered_ids)
-        .annotate(recommendation_rank=preserved_order)
-        .order_by('recommendation_rank')[:LIMIT_RECOMMENDATIONS]
-    )
-
-    return MovieSerializer(queryset, request=request).json_response()
+    recommended = recommended[:LIMIT_RECOMMENDATIONS]
+    return MovieSerializer(recommended, request=request).json_response()
 
 
 def _pad_with_algorithmic(

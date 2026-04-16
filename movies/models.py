@@ -52,7 +52,7 @@ class Movie(BaseModel):
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, allow_unicode=True)
     synopsis = models.TextField()
-    release_date = models.DateField()
+    release_date = models.DateField(db_index=True)
     cover = models.ImageField(upload_to='movies/covers', default='movies/covers/no-movie.png')
     directors = models.ManyToManyField('persons.Person', related_name='directed_movies')
     actors = models.ManyToManyField('persons.Person', related_name='acted_movies')
