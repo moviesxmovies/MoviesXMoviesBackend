@@ -41,15 +41,15 @@ class Movie(BaseModel):
 
         movie = models.ForeignKey('Movie', related_name='translations', on_delete=models.CASCADE)
         language = models.CharField(max_length=2)
-        title = models.CharField(max_length=100)
+        title = models.CharField()
         synopsis = models.TextField()
         image = models.ImageField(upload_to='movies/translations/covers', null=True, blank=True)
 
         def __str__(self):
             return f'{self.movie.title} ({self.language})'
 
-    title = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=100, unique=True, allow_unicode=True)
+    title = models.CharField()
+    slug = models.SlugField( unique=True, allow_unicode=True)
     synopsis = models.TextField()
     release_date = models.DateField()
     cover = models.ImageField(upload_to='movies/covers', default='movies/covers/no-movie.png')
