@@ -15,6 +15,7 @@ from reviews.models import Comment, Review
 from users.models import FriendShip, User
 
 logger = logging.getLogger(__name__)
+MOVIE_SEARCH_ALL = 'movie_search:*'
 
 
 @receiver(m2m_changed, sender=Movie.actors.through)
@@ -37,14 +38,15 @@ def invalidate_director_movies_on_change(sender, instance, action, pk_set, **kwa
 def invalidate_movie_genres_on_change(sender, instance, action, pk_set, **kwargs):
     if action in ['post_add', 'post_remove', 'post_clear']:
         cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
-        cache.delete_many(keys=cache.keys('movie_search:*'))
+
+        cache.delete_many(keys=cache.keys(MOVIE_SEARCH_ALL))
 
 
 @receiver(m2m_changed, sender=Movie.platforms.through)
 def invalidate_movie_platforms_on_change(sender, instance, action, pk_set, **kwargs):
     if action in ['post_add', 'post_remove', 'post_clear']:
         cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
-        cache.delete_many(keys=cache.keys('movie_search:*'))
+        cache.delete_many(keys=cache.keys(MOVIE_SEARCH_ALL))
 
 
 @receiver(m2m_changed, sender=Movie.awards.through)
@@ -58,7 +60,7 @@ def invalidate_movie_detail(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
     logger.debug(f'Invalidated movie_detail cache for movie {instance.pk}')
 
-    cache.delete_many(keys=cache.keys('movie_search:*'))
+    cache.delete_many(keys=cache.keys(MOVIE_SEARCH_ALL))
     logger.debug(f'Invalidated movie_search cache due to update of movie {instance.pk}')
 
 
@@ -77,7 +79,7 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
     cache.delete(f'movie_rating:{user.pk}:{movie.pk}')
     logger.debug(f'Invalidated movie_rating cache for user {user.pk} and movie {movie.pk}')
 
-    cache.delete_many(keys=cache.keys('movie_search:*'))
+    cache.delete_many(keys=cache.keys(MOVIE_SEARCH_ALL))
     logger.debug(f'Invalidated movie_search cache for user {user.pk} by rating movie {movie.pk}')
 
     for friend in user.friends.all():
