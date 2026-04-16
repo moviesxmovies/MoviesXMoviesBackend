@@ -34,9 +34,9 @@ def retrain_professional_model() -> str:
         str: ``'No ratings to train the model'`` if no ratings exist,
         otherwise ``'Model Implicit (ALS) trained'``.
     """
-    ratings_qs = Rating.objects.values_list('user_id', 'movie_id', 'rating')
-    if not ratings_qs.exists():
-        logger.info('No ratings to traind the model')
+    ratings = list(Rating.objects.values_list('user_id', 'movie_id', 'rating'))
+    if not ratings:
+        logger.info('No ratings to train the model')
         return 'No ratings to train the model'
 
     users_list = list(User.objects.values_list('id', flat=True))
@@ -47,7 +47,7 @@ def retrain_professional_model() -> str:
     reverse_movie_map = {new_id: old_id for old_id, new_id in movie_id_map.items()}
 
     rows, cols, data = [], [], []
-    for u_id, m_id, rating in ratings_qs:
+    for u_id, m_id, rating in ratings:
         if u_id in user_id_map and m_id in movie_id_map:
             rows.append(movie_id_map[m_id])
             cols.append(user_id_map[u_id])
@@ -67,12 +67,10 @@ def retrain_professional_model() -> str:
         'reverse_movie_map': reverse_movie_map,
         'user_items_matrix': item_user_matrix.T.tocsr(),
     }
-    cache.set(
-        'movie_recommendation_model',
-        pickle.dumps(trained_data),
-        timeout=None,
-    )
+
+    cache.set('movie_recommendation_model', pickle.dumps(trained_data), timeout=None)
     logger.info(
-        f'Successfully trained model for {len(users_list)} users and {len(movies_list)} movies relating by {len(ratings_qs)} ratings'
+        f'Successfully trained model for {len(users_list)} users and '
+        f'{len(movies_list)} movies with {len(ratings)} ratings'
     )
     return 'Model Implicit (ALS) trained'
