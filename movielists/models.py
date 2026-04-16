@@ -107,7 +107,8 @@ class MovieList(BaseModel):
         """
         watched = self.user.ratings.values_list('movie_id', flat=True)
         unseen = self.user.unseen_movies.values_list('id', flat=True)
-        return set(list(watched) + list(unseen))
+        not_launched = Movie.objects.filter(release_date__gt=models.functions.Now()).values_list('id', flat=True)
+        return set(list(watched) + list(unseen) + list(not_launched))
 
     def _score_candidates(
         self,
