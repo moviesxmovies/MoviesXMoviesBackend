@@ -740,4 +740,7 @@ def self_movie_lists_slug(request, movie: Movie) -> JsonResponse:
         or a JSON error body with HTTP 404 if the movie does not exist.
     """
     movielists_qs = MovieList.objects.filter(user=request.user, movies=movie)
-    return JsonResponse(movielists_qs.values('slug'), safe=False, status=HTTPStatus.OK)
+
+    slugs = list(movielists_qs.values_list('slug', flat=True))
+
+    return JsonResponse(slugs, safe=False, status=HTTPStatus.OK)

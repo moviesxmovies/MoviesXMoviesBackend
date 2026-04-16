@@ -1,11 +1,11 @@
 import json
 import pickle
-from django.utils import timezone
 from unittest.mock import Mock
 
 import pytest
 from django.core.cache import cache
 from django.test import RequestFactory
+from django.utils import timezone
 
 from movies.serializers import MovieSerializer
 from movies.tasks import retrain_professional_model
@@ -13,6 +13,7 @@ from ratings.models import Rating
 from tests.conftest import (
     MOVIE_DETAIL_URL,
     MOVIE_FRIENDS_RATINGS_URL,
+    MOVIE_MOVIE_LISTS_URL,
     MOVIE_RECOMMENDATIONS_URL,
     MOVIE_REVIEWS_URL,
     MOVIE_SEARCHING_URL,
@@ -966,3 +967,17 @@ class TestMovieSearchView:
         response = auth_client.get(f'{MOVIE_SEARCHING_URL}?directors=christopher-nolan')
         assert len(response.json()['results']) == 1
         assert response.json()['results'][0]['id'] == m1.id
+
+
+@pytest.mark.django_db
+def test_get_movie_lists_slug_user_movie(movie_factory, movie_list_factory, auth_client):
+    movie = movie_factory(title='Inception')
+
+    movie_list_factory(name='My List', user=auth_client.user, movies=[movie])
+    movie_list_factory(name='Other List', user=auth_client.user, movies=[movie])
+
+    response = auth_client.get(MOVIE_MOVIE_LISTS_URL.format(movie_slug=movie.slug))
+    assert response.status_code == 200
+    data = response.json()
+    assert data[0] == 'my-list'
+    assert data[1] == 'other-list'
