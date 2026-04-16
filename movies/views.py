@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-import pyinstrument
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from django.forms import ValidationError
@@ -10,6 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
+from genres.models import Genre
 from movielists.models import MovieList
 from movies.models import Movie
 from movies.serializers import MovieSerializer
@@ -393,8 +393,6 @@ def get_movie_recommendations(request) -> JsonResponse:
         JsonResponse: Serialized list of up to LIMIT_RECOMMENDATIONS
         recommended movies with HTTP 200.
     """
-    profiler = pyinstrument.Profiler()
-    profiler.start()
     user = request.user
     proxy = MovieList(user=user)
 
@@ -415,7 +413,6 @@ def get_movie_recommendations(request) -> JsonResponse:
         recommended = _pad_with_algorithmic(recommended, exclude_ids, user, LIMIT_RECOMMENDATIONS)
 
     response = MovieSerializer(recommended, request=request).json_response()
-    profiler.stop()
     return response
 
 
@@ -462,6 +459,12 @@ def _pad_with_algorithmic(
             'genres',
             'platforms',
             Prefetch('translations', queryset=translations_qs, to_attr='prefetched_translations'),
+            'genres',
+            Prefetch(
+                'genres__translations',
+                queryset=Genre.GenreTranslation.objects.filter(language=lang),
+                to_attr='prefetched_translations',
+            ),
         )
         .order_by('-release_date')
     )
