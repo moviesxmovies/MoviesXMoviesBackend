@@ -1,7 +1,7 @@
 import logging
 
 from django.core.cache import cache
-from django.db.models.signals import post_save
+from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 
 from awards.models import Award
@@ -15,6 +15,22 @@ from reviews.models import Comment, Review
 from users.models import FriendShip, User
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(m2m_changed, sender=Movie.actors.through)
+def invalidate_actor_movies_on_change(sender, instance, action, pk_set, **kwargs):
+    if action in ['post_add', 'post_remove', 'post_clear'] and pk_set:
+        for actor_pk in pk_set:
+            cache.delete_many(keys=cache.keys(f'person_acted_movies:{actor_pk}:*'))
+            logger.debug(f'Invalidated acted_movies for actor {actor_pk}')
+
+
+@receiver(m2m_changed, sender=Movie.directors.through)
+def invalidate_director_movies_on_change(sender, instance, action, pk_set, **kwargs):
+    if action in ['post_add', 'post_remove', 'post_clear'] and pk_set:
+        for director_pk in pk_set:
+            cache.delete_many(keys=cache.keys(f'person_directed_movies:{director_pk}:*'))
+            logger.debug(f'Invalidated directed_movies for director {director_pk}')
 
 
 @receiver(post_save, sender=Movie)
