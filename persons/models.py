@@ -58,11 +58,15 @@ class Person(BaseModel):
     def __str__(self):
         return self.slug
 
+    def _get_prefetched_translation(self, language):
+        if hasattr(self, 'prefetched_translations'):
+            for t in self.prefetched_translations:
+                if t.language == language:
+                    return t
+            return None
+
+        return self.translations.filter(language=language).first()
+
     def translate_biography(self, language_code):
-        try:
-            translation = self.translations.get(language=language_code)
-        except self.PersonTranslation.DoesNotExist:
-            translation = None
-        if translation:
-            return translation.biography
-        return self.biography
+        translation = self._get_prefetched_translation(language_code)
+        return translation.biography if translation else self.biography

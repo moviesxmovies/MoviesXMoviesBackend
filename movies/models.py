@@ -63,29 +63,25 @@ class Movie(BaseModel):
     def __str__(self):
         return self.slug
 
+    def _get_prefetched_translation(self, language):
+        if hasattr(self, 'prefetched_translations'):
+            for t in self.prefetched_translations:
+                if t.language == language:
+                    return t
+            return None
+
+        return self.translations.filter(language=language).first()
+
     def translate_title(self, language):
-        try:
-            translation = self.translations.get(language=language)
-        except self.MovieTranslation.DoesNotExist:
-            translation = None
-        if translation:
-            return translation.title
-        return self.title
+        translation = self._get_prefetched_translation(language)
+        return translation.title if translation else self.title
 
     def translate_synopsis(self, language):
-        try:
-            translation = self.translations.get(language=language)
-        except self.MovieTranslation.DoesNotExist:
-            translation = None
-        if translation:
-            return translation.synopsis
-        return self.synopsis
+        translation = self._get_prefetched_translation(language)
+        return translation.synopsis if translation else self.synopsis
 
     def translate_image(self, language):
-        try:
-            translation = self.translations.get(language=language)
-        except self.MovieTranslation.DoesNotExist:
-            translation = None
+        translation = self._get_prefetched_translation(language)
         if translation and translation.image:
             return translation.image.url
         return self.cover.url

@@ -1,5 +1,4 @@
 import logging
-import pickle
 
 from django.core.cache import cache
 from django.db import models
@@ -12,6 +11,7 @@ from django.db.models import (
     FloatField,
     IntegerField,
     Q,
+    Value,
     When,
 )
 from django.utils.translation import gettext_lazy as _
@@ -102,13 +102,11 @@ class MovieList(BaseModel):
         """
         exclude_ids = self._get_exclude_ids()
         candidates_qs = self._get_base_candidates(exclude_ids)
-
         candidates_qs = self._apply_hard_filters(candidates_qs, genres)
 
         scored_movies = self._score_candidates(candidates_qs, celebrities, friends)
 
-        final_movies = [m for m, score in scored_movies[:40]]
-        self.movies.set(final_movies)
+        self.movies.set(scored_movies)
 
     def _get_exclude_ids(self) -> set[int]:
         """Return the set of movie PKs that should be excluded from recommendations.
@@ -131,7 +129,8 @@ class MovieList(BaseModel):
         candidates_qs,
         celebrities: list[str] | None,
         friends: list[str] | None,
-    ) -> list[tuple]:
+        limit: int = 50,
+    ) -> models.QuerySet[Movie]:
         """Score and rank candidate movies using a weighted heuristic.
 
         Scoring weights applied per movie:
@@ -152,30 +151,36 @@ class MovieList(BaseModel):
             list[tuple]: List of ``(Movie, float)`` tuples sorted by score
             in descending order.
         """
-        friends_favs = set(self._get_friends_favorites(friends))
+        friends_favs = self._get_friends_favorites(friends)
 
-        candidates = list(candidates_qs)
+        has_als_rank = 'als_rank' in candidates_qs.query.annotations
 
-        scored_list = []
-        for movie in candidates:
-            score = 1.0
+        if celebrities:
+            celeb_condition = Q(actors__slug__in=celebrities) | Q(directors__slug__in=celebrities)
+        else:
+            celeb_condition = Q(pk__in=[])
 
-            if celebrities:
-                celebs_in_movie = {a.slug for a in movie.actors.all()} | {
-                    d.slug for d in movie.directors.all()
-                }
-                if any(c in celebs_in_movie for c in celebrities):
-                    score += 3.0
+        qs = candidates_qs.annotate(
+            award_count=Count('awards', distinct=True),
+            heuristic_score=ExpressionWrapper(
+                1.0
+                + Case(When(celeb_condition, then=Value(3.0)), default=Value(0.0))
+                + Case(When(id__in=friends_favs, then=Value(2.5)), default=Value(0.0))
+                + Case(When(award_count__gt=0, then=Value(0.7)), default=Value(0.0)),
+                output_field=FloatField(),
+            ),
+        )
 
-            if movie.id in friends_favs:
-                score += 2.5
+        order_fields = ['-heuristic_score']
+        if has_als_rank:
+            order_fields.append('als_rank')
+        else:
+            fallback_field = (
+                'popularity_score' if 'popularity_score' in qs.query.annotations else 'id'
+            )
+            order_fields.append(f'-{fallback_field}')
 
-            if len(movie.awards.all()) > 0:
-                score += 0.7
-
-            scored_list.append((movie, score))
-
-        return sorted(scored_list, key=lambda x: x[1], reverse=True)
+        return qs.order_by(*order_fields)[:limit]
 
     def _get_friends_favorites(self, friends_usernames: list[str] | None) -> list[int]:
         """Return the movie PKs rated 4 or higher by the specified friends.
@@ -276,7 +281,7 @@ class MovieList(BaseModel):
             no_platform_ids = Movie.objects.filter(platforms=None).values_list('id', flat=True)
             qs = qs.filter(Q(platforms__slug__in=user_platforms) | Q(id__in=no_platform_ids))
 
-        return qs.distinct()[:300]
+        return qs.distinct()
 
     def _get_fallback_candidates(self, exclude_ids: set[int]):
         qs = Movie.objects.exclude(id__in=exclude_ids)
