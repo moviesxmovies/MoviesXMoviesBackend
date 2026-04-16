@@ -21,29 +21,29 @@ msgstr ""
 
 #: shared/decorators.py:54
 msgid "Method not allowed"
-msgstr ""
+msgstr "Metodo no permitido"
 
 #: shared/decorators.py:182
 msgid "Invalid JSON body"
-msgstr ""
+msgstr "Cuerpo JSON no válido"
 
 #: shared/decorators.py:190
 msgid "Missing required fields"
-msgstr ""
+msgstr "Faltan campos requeridos"
 
 #: shared/handlers.py:10
 msgid "Not Found"
-msgstr ""
+msgstr "No encontrado"
 
 #: shared/handlers.py:11
 msgid "The requested resource was not found."
-msgstr ""
+msgstr "El recurso solicitado no fue encontrado."
 
 #: shared/handlers.py:12 shared/handlers.py:13
 msgid "unknown"
-msgstr ""
+msgstr "desconocido"
 
 #: shared/utils.py:29
 #, python-brace-format
 msgid "Does not exist {model_name} with identifier {lookup_value}"
-msgstr ""
+msgstr "No existe {model_name} con identificador {lookup_value}"

@@ -1,7 +1,6 @@
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 
-
 def custom_handler404(request, exception):
     data = getattr(
         exception,
