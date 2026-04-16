@@ -16,4 +16,5 @@ urlpatterns = [
         views.movie_friends_ratings,
         name='movie-friends-ratings',
     ),
+    path('<movie:movie>/movie-lists/', views.self_movie_lists_slug, name='movie-movie-lists'),
 ]

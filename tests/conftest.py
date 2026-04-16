@@ -76,6 +76,7 @@ MOVIE_REVIEWS_URL = '/api/movies/{movie_slug}/reviews/'
 MOVIE_FRIENDS_RATINGS_URL = '/api/movies/{movie_slug}/friends-ratings/'
 MOVIE_SELF_RATING_URL = '/api/movies/{movie_slug}/ratings/'
 MOVIE_UNSEEN_URL = '/api/movies/{movie_slug}/unseen/'
+MOVIE_MOVIE_LISTS_URL = '/api/movies/{movie_slug}/movie-lists/'
 
 # USERS
 SUGGESTED_USERS_URL = '/api/users/suggested-users/'

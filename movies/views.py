@@ -5,7 +5,7 @@ from django.db.models import Case, IntegerField, Q, When
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
-from drf_spectacular.utils import OpenApiParameter, extend_schema, OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 
@@ -75,6 +75,17 @@ class MoviesInListSerializer(serializers.ModelSerializer):
         ]
 
 
+class MovieListOnlySLugSerializer(serializers.ModelSerializer):
+    """Serializer for representing a Movie with only slug field.
+
+    Used for internal purposes where only the slug is needed.
+    """
+
+    class Meta:
+        model = Movie
+        fields = ['slug']
+
+
 @extend_schema(
     responses={200: MovieSerializer.get_schema(), 404: None},
     description='Get details of a specific movie',
@@ -84,7 +95,7 @@ class MoviesInListSerializer(serializers.ModelSerializer):
 @require_http_methods(['GET'])
 @auth_required
 @cached_view(
-    lambda req, movie: f'movie_detail_{movie.pk}:{req.user.preferred_language}', timeout=60 * 60 * 6
+    lambda req, movie: f'movie_detail:{movie.pk}:{req.user.preferred_language}', timeout=60 * 60 * 6
 )
 def movie_detail(request, movie: Movie) -> JsonResponse:
     """Return the full detail representation of a single movie.
@@ -491,7 +502,7 @@ def movie_unseen_wrapper(request, movie: Movie) -> JsonResponse:
     if isinstance(response, JsonResponse):
         return response
 
-    cache.delete(f'recommendations:{request.user.pk}')
+    cache.delete_many(keys=cache.keys(f'recommendations:{request.user.pk}:*'))
     return JsonResponse({'success': True}, status=HTTPStatus.OK)
 
 
@@ -704,3 +715,32 @@ def movie_search(
     movies_qs = movies_qs.distinct().order_by('-release_date')
 
     return get_paginated_response(movies_qs, MovieSerializer, request, page, limit)
+
+
+@extend_schema(
+    description='Returns the list movielists of the user which includes this movie',
+    responses={200: MovieListOnlySLugSerializer(many=True), 404: None},
+    operation_id='get_movie_movie_lists',
+)
+@api_view(['GET'])
+@auth_required
+@require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, movie: f'self_movie_lists_slug:{req.user.pk}:{movie.pk}', timeout=60 * 5
+)
+def self_movie_lists_slug(request, movie: Movie) -> JsonResponse:
+    """Return the list of movie lists owned by the authenticated user that include the specified movie.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        movie (Movie): The movie instance resolved from the URL.
+
+    Returns:
+        JsonResponse: A JSON response containing a list of movie lists with HTTP 200,
+        or a JSON error body with HTTP 404 if the movie does not exist.
+    """
+    movielists_qs = MovieList.objects.filter(user=request.user, movies=movie)
+
+    slugs = list(movielists_qs.values_list('slug', flat=True))
+
+    return JsonResponse(slugs, safe=False, status=HTTPStatus.OK)

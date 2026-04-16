@@ -33,6 +33,26 @@ def invalidate_director_movies_on_change(sender, instance, action, pk_set, **kwa
             logger.debug(f'Invalidated directed_movies for director {director_pk}')
 
 
+@receiver(m2m_changed, sender=Movie.genres.through)
+def invalidate_movie_genres_on_change(sender, instance, action, pk_set, **kwargs):
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
+        cache.delete_many(keys=cache.keys('movie_search:*'))
+
+
+@receiver(m2m_changed, sender=Movie.platforms.through)
+def invalidate_movie_platforms_on_change(sender, instance, action, pk_set, **kwargs):
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
+        cache.delete_many(keys=cache.keys('movie_search:*'))
+
+
+@receiver(m2m_changed, sender=Movie.awards.through)
+def invalidate_movie_awards_on_change(sender, instance, action, pk_set, **kwargs):
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
+
+
 @receiver(post_save, sender=Movie)
 def invalidate_movie_detail(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(f'movie_detail:{instance.pk}:*'))
@@ -74,7 +94,7 @@ def invalidate_on_review(sender, instance, created, **kwargs):
     logger.debug(
         f'Invalidating caches due to new review by user {instance.user.pk} for movie {instance.movie.pk}'
     )
-    cache.delete(f'recommendations:{instance.user.pk}')
+    cache.delete_many(keys=cache.keys(f'recommendations:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'user_reviews:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movie_reviews:{instance.movie.pk}:*'))
 
@@ -99,6 +119,17 @@ def invalidate_on_movielist(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user.pk}:{instance.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user.pk}:*'))
+
+
+@receiver(m2m_changed, sender=MovieList.movies.through)
+def invalidate_on_movielist_movies_change(sender, instance, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to change in movies for movie list {instance.pk} by user {instance.user.pk}'
+    )
+    cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user.pk}:{instance.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'self_movie_lists_slug:{instance.user.pk}:*'))
 
 
 @receiver(post_save, sender=Comment)
@@ -128,6 +159,12 @@ def invalidate_on_award(sender, instance, created, **kwargs):
         f'Invalidating caches due to {"creation" if created else "update"} of award {instance.pk}'
     )
     cache.delete(f'award_detail:{instance.pk}')
+
+
+@receiver(m2m_changed, sender=Person.awards.through)
+def invalidate_person_awards_on_change(sender, instance, action, pk_set, **kwargs):
+    if action in ['post_add', 'post_remove', 'post_clear']:
+        cache.delete_many(keys=cache.keys(f'person_detail:{instance.pk}:*'))
 
 
 @receiver(post_save, sender=Person)
