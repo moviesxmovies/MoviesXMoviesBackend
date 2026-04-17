@@ -305,7 +305,8 @@ class MovieList(BaseModel):
                     (F('avg_rating') * F('rating_count')) / (F('rating_count') + 10),
                     output_field=FloatField(),
                 ),
+                popularity_tmdb=F('popularity')
             )
-            .order_by('-popularity_score', '-release_date')
+            .order_by('-popularity_tmdb','-popularity_score', '-release_date')
             .distinct()
         )
