@@ -6,8 +6,6 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
 from django.core.files import File
 
-from users.tasks import send_verification_email
-
 User = get_user_model()
 
 
@@ -38,7 +36,6 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         picture_url = data.get('picture')
         if picture_url and self._user_has_default_picture(user):
             self._fetch_and_save_picture(user, picture_url)
-        send_verification_email.delay(user)
         return user
 
     def _user_has_default_picture(self, user) -> bool:
