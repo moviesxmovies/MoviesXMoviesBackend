@@ -125,7 +125,7 @@ class TestFetchMoviesCommand:
 
         # Función de enrutamiento para el mock
         def dynamic_mock_get(url, *args, **kwargs):
-            if 'movie/popular' in url:
+            if 'discover/movie' in url:
                 return mock_list
             elif '/movie/' in url:
                 return detail_mock(123)

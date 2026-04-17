@@ -59,6 +59,7 @@ class Movie(BaseModel):
     genres = models.ManyToManyField('genres.Genre', related_name='movies')
     platforms = models.ManyToManyField('platforms.Platform', related_name='movies', blank=True)
     awards = models.ManyToManyField('awards.Award', related_name='movies', blank=True)
+    popularity = models.FloatField(default=0, db_index=True)
 
     def __str__(self):
         return self.slug
