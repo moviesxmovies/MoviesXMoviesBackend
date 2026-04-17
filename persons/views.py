@@ -157,8 +157,15 @@ def directors_pagination(request, page: int = 1, limit: int = 10, name: str = No
     timeout=60 * 60 * 24,
 )
 def person_acted_movies(request, person: Person, last_id: int = None, limit: int = 10):
-    movies = person.acted_movies.all().order_by('-release_date', 'title')
-    return get_progressive_response(movies, MovieSerializer, request, last_id=last_id, limit=limit)
+    movies = person.acted_movies.all()
+    return get_progressive_response(
+        movies,
+        MovieSerializer,
+        request,
+        last_id=last_id,
+        limit=limit,
+        ordering_field=['-release_date', '-title'],
+    )
 
 
 @extend_schema(
