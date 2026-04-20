@@ -18,6 +18,7 @@ class CustomUserAdmin(UserAdmin):
                     'verification_code',
                     'forgot_password_code',
                     'preferred_language',
+                    'picture'
                 ]
             },
         ),
