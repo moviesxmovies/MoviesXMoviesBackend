@@ -15,6 +15,7 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
+from django.templatetags.static import static
 from prettyconf import config
 
 TESTING = 'test' in sys.argv or 'pytest' in sys.modules
@@ -54,6 +55,15 @@ USE_X_FORWARDED_PORT = True
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',
+    'unfold.contrib.filters',
+    'unfold.contrib.forms',
+    'unfold.contrib.inlines',
+    'unfold.contrib.import_export',
+    'unfold.contrib.guardian',
+    'unfold.contrib.simple_history',
+    'unfold.contrib.location_field',
+    'unfold.contrib.constance',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -85,6 +95,20 @@ INSTALLED_APPS = [
     'django_rq',
     'django_prometheus',
 ]
+
+UNFOLD = {
+    'SITE_ICON': lambda request: static('admin/img/favicon.svg'),
+    'SITE_URL': 'https://moviesxmovies.jonaykb.com',
+    'SITE_FAVICONS': [
+        {
+            'rel': 'icon',
+            'sizes': '32x32',
+            'type': 'image/svg+xml',
+            'href': lambda request: static('admin/img/favicon.svg'),
+        },
+    ],
+    'SHOW_BACK_BUTTON': True,
+}
 
 RQ_SHOW_ADMIN_LINK = True
 

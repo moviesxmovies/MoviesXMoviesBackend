@@ -12,6 +12,7 @@ dependencies = [
     "django-prometheus>=2.4.0",
     "django-redis>=6.0.0",
     "django-rq>=3.2.2",
+    "django-unfold>=0.90.0",
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.29.0",
     "gunicorn>=25.1.0",
