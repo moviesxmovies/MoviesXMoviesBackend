@@ -94,7 +94,7 @@ class MovieListOnlySLugSerializer(serializers.ModelSerializer):
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @cached_view(
     lambda req, movie: f'movie_detail:{movie.pk}:{req.user.preferred_language}', timeout=60 * 60 * 6
 )
@@ -121,7 +121,7 @@ def movie_detail(request, movie: Movie) -> JsonResponse:
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit')
 @cached_view(
     make_key=lambda req, movie, page=1, limit=10: (
@@ -173,7 +173,7 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
     operation_id='create_movie_review',
 )
 @api_view(['GET', 'POST'])
-@auth_required
+@auth_required()
 def movie_review_wrapper(request, movie: Movie) -> JsonResponse:
     """Route GET and POST review requests to their respective handlers.
 
@@ -257,7 +257,7 @@ def save_movie_review(request, movie: Movie, review: Review) -> JsonResponse:
     operation_id='update_movie_rating',
 )
 @api_view(['GET', 'POST', 'PUT'])
-@auth_required
+@auth_required()
 def movie_rating_wrapper(request, movie: Movie) -> JsonResponse:
     """Route GET, POST, and PUT rating requests to their respective handlers.
 
@@ -368,7 +368,7 @@ def update_movie_rating(request, movie: Movie, rating: Rating) -> JsonResponse:
     operation_id='get_movie_recommendations',
 )
 @api_view(['GET'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET'])
 @cached_view(
     make_key=lambda req: f'recommendations:{req.user.pk}:{req.user.preferred_language}',
@@ -495,7 +495,7 @@ def _pad_with_algorithmic(
     operation_id='unmark_movie_unseen',
 )
 @api_view(['POST', 'DELETE'])
-@auth_required
+@auth_required()
 @require_http_methods(['POST', 'DELETE'])
 def movie_unseen_wrapper(request, movie: Movie) -> JsonResponse:
     """Handle marking a movie as unseen or removing it from the unseen list.
@@ -653,7 +653,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
     operation_id='search_movies',
 )
 @api_view(['GET'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET'])
 @get_query_params(
     'marked_unseen',
@@ -740,7 +740,7 @@ def movie_search(
     operation_id='get_movie_movie_lists',
 )
 @api_view(['GET'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET'])
 @cached_view(
     make_key=lambda req, movie: f'self_movie_lists_slug:{req.user.pk}:{movie.pk}', timeout=60 * 5

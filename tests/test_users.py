@@ -349,7 +349,20 @@ def test_user_serializer_is_following(user_factory):
 @pytest.fixture
 def mock_view_auth_required():
 
-    @auth_required
+    @auth_required()
+    def view(request):
+        return JsonResponse(
+            {'username': request.user.username, 'user_id': request.user.id},
+            status=HTTPStatus.OK,
+        )
+
+    return view
+
+
+@pytest.fixture
+def mock_view_auth_required_no_verification():
+
+    @auth_required(require_verification=False)
     def view(request):
         return JsonResponse(
             {'username': request.user.username, 'user_id': request.user.id},
@@ -435,6 +448,34 @@ def test_auth_malformed_token(rf, mock_view_auth_required):
     response = mock_view_auth_required(request)
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert json.loads(response.content)['error'] == 'Token is invalid or has incorrect padding'
+
+
+@pytest.mark.django_db
+def test_auth_unverified_user(rf, user_factory, generate_jwt, mock_view_auth_required):
+    user = user_factory(verified=False)
+    token = generate_jwt(user)
+
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = mock_view_auth_required(request)
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert json.loads(response.content)['error'] == 'User account is not verified'
+
+
+@pytest.mark.django_db
+def test_auth_unverified_user_no_verification_required(
+    rf, user_factory, generate_jwt, mock_view_auth_required_no_verification
+):
+    user = user_factory(verified=False)
+    token = generate_jwt(user)
+
+    request = rf.get('/', HTTP_AUTHORIZATION=f'Bearer {token}')
+    response = mock_view_auth_required_no_verification(request)
+
+    data = json.loads(response.content)
+    assert response.status_code == HTTPStatus.OK
+    assert data['user_id'] == user.id
+    assert data['username'] == user.username
 
 
 # =================================================================
@@ -1373,9 +1414,11 @@ class TestFriendRequest:
         friend_request.refresh_from_db()
         assert friend_request.status == FriendRequest.Status.PENDING
 
+
 # =================================================================
 # USER SEARCH
 # =================================================================
+
 
 @pytest.mark.django_db
 def test_user_search_by_username(auth_client, user_factory):

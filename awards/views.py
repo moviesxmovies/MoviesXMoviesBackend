@@ -14,7 +14,7 @@ from users.decorators import auth_required
     },
 )
 @api_view(['GET'])
-@auth_required
+@auth_required()
 @cached_view(lambda req, award: f'award_detail:{award.pk}', timeout=60 * 60 * 24)
 def award_detail(request, award: Award):
     return AwardSerializer(award, request=request).json_response()
