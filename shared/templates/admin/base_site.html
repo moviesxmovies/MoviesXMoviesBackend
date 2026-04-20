@@ -1,0 +1,149 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --font-sans: 'Inter', sans-serif;
+      --text-base: 1rem;
+      --text-2xl: 1.777rem;
+      --text-xl: 1.333rem;
+    
+      --color-primary: #2f27ce;
+      --color-secondary: #bcbbdd;
+      --color-accent: #bb3dff;
+      --color-bg-light: #f2f2f2;
+      --color-text-light: #1f1f1f;
+    
+      --color-bg-dark: #0d0d0d;
+      --color-text-dark: #e0e0e0;
+      --color-primary-dark: #3a31d8;
+    
+      --ob-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --ob-border-radius: 8px;
+    }
+    
+    :root,
+    [data-theme='light'] {
+      --body-bg: var(--color-bg-light);
+      --body-fg: var(--color-text-light);
+      --primary: var(--color-primary);
+      --secondary: var(--color-secondary);
+      --accent: var(--color-accent);
+      --primary-fg: #ffffff;
+    
+      --header-bg: var(--primary);
+      --header-color: var(--primary-fg);
+      --header-link-color: var(--primary-fg);
+      --breadcrumbs-bg: #ffffff;
+      --breadcrumbs-fg: var(--color-text-light);
+      --link-fg: var(--primary);
+      --link-hover-color: var(--accent);
+    
+      --ob-card: rgba(255, 255, 255, 0.95);
+      --ob-border: rgba(47, 39, 206, 0.15);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      [data-theme='auto'] {
+        --body-bg: var(--color-bg-dark);
+        --body-fg: var(--color-text-dark);
+        --primary: var(--color-primary-dark);
+        --accent: #7e00c2;
+        --header-bg: #1a1a1a;
+        --header-color: var(--color-text-dark);
+        --link-fg: #6d64ff;
+        --ob-card: rgba(15, 15, 26, 0.93);
+        --ob-border: rgba(47, 39, 206, 0.35);
+        --breadcrumbs-bg: #111111;
+      }
+    }
+    
+    [data-theme='dark'] {
+      --body-bg: var(--color-bg-dark);
+      --body-fg: var(--color-text-dark);
+      --primary: var(--color-primary-dark);
+      --accent: #7e00c2;
+      --header-bg: #1a1a1a;
+      --header-color: var(--color-text-dark);
+      --link-fg: #6d64ff;
+      --ob-card: rgba(15, 15, 26, 0.93);
+      --ob-border: rgba(47, 39, 206, 0.35);
+      --breadcrumbs-bg: #111111;
+    }
+    
+    body {
+      font-family: var(--font-sans) !important;
+      background-color: var(--body-bg);
+    }
+    
+    #content-main,
+    .module,
+    .card {
+      background: var(--ob-card) !important;
+      border: 1px solid var(--ob-border) !important;
+      border-radius: var(--ob-border-radius);
+      box-shadow: var(--ob-shadow);
+      overflow: hidden;
+    }
+    
+    .button,
+    input[type='submit'],
+    input[type='button'],
+    .submit-row a.deletelink {
+      background: var(--primary) !important;
+      border-radius: 6px !important;
+      padding: 10px 20px !important;
+      transition: all 0.3s ease;
+      border: none !important;
+      font-weight: 700;
+    }
+    
+    .button:hover,
+    input[type='submit']:hover {
+      background: var(--accent) !important;
+      transform: translateY(-1px);
+    }
+    
+    #changelist table thead th {
+      background: var(--primary) !important;
+      color: white !important;
+    }
+    
+    tr:nth-child(even) {
+      background-color: rgba(0, 0, 0, 0.02) !important;
+    }
+    
+    #header {
+      background: var(--header-bg) !important;
+      padding: 15px 40px !important;
+    }
+    
+    #branding h1 {
+      font-family: var(--font-sans);
+      letter-spacing: -1px;
+    }
+    
+    .breadcrumbs {
+      background: var(--breadcrumbs-bg) !important;
+      border-bottom: 1px solid var(--ob-border);
+      padding: 12px 40px !important;
+      color: var(--breadcrumbs-fg);
+    }
+  </style>
+{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 4px;">
+      <span style="font-weight: 700;">Movies</span>
+      <span style="color:var(--accent); font-weight: 400; font-size: 1.5rem;">×</span>
+      <span style="font-weight: 700; opacity: 0.9;">Movies</span>
+    </a>
+  </h1>
+{% endblock %}

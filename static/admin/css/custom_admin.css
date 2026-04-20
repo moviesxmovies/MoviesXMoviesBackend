@@ -1,0 +1,20 @@
+/* custom.css */
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #e74c3c;
+    --bg-color: #f4f4f4;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+}
+
+.navbar {
+    background-color: var(--primary-color) !important;
+}
+
+.btn-custom {
+    background-color: var(--accent-color);
+    border: none;
+}
