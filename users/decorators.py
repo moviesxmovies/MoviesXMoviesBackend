@@ -30,10 +30,9 @@ def auth_required(require_verification=True):
     """
 
     def _validate_token(request, token) -> JsonResponse | None:
-        """Decode the JWT and attach the user to the request.
-        Returns a JsonResponse error if validation fails, otherwise None.
-        """
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        payload, error_response = _decode_token(token)
+        if error_response:
+            return error_response
         if payload.get('token_type', '') != ACCESS_TYPE:
             return JsonResponse(
                 {'error': _('Token type is invalid')}, status=HTTPStatus.BAD_REQUEST
@@ -55,6 +54,21 @@ def auth_required(require_verification=True):
                 {'error': _('User account is not verified')}, status=HTTPStatus.UNAUTHORIZED
             )
         return None
+
+    def _decode_token(token):
+        """Decode the JWT and return (payload, None) or (None, error_response)."""
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            return payload, None
+        except jwt.exceptions.DecodeError:
+            return None, JsonResponse(
+                {'error': _('Token is invalid or has incorrect padding')},
+                status=HTTPStatus.BAD_REQUEST,
+            )
+        except jwt.ExpiredSignatureError:
+            return None, JsonResponse(
+                {'error': _('Token has expired')}, status=HTTPStatus.BAD_REQUEST
+            )
 
     def decorator(func):
 
@@ -78,22 +92,12 @@ def auth_required(require_verification=True):
                 return JsonResponse(
                     {'error': _('You need to be authenticated')}, status=HTTPStatus.UNAUTHORIZED
                 )
-            try:
-                token = auth_header.split(' ')[1]
-                if error_response := _validate_token(request, token):
-                    return error_response
-                if error_response := _check_verification(request):
-                    return error_response
-                return func(request, *args, **kwargs)
-            except jwt.exceptions.DecodeError:
-                return JsonResponse(
-                    {'error': _('Token is invalid or has incorrect padding')},
-                    status=HTTPStatus.BAD_REQUEST,
-                )
-            except jwt.ExpiredSignatureError:
-                return JsonResponse(
-                    {'error': _('Token has expired')}, status=HTTPStatus.BAD_REQUEST
-                )
+            token = auth_header.split(' ')[1]
+            if error_response := _validate_token(request, token):
+                return error_response
+            if error_response := _check_verification(request):
+                return error_response
+            return func(request, *args, **kwargs)
 
         return wrapper
 
