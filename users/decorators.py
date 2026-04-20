@@ -29,8 +29,10 @@ def auth_required(require_verification=True):
         before calling the original view.
     """
 
-    def __check_token(auth_header, request):
-        token = auth_header.split(' ')[1]
+    def _validate_token(request, token) -> JsonResponse | None:
+        """Decode the JWT and attach the user to the request.
+        Returns a JsonResponse error if validation fails, otherwise None.
+        """
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         if payload.get('token_type', '') != ACCESS_TYPE:
             return JsonResponse(
@@ -40,17 +42,19 @@ def auth_required(require_verification=True):
             request.user = User.objects.get(pk=payload.get('user_id'))
         except User.DoesNotExist:
             return JsonResponse({'error': _('Token is invalid')}, status=HTTPStatus.UNAUTHORIZED)
+        return None
 
-    def __check_verification(request):
-        if (
-            not request.user.verified
-            and request.path not in [reverse('verify_user'), reverse('resend_verification_email')]
-            and require_verification
-        ):
+    def _check_verification(request) -> JsonResponse | None:
+        """Return an error response if the user is unverified and verification is required."""
+        unverified_restricted_path = request.path not in [
+            reverse('verify_user'),
+            reverse('resend_verification_email'),
+        ]
+        if require_verification and not request.user.verified and unverified_restricted_path:
             return JsonResponse(
-                {'error': _('User account is not verified')},
-                status=HTTPStatus.UNAUTHORIZED,
+                {'error': _('User account is not verified')}, status=HTTPStatus.UNAUTHORIZED
             )
+        return None
 
     def decorator(func):
 
@@ -72,13 +76,11 @@ def auth_required(require_verification=True):
             auth_header = request.headers.get('Authorization', '')
             try:
                 if auth_header.startswith('Bearer '):
-                    token_response = __check_token(auth_header, request)
-                    if token_response:
-                        return token_response
-
-                    verification_response = __check_verification(request)
-                    if verification_response:
-                        return verification_response
+                    token = auth_header.split(' ')[1]
+                    if error_response := _validate_token(request, token):
+                        return error_response
+                    if error_response := _check_verification(request):
+                        return error_response
                     return func(request, *args, **kwargs)
                 return JsonResponse(
                     {'error': _('You need to be authenticated')}, status=HTTPStatus.UNAUTHORIZED
