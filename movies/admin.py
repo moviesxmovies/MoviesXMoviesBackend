@@ -1,14 +1,15 @@
 from django.contrib import admin
 from .models import Movie
+from unfold.admin import ModelAdmin, TabularInline
 
-class MovieTranslationInline(admin.TabularInline):
+class MovieTranslationInline(TabularInline):
     model = Movie.MovieTranslation
     extra = 0 
     fields = ['language', 'title', 'synopsis', 'image']
     readonly_fields = ['language']
 
 @admin.register(Movie)
-class MovieAdmin(admin.ModelAdmin):
+class MovieAdmin(ModelAdmin):
     exclude = ['deleted_at']
     list_display = ['title', 'release_date']
     search_fields = ['title']

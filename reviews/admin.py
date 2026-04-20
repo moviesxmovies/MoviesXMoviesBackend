@@ -1,10 +1,11 @@
 from django.contrib import admin
 
 from .models import Comment, Reaction, Review
+from unfold.admin import ModelAdmin
 
 
 @admin.register(Review)
-class ReviewAdmin(admin.ModelAdmin):
+class ReviewAdmin(ModelAdmin):
     list_display = ['pk', 'title', 'is_positive', 'user', 'movie']
     search_fields = ['title']
     exclude = ['deleted_at']
@@ -12,7 +13,7 @@ class ReviewAdmin(admin.ModelAdmin):
     autocomplete_fields = ['user', 'movie']
 
 @admin.register(Reaction)
-class ReactionAdmin(admin.ModelAdmin):
+class ReactionAdmin(ModelAdmin):
     list_display = ['pk', 'user', 'emoji', 'created_at']
     search_fields = ['user__username']
     exclude = ['deleted_at']
@@ -20,7 +21,7 @@ class ReactionAdmin(admin.ModelAdmin):
     autocomplete_fields = ['user']
 
 @admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
+class CommentAdmin(ModelAdmin):
     list_display = ['pk','user', 'review', 'created_at','reply_comment']
     search_fields = ['user__username', 'review__title']
     exclude = ['deleted_at']

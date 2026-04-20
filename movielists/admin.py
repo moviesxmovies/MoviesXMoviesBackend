@@ -1,10 +1,11 @@
 from django.contrib import admin
 
 from .models import MovieList
+from unfold.admin import ModelAdmin
 
 
 @admin.register(MovieList)
-class MovieListAdmin(admin.ModelAdmin):
+class MovieListAdmin(ModelAdmin):
     list_display = ['name', 'privacity', 'user']
     search_fields = ['name']
     prepopulated_fields = {'slug': ('name',)}
