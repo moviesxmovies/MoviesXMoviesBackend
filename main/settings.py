@@ -21,6 +21,7 @@ from prettyconf import config
 TESTING = 'test' in sys.argv or 'pytest' in sys.modules
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+SITE_URL = 'https://moviesxmovies.jonaykb.com'
 
 SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de']
 DEFAULT_LANGUAGE = 'en'
@@ -37,13 +38,13 @@ DEBUG = config('DEBUG', default=True, cast=config.boolean)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=config.list, default='*')
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://moviesxmovies.jonaykb.com',
+    SITE_URL,
     'http://127.0.0.1:5173',
     'http://localhost:5173',
     'https://10.0.0.1:5173',
 ]
 CORS_ALLOWED_ORIGINS = [
-    'https://moviesxmovies.jonaykb.com',
+    SITE_URL,
     'http://127.0.0.1:5173',
     'http://localhost:5173',
     'https://10.0.0.1:5173',
@@ -98,7 +99,7 @@ INSTALLED_APPS = [
 
 UNFOLD = {
     'SITE_ICON': lambda request: static('admin/img/favicon.svg'),
-    'SITE_URL': 'https://moviesxmovies.jonaykb.com',
+    'SITE_URL': SITE_URL,
     'SITE_FAVICONS': [
         {
             'rel': 'icon',
