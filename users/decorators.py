@@ -74,17 +74,17 @@ def auth_required(require_verification=True):
                 provided; otherwise the response from the wrapped view.
             """
             auth_header = request.headers.get('Authorization', '')
-            try:
-                if auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ')[1]
-                    if error_response := _validate_token(request, token):
-                        return error_response
-                    if error_response := _check_verification(request):
-                        return error_response
-                    return func(request, *args, **kwargs)
+            if not auth_header.startswith('Bearer '):
                 return JsonResponse(
                     {'error': _('You need to be authenticated')}, status=HTTPStatus.UNAUTHORIZED
                 )
+            try:
+                token = auth_header.split(' ')[1]
+                if error_response := _validate_token(request, token):
+                    return error_response
+                if error_response := _check_verification(request):
+                    return error_response
+                return func(request, *args, **kwargs)
             except jwt.exceptions.DecodeError:
                 return JsonResponse(
                     {'error': _('Token is invalid or has incorrect padding')},
