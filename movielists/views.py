@@ -80,7 +80,7 @@ class SaveMovieListSerializer(serializers.Serializer):
 )
 @api_view(['GET', 'POST'])
 @require_http_methods(['GET', 'POST'])
-@auth_required
+@auth_required()
 def movies_list_self_wrapper(request) -> JsonResponse:
     """Route GET and POST movie list requests to their respective handlers.
 
@@ -237,7 +237,7 @@ def _validate_intelligent_params(
 @api_view()
 @require_http_methods(['GET'])
 @get_query_params('page', 'limit')
-@auth_required
+@auth_required()
 @cached_view(
     lambda req, user, page, limit: f'movies_lists_user:{user.pk}:{page}:{limit}:{req.user.pk}',
     timeout=60 * 60,
@@ -281,7 +281,7 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonRespo
 )
 @api_view()
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @cached_view(
     lambda req, user, movies_list: f'movies_lists_detail:{user.pk}:{movies_list.pk}:{req.user.pk}',
     timeout=60 * 60,
@@ -331,7 +331,7 @@ def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
 )
 @api_view(['POST', 'DELETE'])
 @require_http_methods(['POST', 'DELETE'])
-@auth_required
+@auth_required()
 def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> JsonResponse:
     """Route POST and DELETE movie-in-list requests to their respective handlers.
 

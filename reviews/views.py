@@ -75,7 +75,7 @@ class ReviewDeleteSerializer(serializers.Serializer):
     operation_id='delete_movie_review',
 )
 @api_view(['PUT', 'DELETE'])
-@auth_required
+@auth_required()
 def review_wrapper(request, review: Review) -> JsonResponse:
     """Route PUT and DELETE review requests to their respective handlers.
 
@@ -213,7 +213,7 @@ def _delete_reaction(request, reaction) -> JsonResponse:
     operation_id='add_review_reaction',
 )
 @api_view(['GET', 'POST'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET', 'POST'])
 def reaction_review_wrapper(request, review: Review):
     match request.method:
@@ -285,7 +285,7 @@ def add_review_reaction(request, review: Review, body: dict) -> JsonResponse:
     operation_id='create_review_comment',
 )
 @api_view(['GET', 'POST'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET', 'POST'])
 def comment_wrapper(request, review: Review):
     match request.method:
@@ -342,7 +342,7 @@ def add_review_comment(request, review: Review, body: dict) -> JsonResponse:
     operation_id='delete_review_comment',
 )
 @api_view(['GET', 'PUT', 'DELETE'])
-@auth_required
+@auth_required()
 def comment_wrapper_with_id(request, review: Review, comment: Comment):
     match request.method:
         case 'GET':
@@ -394,7 +394,7 @@ def delete_comment(request, review: Review, comment: Comment) -> JsonResponse:
     operation_id='add_comment_reaction',
 )
 @api_view(['GET', 'POST'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET', 'POST'])
 def reaction_comment_wrapper(request, review: Review, comment: Comment):
     match request.method:
@@ -442,7 +442,7 @@ def add_comment_reaction(request, review: Review, comment: Comment, body: dict) 
     operation_id='create_comment_reply',
 )
 @api_view(['GET', 'POST'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET', 'POST'])
 def reply_wrapper(request, review: Review, comment: Comment):
     match request.method:
@@ -482,7 +482,7 @@ def add_comment_reply(request, review: Review, comment: Comment, body: dict) -> 
     operation_id='delete_comment_reaction',
 )
 @api_view(['DELETE'])
-@auth_required
+@auth_required()
 @require_http_methods(['DELETE'])
 def delete_reaction_comment(
     request, review: Review, comment: Comment, reaction: Reaction
@@ -497,7 +497,7 @@ def delete_reaction_comment(
     operation_id='delete_review_reaction',
 )
 @api_view(['DELETE'])
-@auth_required
+@auth_required()
 @require_http_methods(['DELETE'])
 def delete_review_reaction(request, review: Review, reaction: Reaction) -> JsonResponse:
     return _delete_reaction(request, reaction)

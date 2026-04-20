@@ -17,7 +17,7 @@ from users.decorators import auth_required
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @cached_view(
     lambda req, person: f'person_detail:{person.pk}:{req.user.preferred_language}',
     timeout=60 * 60 * 24,
@@ -63,7 +63,7 @@ def _get_person_response(queryset, request, page: int, limit: int, name: str = N
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit', 'name')
 @cached_view(
     make_key=lambda req, page, limit, name: (
@@ -106,7 +106,7 @@ def actors_pagination(request, page: int = 1, limit: int = 10, name: str = None)
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit', 'name')
 @cached_view(
     make_key=lambda req, page, limit, name: (
@@ -148,7 +148,7 @@ def directors_pagination(request, page: int = 1, limit: int = 10, name: str = No
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('last_id', 'limit')
 @cached_view(
     make_key=lambda req, person, last_id, limit: (
@@ -192,7 +192,7 @@ def person_acted_movies(request, person: Person, last_id: int = None, limit: int
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('last_id', 'limit')
 @cached_view(
     make_key=lambda req, person, last_id, limit: (

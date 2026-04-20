@@ -167,7 +167,7 @@ class GetPreferredLanguageResponse(serializers.Serializer):
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
-@auth_required
+@auth_required()
 @get_body(None, ['verification_code'])
 def verify_user(request, body: dict) -> JsonResponse:
     """Verify the authenticated user's account using a code sent via email.
@@ -204,7 +204,7 @@ def verify_user(request, body: dict) -> JsonResponse:
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
-@auth_required
+@auth_required()
 def resend_verification_email(request) -> JsonResponse:
     """Resend the verification email to the authenticated user.
 
@@ -248,7 +248,7 @@ def resend_verification_email(request) -> JsonResponse:
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit')
 @cached_view(
     make_key=lambda req, page=1, limit=10: f'suggested_users:{req.user.pk}:{page}:{limit}',
@@ -289,7 +289,7 @@ def suggested_users(request, page: int, limit: int) -> JsonResponse:
 )
 @api_view(['GET', 'PUT'])
 @require_http_methods(['GET', 'PUT'])
-@auth_required
+@auth_required(False)
 def self_user_wrapper(request) -> JsonResponse:
     """Route GET and PUT requests for the authenticated user's own profile.
 
@@ -505,7 +505,7 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @cached_view(make_key=lambda req, user: f'user_detail:{user.pk}', timeout=60 * 60)
 def user_detail(request, user: User) -> JsonResponse:
     """Return the serialized profile of a specific user.
@@ -614,7 +614,7 @@ def user_signup(request) -> JsonResponse:
 )
 @api_view(['POST', 'GET'])
 @require_http_methods(['POST', 'GET'])
-@auth_required
+@auth_required(False)
 def preferred_language_wrapper(request) -> JsonResponse:
     """Route GET and POST requests for the authenticated user's preferred language.
 
@@ -685,7 +685,7 @@ class OnboardingResponse(serializers.Serializer):
 )
 @api_view(['POST'])
 @require_http_methods(['POST'])
-@auth_required
+@auth_required()
 def complete_onboarding(request) -> JsonResponse:
     """Mark the authenticated user's onboarding as complete.
 
@@ -714,7 +714,7 @@ def complete_onboarding(request) -> JsonResponse:
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit')
 @cached_view(
     make_key=lambda req, user, page=1, limit=10: f'user_reviews:{user.pk}:{page}:{limit}',
@@ -753,7 +753,7 @@ def _get_friends_response(request, user: User, page: int, limit: int) -> JsonRes
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit')
 @cached_view(
     make_key=lambda req, user, page=1, limit=10: f'user_friends:{user.pk}:{page}:{limit}',
@@ -784,7 +784,7 @@ def user_friends(request, user: User, page: int = 1, limit: int = 10) -> JsonRes
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit')
 def self_friends(request, page: int = 1, limit: int = 10) -> JsonResponse:
     """Return a paginated list of the authenticated user's friends.
@@ -810,7 +810,7 @@ def self_friends(request, page: int = 1, limit: int = 10) -> JsonResponse:
 )
 @api_view(['GET'])
 @require_http_methods(['GET'])
-@auth_required
+@auth_required()
 @get_query_params('page', 'limit')
 def self_friend_requests(request, page: int = 1, limit: int = 10) -> JsonResponse:
     """Return a paginated list of incoming friend requests for a specific user.
@@ -843,7 +843,7 @@ def self_friend_requests(request, page: int = 1, limit: int = 10) -> JsonRespons
 )
 @api_view(['POST', 'DELETE'])
 @require_http_methods(['POST', 'DELETE'])
-@auth_required
+@auth_required()
 def friend_requests_wrapper(request, user: User) -> JsonResponse:
     match request.method:
         case 'POST':
@@ -948,7 +948,7 @@ def delete_friend_request(request, user: User) -> JsonResponse:
     operation_id='user_search',
 )
 @api_view(['GET'])
-@auth_required
+@auth_required()
 @require_http_methods(['GET'])
 @get_query_params(
     'search_query',
@@ -969,7 +969,7 @@ def user_search(request, search_query: str, page: int = 1, limit: int = 10) -> J
     Returns:
         JsonResponse: A JSON response containing a list of matching users serialized with UserSerializer.
     """
-    if search_query is None :
+    if search_query is None:
         search_query = ''
     users_query = User.objects.filter(
         Q(username__icontains=search_query)
