@@ -17,8 +17,8 @@ from users.decorators import auth_required
 @require_http_methods(['GET'])
 @auth_required()
 @cached_view(
-    make_key=lambda req: 'genre_list',
+    make_key=lambda req: f'genre_list:{req.user.preferred_language}',
     timeout=60 * 60 * 24,
 )
 def genre_list(request):
-    return GenreSerializer(Genre.objects.all()).json_response()
+    return GenreSerializer(Genre.objects.all(), request=request).json_response()

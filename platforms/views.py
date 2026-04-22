@@ -21,4 +21,4 @@ from users.decorators import auth_required
     timeout=60 * 60 * 24,
 )
 def platform_list(request):
-    return PlatformSerializer(Platform.objects.all()).json_response()
+    return PlatformSerializer(Platform.objects.all(), request=request).json_response()
