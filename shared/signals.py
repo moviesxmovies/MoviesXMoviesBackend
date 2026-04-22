@@ -190,7 +190,7 @@ def invalidate_on_genre(sender, instance, created, **kwargs):
     logger.debug(
         f'Invalidating caches due to {"creation" if created else "update"} of genre {instance.pk}'
     )
-    cache.delete('genre_list')
+    cache.delete_many(keys=cache.keys('genre_list:*'))
 
 
 @receiver(post_save, sender=Platform)
