@@ -885,10 +885,10 @@ class TestMovieSearchView:
 
         movie_factory(title='Drama Movie')
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?genres=action')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?genres[]=action')
         assert len(response.json()['results']) == 1
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?actors=brad-pitt')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?actors[]=brad-pitt')
         assert len(response.json()['results']) == 1
 
     def test_search_marked_unseen(self, movie_factory, auth_client):
@@ -910,12 +910,12 @@ class TestMovieSearchView:
         rating_factory(movie=m1, user=user, rating=5)
         rating_factory(movie=m2, user=user, rating=1)
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?stars=5')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?stars[]=5')
         data = response.json()
         assert len(data['results']) == 1
         assert data['results'][0]['id'] == m1.id
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?stars=1&stars=5')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?stars[]=1&stars[]=5')
         assert len(response.json()['results']) == 2
 
     def test_search_reviewed(self, movie_factory, review_factory, auth_client):
@@ -951,7 +951,7 @@ class TestMovieSearchView:
 
         movie_factory(title='HBO Movie').platforms.add(platform_hbo)
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?platforms=netflix')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?platforms[]=netflix')
         assert len(response.json()['results']) == 1
         assert response.json()['results'][0]['id'] == m1.id
 
@@ -964,7 +964,7 @@ class TestMovieSearchView:
 
         movie_factory(title='Spielberg Movie').directors.add(director_spielberg)
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?directors=christopher-nolan')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?directors[]=christopher-nolan')
         assert len(response.json()['results']) == 1
         assert response.json()['results'][0]['id'] == m1.id
 

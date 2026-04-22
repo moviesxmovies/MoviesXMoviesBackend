@@ -53,7 +53,7 @@ class SaveMovieListSerializer(serializers.Serializer):
             required=False,
         ),
         OpenApiParameter(
-            name='genres',
+            name='genres[]',
             type={'type': 'array', 'items': {'type': 'string'}},
             location=OpenApiParameter.QUERY,
             description='List of genres',
@@ -61,7 +61,7 @@ class SaveMovieListSerializer(serializers.Serializer):
             explode=True,
         ),
         OpenApiParameter(
-            name='celebrities',
+            name='celebrities[]',
             type={'type': 'array', 'items': {'type': 'string'}},
             location=OpenApiParameter.QUERY,
             description='List of celebrities',
@@ -69,7 +69,7 @@ class SaveMovieListSerializer(serializers.Serializer):
             explode=True,
         ),
         OpenApiParameter(
-            name='friends',
+            name='friends[]',
             type={'type': 'array', 'items': {'type': 'string'}},
             location=OpenApiParameter.QUERY,
             description='List of friends usernames',
@@ -144,9 +144,9 @@ def save_movie_list_self(request, movielist: MovieList, intelligent: str) -> Jso
         JsonResponse: Serialized new movie list with HTTP 201, or a JSON
         error body with HTTP 400 on validation failure or invalid parameters.
     """
-    genres = request.GET.getlist('genres')
-    celebrities = request.GET.getlist('celebrities')
-    friends = request.GET.getlist('friends')
+    genres = request.GET.getlist('genres[]')
+    celebrities = request.GET.getlist('celebrities[]')
+    friends = request.GET.getlist('friends[]')
 
     movielist.user = request.user
     movielist.slug = slugify(movielist.name)
