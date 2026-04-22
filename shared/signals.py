@@ -82,11 +82,10 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys(MOVIE_SEARCH_ALL))
     logger.debug(f'Invalidated movie_search cache for user {user.pk} by rating movie {movie.pk}')
 
-    for friend in user.friends.all():
-        cache.delete(f'friends_ratings:{friend.pk}:{movie.pk}')
-        logger.debug(
-            f'Invalidated friends_ratings cache for friend {friend.pk} and movie {movie.pk}'
-        )
+    cache.delete_many(keys=cache.keys(f'friends_ratings:{user.pk}:{movie.pk}:*'))
+    logger.debug(
+        f'Invalidated friends_ratings cache for user {user.pk} and movie {movie.pk} due to new rating'
+    )
 
 
 @receiver(post_save, sender=Review)
@@ -153,6 +152,12 @@ def invalidate_on_friendship(sender, instance, created, **kwargs):
     )
     cache.delete_many(keys=cache.keys(f'user_friends:{instance.user1.pk}:*'))
     cache.delete_many(keys=cache.keys(f'user_friends:{instance.user2.pk}:*'))
+
+    cache.delete_many(keys=cache.keys(f'friends_ratings:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'friends_ratings:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated friends_ratings cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
 
 
 @receiver(post_save, sender=Award)
