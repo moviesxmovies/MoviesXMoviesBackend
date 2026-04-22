@@ -569,7 +569,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
     description='Search for movies by params',
     parameters=[
         OpenApiParameter(
-            name='genres',
+            name='genres[]',
             description='List of genre slugs to filter by',
             required=False,
             type=OpenApiTypes.STR,
@@ -579,7 +579,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
             explode=True,
         ),
         OpenApiParameter(
-            name='platforms',
+            name='platforms[]',
             description='List of platform slugs to filter by',
             required=False,
             type=OpenApiTypes.STR,
@@ -589,7 +589,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
             explode=True,
         ),
         OpenApiParameter(
-            name='directors',
+            name='directors[]',
             description='List of director slugs to filter by',
             required=False,
             type=OpenApiTypes.STR,
@@ -599,7 +599,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
             explode=True,
         ),
         OpenApiParameter(
-            name='actors',
+            name='actors[]',
             description='List of actor slugs to filter by',
             required=False,
             type=OpenApiTypes.STR,
@@ -615,7 +615,7 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
             type=bool,
         ),
         OpenApiParameter(
-            name='stars',
+            name='stars[]',
             description='List of star ratings (1-5) to filter by',
             required=False,
             type=OpenApiTypes.INT,
@@ -699,11 +699,11 @@ def movie_search(
     """
     user = request.user
     movies_qs = Movie.objects.all()
-    genres = request.GET.getlist('genres')
-    platforms = request.GET.getlist('platforms')
-    directors = request.GET.getlist('directors')
-    actors = request.GET.getlist('actors')
-    stars = request.GET.getlist('stars')
+    genres = request.GET.getlist('genres[]')
+    platforms = request.GET.getlist('platforms[]')
+    directors = request.GET.getlist('directors[]')
+    actors = request.GET.getlist('actors[]')
+    stars = request.GET.getlist('stars[]')
 
     if genres:
         movies_qs = movies_qs.filter(genres__slug__in=genres)

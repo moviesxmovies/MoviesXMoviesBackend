@@ -452,7 +452,7 @@ def test_movie_list_save_intelligent_fill_with_scoring_filters(
     neutral_movie = movie_factory(title='Meh Movie')
 
     response = auth_client.post(
-        MOVIE_LIST_SELF_URL + '?intelligent=true&celebrities=leo-dicaprio&friends=best_friend',
+        MOVIE_LIST_SELF_URL + '?intelligent=true&celebrities=leo-dicaprio&friends[]=best_friend',
         data={
             'name': 'My Scored Intelligent Movie List',
             'description': 'A description for my scored intelligent movie list',
@@ -474,7 +474,7 @@ def test_movie_list_save_intelligent_fill_with_scoring_filters(
 @pytest.mark.django_db
 def test_movie_list_save_intelligent_exception_genre(auth_client):
     response = auth_client.post(
-        MOVIE_LIST_SELF_URL + '?intelligent=true&genres=nonexistentgenre',
+        MOVIE_LIST_SELF_URL + '?intelligent=true&genres[]=nonexistentgenre',
         data={
             'name': 'My Intelligent Movie List',
             'description': 'A description for my intelligent movie list',
@@ -492,7 +492,7 @@ def test_movie_list_save_intelligent_exception_genre(auth_client):
 @pytest.mark.django_db
 def test_movie_list_save_intelligent_exception_celebrities(auth_client):
     response = auth_client.post(
-        MOVIE_LIST_SELF_URL + '?intelligent=true&celebrities=nonexistentcelebrity',
+        MOVIE_LIST_SELF_URL + '?intelligent=true&celebrities[]=nonexistentcelebrity',
         data={
             'name': 'My Intelligent Movie List',
             'description': 'A description for my intelligent movie list',
@@ -510,7 +510,7 @@ def test_movie_list_save_intelligent_exception_celebrities(auth_client):
 @pytest.mark.django_db
 def test_movie_list_save_intelligent_exception_friends(auth_client):
     response = auth_client.post(
-        MOVIE_LIST_SELF_URL + '?intelligent=true&friends=nonexistentfriend',
+        MOVIE_LIST_SELF_URL + '?intelligent=true&friends[]=nonexistentfriend',
         data={
             'name': 'My Intelligent Movie List',
             'description': 'A description for my intelligent movie list',
