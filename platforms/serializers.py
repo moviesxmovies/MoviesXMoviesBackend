@@ -10,7 +10,8 @@ class PlatformSerializer(BaseSerializer):
             'name': instance.name,
             'slug': instance.slug,
             'url': instance.url,
-            'image': instance.image.url if instance.image else None,
+            'image': self.build_url(instance.image.url)
+            if instance.image and self.request
         }
 
     @staticmethod
