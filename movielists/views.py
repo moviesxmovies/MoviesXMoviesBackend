@@ -260,7 +260,12 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonRespo
         JsonResponse: Paginated serialized movie lists with HTTP 200.
     """
     if request.user == user:
-        return MovieListSerializer(user.movies_lists.all(), request=request).json_response()
+        return get_paginated_response(
+        user.movies_lists.all(),
+        MovieListSerializer,
+        request=request,
+        page=page,
+        limit=limit)
     movies_lists = user.movies_lists.exclude(privacity=MovieList.Privacity.PRIVATE).all()
     if not user.is_friend(request.user):
         movies_lists = movies_lists.exclude(privacity=MovieList.Privacity.FRIENDS)
