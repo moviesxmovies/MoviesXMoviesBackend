@@ -449,6 +449,7 @@ def test_get_progressive_response(movie_factory, user_factory):
     assert 'results' in data
     assert len(data['results']) == 10
     assert data['next_last_id'] is not None
+    assert data['count'] == 15
 
 
 @pytest.mark.django_db
@@ -471,7 +472,7 @@ def test_get_progressive_response_no_more_items(movie_factory, user_factory):
     assert 'results' in data
     assert len(data['results']) == 5
     assert data['next_last_id'] is None
-
+    assert data['count'] == 5
 
 # =================================================================
 # CACHED VIEW

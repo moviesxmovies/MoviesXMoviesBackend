@@ -226,8 +226,9 @@ def test_movies_list_user_self(auth_client, movie_list_factory):
     response = auth_client.get(MOVIE_LIST_USER_URL.format(username=user.username))
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 3
-    names = [list_item['name'] for list_item in data]
+    results = data['results']
+    assert len(results) == 3
+    names = [list_item['name'] for list_item in results]
     assert 'My Movie List' in names
     assert 'My Movie List2' in names
     assert 'My Movie List3' in names

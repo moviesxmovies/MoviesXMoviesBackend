@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view
 from genres.models import Genre
 from persons.models import Person
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
-from shared.utils import get_paginated_response
+from shared.utils import get_paginated_response, get_progressive_response
 from users.decorators import auth_required
 
 from .models import MovieList
@@ -230,19 +230,21 @@ def _validate_intelligent_params(
 
 
 @extend_schema(
-    responses={200: MovieListSerializer.get_paginated_schema(), 404: None},
+    responses={200: MovieListSerializer.get_progressive_pagination_schema(), 404: None},
     description='Get a specific movie list of a user',
     operation_id='get_self_movie_list_list',
 )
 @api_view()
 @require_http_methods(['GET'])
-@get_query_params('page', 'limit')
+@get_query_params('last_id', 'limit')
 @auth_required()
 @cached_view(
-    lambda req, user, page, limit: f'movies_lists_user:{user.pk}:{page}:{limit}:{req.user.pk}',
+    lambda req, user, last_id, limit: (
+        f'movies_lists_user:{user.pk}:{last_id}:{limit}:{req.user.pk}'
+    ),
     timeout=60 * 60,
 )
-def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonResponse:
+def movies_list_list(request, user, last_id: int = None, limit: int = 10) -> JsonResponse:
     """Return a paginated list of movie lists belonging to a specific user.
 
     Filters lists by privacity based on the relationship between the
@@ -253,28 +255,29 @@ def movies_list_list(request, user, page: int = 1, limit: int = 10) -> JsonRespo
         request: The authenticated incoming HTTP request.
         user (User): The user whose movie lists are being retrieved,
             resolved from the URL.
-        page (int): Page number for pagination. Defaults to 1.
+        last_id (int): The last ID for progressive pagination. Defaults to None.
         limit (int): Number of items per page. Defaults to 10.
 
     Returns:
         JsonResponse: Paginated serialized movie lists with HTTP 200.
     """
     if request.user == user:
-        return get_paginated_response(
-        user.movies_lists.all(),
-        MovieListSerializer,
-        request=request,
-        page=page,
-        limit=limit)
+        return get_progressive_response(
+            user.movies_lists.all(),
+            MovieListSerializer,
+            request=request,
+            last_id=last_id,
+            limit=limit,
+        )
     movies_lists = user.movies_lists.exclude(privacity=MovieList.Privacity.PRIVATE).all()
     if not user.is_friend(request.user):
         movies_lists = movies_lists.exclude(privacity=MovieList.Privacity.FRIENDS)
 
-    return get_paginated_response(
+    return get_progressive_response(
         movies_lists,
         MovieListSerializer,
         request=request,
-        page=page,
+        last_id=last_id,
         limit=limit,
     )
 

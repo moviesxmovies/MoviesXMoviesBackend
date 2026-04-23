@@ -116,6 +116,7 @@ def get_progressive_response(
 ):
     limit = int(limit) if limit else 10
     last_id = int(last_id) if last_id else None
+    count = queryset.count()
 
     queryset = __get_cursor_filter(queryset, last_id, ordering_field)
 
@@ -130,5 +131,6 @@ def get_progressive_response(
         {
             'results': serializer_class(items, request=request).serialize(),
             'next_last_id': items[-1].pk if has_more and items else None,
+            'count': count,
         }
     )
