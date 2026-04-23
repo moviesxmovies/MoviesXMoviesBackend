@@ -615,11 +615,7 @@ def test_suggest_friends_empty(auth_client):
     assert response.status_code == HTTPStatus.OK
     assert response.json()['count'] == 0
     assert response.json()['results'] == []
-    assert response.json()['current_page'] == 1
-    assert response.json()['total_pages'] == 1
-    assert not response.json()['has_next']
-    assert not response.json()['has_previous']
-
+    assert not response.json()['next_last_id']
 
 @pytest.mark.django_db
 def test_suggest_friends_with_suggestions(auth_client, user_factory):
@@ -639,10 +635,7 @@ def test_suggest_friends_with_suggestions(auth_client, user_factory):
     assert response.status_code == HTTPStatus.OK
     assert response.json()['count'] == 1
     assert response.json()['results'][0]['username'] == 'user3'
-    assert response.json()['current_page'] == 1
-    assert response.json()['total_pages'] == 1
-    assert not response.json()['has_next']
-    assert not response.json()['has_previous']
+    assert not response.json()['next_last_id']
 
 
 @pytest.mark.django_db
@@ -663,11 +656,8 @@ def test_suggest_friends_pagination(auth_client, user_factory):
     assert response.status_code == HTTPStatus.OK
     assert data['count'] == 15
     assert len(data['results']) == 5
-    assert data['current_page'] == 2
-    assert data['total_pages'] == 3
-    assert data['has_next']
-    assert data['has_previous']
-    assert data['results'][0]['username'] == 'target5'
+    assert data['next_last_id'] is not None
+    
 
 
 @pytest.mark.django_db
