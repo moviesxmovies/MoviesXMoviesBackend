@@ -857,7 +857,7 @@ def self_friend_requests(request, last_id: int = None, limit: int = 10) -> JsonR
         to_user=request.user, status=FriendRequest.Status.PENDING
     ).order_by('-created_at')
     return get_progressive_response(
-        friend_requests_query, FriendRequestSerializer, request, last_id, limit, '-updated_at'
+        friend_requests_query, FriendRequestSerializer, request, last_id, limit, '-created_at'
     )
 
 
