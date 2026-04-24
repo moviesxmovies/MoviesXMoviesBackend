@@ -171,7 +171,7 @@ def _add_reaction(request, target, emoji_code) -> JsonResponse:
         reaction.save()
         return JsonResponse(
             {
-                'status': True,
+                'id': reaction.pk,
             }
         )
     except IntegrityError:
@@ -195,7 +195,7 @@ def _delete_reaction(request, reaction) -> JsonResponse:
         return JsonResponse(
             {'error': _('You can only delete your own reactions')}, status=HTTPStatus.FORBIDDEN
         )
-    reaction.delete()
+    reaction.hard_delete()
     return JsonResponse({'status': True}, status=HTTPStatus.NO_CONTENT)
 
 
@@ -207,7 +207,7 @@ def _delete_reaction(request, reaction) -> JsonResponse:
 )
 @extend_schema(
     methods=['POST'],
-    responses={200: bool, 404: None},
+    responses={200: int, 404: None},
     request=SaveReactionSerializer,
     description='Add a reaction to a review',
     operation_id='add_review_reaction',
@@ -224,6 +224,10 @@ def reaction_review_wrapper(request, review: Review):
 
 
 @require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, review: f'review_reactions:{review.pk}',
+    timeout=60 * 5,
+)
 def get_review_reactions(request, review: Review) -> JsonResponse:
     """Retrieve aggregated reaction counts and the requester's reactions for a review.
 
@@ -405,6 +409,10 @@ def reaction_comment_wrapper(request, review: Review, comment: Comment):
 
 
 @require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, review, comment: f'comment_reactions:{comment.pk}',
+    timeout=60 * 5,
+)
 def get_comment_reactions(request, review: Review, comment: Comment) -> JsonResponse:
     reactions_queryset = Reaction.objects.filter(
         content_type=ContentType.objects.get_for_model(Comment), object_id=comment.pk
