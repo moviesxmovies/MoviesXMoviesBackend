@@ -1,7 +1,7 @@
 import logging
 
 from django.core.cache import cache
-from django.db.models.signals import m2m_changed, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.dispatch import receiver
 
 from awards.models import Award
@@ -12,10 +12,11 @@ from persons.models import Person
 from platforms.models import Platform
 from ratings.models import Rating
 from reviews.models import Comment, Reaction, Review
-from users.models import FriendShip, User
+from users.models import FriendRequest, FriendShip, User
 
 logger = logging.getLogger(__name__)
 MOVIE_SEARCH_ALL = 'movie_search:*'
+USER_SEARCH_ALL = 'user_search:*'
 
 
 @receiver(post_save, sender=Reaction)
@@ -121,7 +122,7 @@ def invalidate_user_detail(sender, instance, **kwargs):
     cache.delete(f'self_user_detail:{instance.pk}')
     logger.debug(f'Invalidated self_user_detail cache for user {instance.pk}')
 
-    cache.delete_many(keys=cache.keys('user_search:*'))
+    cache.delete_many(keys=cache.keys(USER_SEARCH_ALL))
     logger.debug(f'Invalidated user_search cache due to update of user {instance.pk}')
 
 
@@ -157,9 +158,8 @@ def invalidate_on_comment(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=FriendShip)
-def invalidate_on_friendship(sender, instance, created, **kwargs):
-    if not created:
-        return
+@receiver(post_delete, sender=FriendShip)
+def invalidate_on_friendship(sender, instance, **kwargs):
     logger.debug(
         f'Invalidating caches due to new friendship between users {instance.user1.pk} and {instance.user2.pk}'
     )
@@ -170,6 +170,116 @@ def invalidate_on_friendship(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys(f'friends_ratings:{instance.user2.pk}:*'))
     logger.debug(
         f'Invalidated friends_ratings cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete_many(keys=cache.keys(f'friend_requests:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'friend_requests:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated friend_requests cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete(f'user_detail:{instance.user1.pk}')
+    cache.delete(f'user_detail:{instance.user2.pk}')
+    logger.debug(
+        f'Invalidated user_detail cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete_many(keys=cache.keys(f'self_user_detail:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'self_user_detail:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated self_user_detail cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete_many(keys=cache.keys(USER_SEARCH_ALL))
+    logger.debug(
+        f'Invalidated user_search cache due to new friendship between users {instance.user1.pk} and {instance.user2.pk}'
+    )
+
+    cache.delete_many(keys=cache.keys(f'suggested_users:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'suggested_users:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated suggested_users cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated movies_lists_detail cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated movies_lists_user cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+    cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.user1.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.user2.pk}:*'))
+    logger.debug(
+        f'Invalidated movies_lists_self cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
+
+@receiver(post_save, sender=FriendRequest)
+@receiver(post_delete, sender=FriendRequest)
+def invalidate_on_friend_request(sender, instance: FriendRequest, created, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to new friend request between users {instance.from_user.pk} and {instance.to_user.pk}'
+    )
+    cache.delete_many(keys=cache.keys(f'user_friends:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'user_friends:{instance.to_user.pk}:*'))
+
+    cache.delete_many(keys=cache.keys(f'friends_ratings:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'friends_ratings:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated friends_ratings cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete_many(keys=cache.keys(f'friend_requests:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'friend_requests:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated friend_requests cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete(f'user_detail:{instance.from_user.pk}')
+    cache.delete(f'user_detail:{instance.to_user.pk}')
+    logger.debug(
+        f'Invalidated user_detail cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete_many(keys=cache.keys(f'self_user_detail:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'self_user_detail:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated self_user_detail cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete_many(keys=cache.keys(USER_SEARCH_ALL))
+    logger.debug(
+        f'Invalidated user_search cache due to new friend request between users {instance.from_user.pk} and {instance.to_user.pk}'
+    )
+
+    cache.delete_many(keys=cache.keys(f'suggested_users:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'suggested_users:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated suggested_users cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated movies_lists_detail cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated movies_lists_user cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+
+    cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.from_user.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.to_user.pk}:*'))
+    logger.debug(
+        f'Invalidated movies_lists_self cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
     )
 
 
