@@ -317,7 +317,7 @@ LOGGING = {
     'loggers': {
         '': {
             'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,
         },
         'django': {
