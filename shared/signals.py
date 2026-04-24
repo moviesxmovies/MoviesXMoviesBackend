@@ -11,11 +11,24 @@ from movies.models import Movie
 from persons.models import Person
 from platforms.models import Platform
 from ratings.models import Rating
-from reviews.models import Comment, Review
+from reviews.models import Comment, Reaction, Review
 from users.models import FriendShip, User
 
 logger = logging.getLogger(__name__)
 MOVIE_SEARCH_ALL = 'movie_search:*'
+
+
+@receiver(post_save, sender=Reaction)
+def invalidate_reaction_caches(sender, instance, **kwargs):
+    logger.debug(
+        f'Invalidating caches due to {"creation" if instance._state.adding else "update"} of reaction {instance.pk} by user {instance.user.pk}'
+    )
+    if instance.content_type.model == 'review':
+        cache.delete(f'review_reactions:{instance.object_id}')
+        logger.debug(f'Invalidated review_reactions cache for review {instance.object_id}')
+    elif instance.content_type.model == 'comment':
+        cache.delete(f'comment_reactions:{instance.object_id}')
+        logger.debug(f'Invalidated comment_reactions cache for comment {instance.object_id}')
 
 
 @receiver(m2m_changed, sender=Movie.actors.through)

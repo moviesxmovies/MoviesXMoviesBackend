@@ -349,7 +349,7 @@ def test_add_review_reaction(review_factory, auth_client):
         content_type='application/json',
     )
     assert response.status_code == 200
-    assert response.json()['status'] is True
+    assert response.json()['id'] is not None
     ct = ContentType.objects.get_for_model(Review)
     assert Reaction.objects.filter(content_type=ct, object_id=review.pk).count() == 1
 
@@ -398,8 +398,8 @@ def test_delete_review_reaction(review_factory, reaction_factory, auth_client):
         REVIEW_REACTION_DETAIL_URL.format(review_id=review.pk, reaction_id=reaction.pk)
     )
     assert response.status_code == 204
-    reaction.refresh_from_db()
-    assert reaction.deleted_at is not None
+    assert Reaction.objects.filter(pk=reaction.pk).exists() is False
+
 
 
 @pytest.mark.django_db
@@ -430,7 +430,7 @@ def test_add_comment_reaction(review_factory, comment_factory, auth_client):
         content_type='application/json',
     )
     assert response.status_code == 200
-    assert response.json()['status'] is True
+    assert response.json()['id'] is not None
 
 
 @pytest.mark.django_db
@@ -484,8 +484,7 @@ def test_delete_comment_reaction(review_factory, comment_factory, reaction_facto
         )
     )
     assert response.status_code == 204
-    reaction.refresh_from_db()
-    assert reaction.deleted_at is not None
+    assert Reaction.objects.filter(pk=reaction.pk).exists() is False
 
 
 @pytest.mark.django_db
