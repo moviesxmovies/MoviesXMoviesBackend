@@ -842,6 +842,10 @@ def self_friends(request, last_id: int = None, limit: int = 10) -> JsonResponse:
 @require_http_methods(['GET'])
 @auth_required()
 @get_query_params('last_id', 'limit')
+@cached_view(
+    make_key=lambda req, last_id=None, limit=10: f'friend_requests:{req.user.pk}:{last_id}:{limit}',
+    timeout=60 * 5,
+)
 def self_friend_requests(request, last_id: int = None, limit: int = 10) -> JsonResponse:
     """Return a paginated list of incoming friend requests for a specific user.
 
