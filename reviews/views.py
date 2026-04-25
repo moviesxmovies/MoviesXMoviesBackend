@@ -225,7 +225,7 @@ def reaction_review_wrapper(request, review: Review):
 
 @require_http_methods(['GET'])
 @cached_view(
-    make_key=lambda req, review: f'review_reactions:{review.pk}',
+    make_key=lambda req, review: f'review_reactions:{review.pk}:{req.user.pk}',
     timeout=60 * 5,
 )
 def get_review_reactions(request, review: Review) -> JsonResponse:
@@ -410,7 +410,7 @@ def reaction_comment_wrapper(request, review: Review, comment: Comment):
 
 @require_http_methods(['GET'])
 @cached_view(
-    make_key=lambda req, review, comment: f'comment_reactions:{comment.pk}',
+    make_key=lambda req, review, comment: f'comment_reactions:{comment.pk}:{req.user.pk}',
     timeout=60 * 5,
 )
 def get_comment_reactions(request, review: Review, comment: Comment) -> JsonResponse:

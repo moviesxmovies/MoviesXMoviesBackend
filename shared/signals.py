@@ -25,10 +25,10 @@ def invalidate_reaction_caches(sender, instance, **kwargs):
         f'Invalidating caches due to {"creation" if instance._state.adding else "update"} of reaction {instance.pk} by user {instance.user.pk}'
     )
     if instance.content_type.model == 'review':
-        cache.delete(f'review_reactions:{instance.object_id}')
+        cache.delete_many(keys=cache.keys(f'review_reactions:{instance.object_id}:*'))
         logger.debug(f'Invalidated review_reactions cache for review {instance.object_id}')
     elif instance.content_type.model == 'comment':
-        cache.delete(f'comment_reactions:{instance.object_id}')
+        cache.delete_many(keys=cache.keys(f'comment_reactions:{instance.object_id}:*'))
         logger.debug(f'Invalidated comment_reactions cache for comment {instance.object_id}')
 
 
