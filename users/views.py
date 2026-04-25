@@ -511,7 +511,7 @@ def forgot_password_validation(request, body: dict) -> JsonResponse:
 @api_view(['GET'])
 @require_http_methods(['GET'])
 @auth_required()
-@cached_view(make_key=lambda req, user: f'user_detail:{user.pk}', timeout=60 * 60)
+@cached_view(make_key=lambda req, user: f'user_detail:{user.pk}:{req.user.pk}', timeout=60 * 60)
 def user_detail(request, user: User) -> JsonResponse:
     """Return the serialized profile of a specific user.
 
