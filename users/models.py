@@ -121,7 +121,7 @@ class User(AbstractUser):
             )
         """,
             [self.pk, self.pk, self.pk, self.pk],
-            output_field=IntegerField(),  # <--- OBLIGATORIO
+            output_field=IntegerField(),
         )
         suggestions = (
             User.objects.exclude(pk=self.pk)
@@ -133,8 +133,6 @@ class User(AbstractUser):
             .filter(_is_friend=False, _active_request=False)
             .order_by('-common_friends_count', '-date_joined', 'id')
         )
-
-        print(suggestions.query)  # Debug: print the generated SQL query
 
         return suggestions
 
