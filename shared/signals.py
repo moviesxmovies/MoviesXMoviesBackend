@@ -116,7 +116,7 @@ def invalidate_on_review(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def invalidate_user_detail(sender, instance, **kwargs):
-    cache.delete(f'user_detail:{instance.pk}')
+    cache.delete_many(keys=cache.keys(f'user_detail:{instance.pk}:*'))
     logger.debug(f'Invalidated user_detail cache for user {instance.pk}')
 
     cache.delete(f'self_user_detail:{instance.pk}')
@@ -219,6 +219,12 @@ def invalidate_on_friendship(sender, instance, **kwargs):
         f'Invalidated movies_lists_self cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
     )
 
+    cache.delete(f'user_detail:{instance.user1.pk}:{instance.user2.pk}')
+    cache.delete(f'user_detail:{instance.user2.pk}:{instance.user1.pk}')
+    logger.debug(
+        f'Invalidated user_detail cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
+    )
+
 
 @receiver(post_save, sender=FriendRequest)
 @receiver(post_delete, sender=FriendRequest)
@@ -280,6 +286,11 @@ def invalidate_on_friend_request(sender, instance: FriendRequest, created, **kwa
     cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.to_user.pk}:*'))
     logger.debug(
         f'Invalidated movies_lists_self cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friend request'
+    )
+    cache.delete(f'user_detail:{instance.user1.pk}:{instance.from_user.pk}')
+    cache.delete(f'user_detail:{instance.user2.pk}:{instance.to_user.pk}')
+    logger.debug(
+        f'Invalidated user_detail cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friendship'
     )
 
 
