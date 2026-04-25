@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 MOVIE_SEARCH_ALL = 'movie_search:*'
 USER_SEARCH_ALL = 'user_search:*'
 
-
+@receiver(post_delete, sender=Reaction)
 @receiver(post_save, sender=Reaction)
 def invalidate_reaction_caches(sender, instance, **kwargs):
     logger.debug(
