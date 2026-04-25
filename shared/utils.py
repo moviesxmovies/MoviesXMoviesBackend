@@ -117,9 +117,9 @@ def get_progressive_response(
     limit = int(limit) if limit else 10
     last_id = int(last_id) if last_id else None
     count = queryset.count()
+    queryset = __get_cursor_filter(queryset, last_id, ordering_field)
 
     if order:
-        queryset = __get_cursor_filter(queryset, last_id, ordering_field)
         queryset = __apply_ordering(queryset, ordering_field)
     items = list(queryset[: limit + 1])
 

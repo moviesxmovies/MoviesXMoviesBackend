@@ -247,7 +247,12 @@ def resend_verification_email(request) -> JsonResponse:
     responses={200: UserSerializer.get_progressive_pagination_schema(), 400: None, 404: None},
     description='Get a list of suggested users to follow based on mutual friends',
     parameters=[
-        OpenApiParameter(name='last_id', description='Last ID for progressive pagination', required=False, type=int),
+        OpenApiParameter(
+            name='last_id',
+            description='Last ID for progressive pagination',
+            required=False,
+            type=int,
+        ),
         OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
     ],
 )
@@ -273,7 +278,7 @@ def suggested_users(request, last_id: int, limit: int) -> JsonResponse:
         JsonResponse: Paginated serialized user list with HTTP 200.
     """
     return get_progressive_response(
-        request.user.suggest_friends(), UserSerializer, request, last_id, limit, order = False
+        request.user.suggest_friends(), UserSerializer, request, last_id, limit, order=False
     )
 
 
