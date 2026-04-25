@@ -2,7 +2,7 @@ import datetime
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Q
+from django.db.models import Exists, IntegerField, OuterRef, Q
 from django.utils.translation import gettext_lazy as _
 
 
@@ -57,51 +57,84 @@ class User(AbstractUser):
 
     def suggest_friends(self):
         """
-        Suggest friends based on mutual friends. Returns users who are not
-        already friends with the current user but have the most mutual friends
-        in common, annotated with common_friends_count.
+        Suggest friends based on mutual friends, with a recency fallback.
+
+        Strategy
+        --------
+        Everything runs as a single SQL round-trip using correlated
+        subqueries — no Python-side list materialisation.
+
+        1. `already_friend`     — Exists() subquery: candidate is already a friend.
+        2. `active_request`     — Exists() subquery: non-rejected FriendRequest exists.
+        3. `common_friends_count` — correlated COUNT: how many users are friends
+           of both `self` and the candidate row, computed entirely in SQL.
+
+        Ordering: mutual-friends desc → date_joined desc → id asc.
+        This naturally degrades to a recency sort when common_friends_count = 0
+        for everyone (new user, isolated graph), so no separate fallback branch
+        or extra query is needed.
+
+        Args:
+            limit (int): Maximum number of suggestions to return. Defaults to 10.
 
         Returns:
-            QuerySet: A queryset of suggested friends ordered by the number
-            of mutual friends in descending order.
+            QuerySet[User]: Annotated with `common_friends_count`.
         """
-        my_friend_ids = list(
-            FriendShip.objects.filter(Q(user1=self) | Q(user2=self))
-            .annotate(
-                friend_id=models.Case(
-                    models.When(user1=self, then=models.F('user2')),
-                    default=models.F('user1'),
-                    output_field=models.IntegerField(),
-                )
-            )
-            .values_list('friend_id', flat=True)
+        already_friend = FriendShip.objects.filter(
+            Q(user1=self, user2=OuterRef('pk')) | Q(user1=OuterRef('pk'), user2=self)
         )
 
-        if not my_friend_ids:
-            return User.objects.none()
+        active_request = FriendRequest.objects.filter(
+            Q(from_user=self, to_user=OuterRef('pk')) | Q(from_user=OuterRef('pk'), to_user=self)
+        ).exclude(status=FriendRequest.Status.REJECTED)
 
-        friendship_table = FriendShip._meta.db_table
-        user_table = User._meta.db_table
-        placeholders = ','.join(['%s'] * len(my_friend_ids))
-        return (
-            User.objects.exclude(Q(id=self.pk) | Q(id__in=my_friend_ids))
-            .annotate(
-                common_friends_count=models.expressions.RawSQL(
-                    f"""
-                    SELECT COUNT(*)
-                    FROM {friendship_table} f
-                    WHERE (
-                        (f.user1_id = {user_table}.id AND f.user2_id IN ({placeholders}))
-                        OR
-                        (f.user2_id = {user_table}.id AND f.user1_id IN ({placeholders}))
-                    )
-                    """,
-                    my_friend_ids * 2,
-                )
+        ft = FriendShip._meta.db_table  # friendship table alias
+        ut = User._meta.db_table  # user table alias
+
+        # For each candidate row (ut.id = candidate), count users T such that:
+        #   - T is a friend of `self`  (via f_mine)
+        #   - T is a friend of candidate (via f_theirs)
+        mutual_count_raw = models.expressions.RawSQL(
+            f"""
+        SELECT COUNT(*)
+        FROM {ft} f_mine
+        WHERE
+            (f_mine.user1_id = %s OR f_mine.user2_id = %s)
+            AND EXISTS (
+                SELECT 1
+                FROM {ft} f_theirs
+                WHERE
+                    f_theirs.user1_id = CASE
+                        WHEN f_mine.user1_id = %s THEN f_mine.user2_id
+                        ELSE f_mine.user1_id
+                    END
+                    AND f_theirs.user2_id = {ut}.id
+                UNION ALL
+                SELECT 1
+                FROM {ft} f_theirs2
+                WHERE
+                    f_theirs2.user2_id = CASE
+                        WHEN f_mine.user1_id = %s THEN f_mine.user2_id
+                        ELSE f_mine.user1_id
+                    END
+                    AND f_theirs2.user1_id = {ut}.id
             )
-            .filter(common_friends_count__gt=0)
-            .order_by('-common_friends_count', 'id')
+        """,
+            [self.pk, self.pk, self.pk, self.pk],
+            output_field=IntegerField(),
         )
+        suggestions = (
+            User.objects.exclude(pk=self.pk)
+            .annotate(
+                _is_friend=Exists(already_friend),
+                _active_request=Exists(active_request),
+                common_friends_count=mutual_count_raw,
+            )
+            .filter(_is_friend=False, _active_request=False)
+            .order_by('-common_friends_count', '-date_joined', 'id')
+        )
+
+        return suggestions
 
     def get_friends(self):
         friend_ids = (

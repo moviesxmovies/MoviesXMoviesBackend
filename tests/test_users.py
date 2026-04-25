@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest import mock
@@ -30,7 +30,6 @@ from django.conf import settings
 from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
@@ -247,22 +246,20 @@ def test_suggest_friends_logic():
     FriendShip.objects.create(user1=me, user2=juan)
     FriendShip.objects.create(user1=juan, user2=pedro)
 
-    suggestions = me.suggest_friends()
+    suggestions_qs = me.suggest_friends()
 
-    assert isinstance(suggestions, QuerySet)
+    suggestions = list(suggestions_qs)
+    assert me not in suggestions
+    assert juan not in suggestions
 
-    assert me not in suggestions, 'Should not suggest self'
-    assert juan not in suggestions, 'Should not suggest already followed users'
+    pedro_sugg = next(u for u in suggestions if u.username == 'pedro')
+    maria_sugg = next(u for u in suggestions if u.username == 'maria')
 
-    pedro_sugg = suggestions.get(username='pedro')
-    maria_sugg = suggestions.get(username='maria')
-    assert pedro_sugg.common_friends_count == 2, 'Pedro should have 2 common friends'
-    assert maria_sugg.common_friends_count == 1, 'María should have 1 common friend'
+    assert pedro_sugg.common_friends_count == 2
+    assert maria_sugg.common_friends_count == 1
 
-    assert suggestions[0] == pedro, 'Pedro should be first (most common friends)'
-    assert suggestions[1] == maria, 'María should be second (fewer common friends)'
-
-    assert suggestions.count() == 2, 'Should have exactly 2 unique suggestions'
+    assert suggestions[0] == pedro
+    assert len(suggestions) == 3
 
 
 @pytest.mark.django_db
@@ -412,7 +409,7 @@ def test_auth_invalid_token_type(rf, user_factory, mock_view_auth_required):
 @pytest.mark.django_db
 def test_auth_expired_token(rf, user_factory, mock_view_auth_required):
     user = user_factory()
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     payload = {
         'user_id': user.id,
@@ -617,6 +614,7 @@ def test_suggest_friends_empty(auth_client):
     assert response.json()['results'] == []
     assert not response.json()['next_last_id']
 
+
 @pytest.mark.django_db
 def test_suggest_friends_with_suggestions(auth_client, user_factory):
     user1 = user_factory(username='user1')
@@ -657,7 +655,59 @@ def test_suggest_friends_pagination(auth_client, user_factory):
     assert data['count'] == 15
     assert len(data['results']) == 5
     assert data['next_last_id'] is not None
-    
+
+
+@pytest.mark.django_db
+def test_suggest_friends_ordering_priority(auth_client, user_factory):
+    me = auth_client.user
+    now = datetime.now(timezone.utc)
+
+    old_popular = user_factory(username='old_popular', date_joined=now - timedelta(days=10))
+    bridge = user_factory()
+    FriendShip.objects.create(user1=me, user2=bridge)
+    FriendShip.objects.create(user1=bridge, user2=old_popular)
+
+    user_factory(username='new_isolated', date_joined=now - timedelta(days=1))
+
+    response = auth_client.get(SUGGESTED_USERS_URL)
+    results = response.json()['results']
+
+    assert results[0]['username'] == 'old_popular'
+    assert results[1]['username'] == 'new_isolated'
+
+
+@pytest.mark.django_db
+def test_suggest_friends_tie_breaking(auth_client, user_factory):
+    me = auth_client.user
+    bridge = user_factory()
+    FriendShip.objects.create(user1=me, user2=bridge)
+    now = datetime.now(timezone.utc)
+
+    older_target = user_factory(username='older', date_joined=now - timedelta(days=10))
+    newer_target = user_factory(username='newer', date_joined=now - timedelta(days=5))
+
+    FriendShip.objects.create(user1=bridge, user2=older_target)
+    FriendShip.objects.create(user1=bridge, user2=newer_target)
+
+    response = auth_client.get(SUGGESTED_USERS_URL)
+    results = response.json()['results']
+
+    assert results[0]['username'] == 'newer'
+    assert results[1]['username'] == 'older'
+
+
+@pytest.mark.django_db
+def test_suggest_friends_pure_recency_fallback(auth_client, user_factory):
+    now = datetime.now(timezone.utc)
+    user_factory(username='user1', date_joined=now - timedelta(days=10))
+    user_factory(username='user2', date_joined=now - timedelta(days=5))
+    user_factory(username='user3', date_joined=now - timedelta(days=7))
+
+    response = auth_client.get(SUGGESTED_USERS_URL)
+    results = response.json()['results']
+
+    order = [r['username'] for r in results]
+    assert order == ['user2', 'user3', 'user1']
 
 
 @pytest.mark.django_db

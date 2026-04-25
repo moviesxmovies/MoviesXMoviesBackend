@@ -112,15 +112,15 @@ def __apply_ordering(queryset, ordering_field):
 
 
 def get_progressive_response(
-    queryset, serializer_class, request, last_id=None, limit=10, ordering_field='-pk'
+    queryset, serializer_class, request, last_id=None, limit=10, ordering_field='-pk', order=True
 ):
     limit = int(limit) if limit else 10
     last_id = int(last_id) if last_id else None
     count = queryset.count()
 
-    queryset = __get_cursor_filter(queryset, last_id, ordering_field)
-
-    queryset = __apply_ordering(queryset, ordering_field)
+    if order:
+        queryset = __get_cursor_filter(queryset, last_id, ordering_field)
+        queryset = __apply_ordering(queryset, ordering_field)
     items = list(queryset[: limit + 1])
 
     has_more = len(items) > limit

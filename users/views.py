@@ -273,7 +273,7 @@ def suggested_users(request, last_id: int, limit: int) -> JsonResponse:
         JsonResponse: Paginated serialized user list with HTTP 200.
     """
     return get_progressive_response(
-        request.user.suggest_friends(), UserSerializer, request, last_id, limit
+        request.user.suggest_friends(), UserSerializer, request, last_id, limit, order = False
     )
 
 
