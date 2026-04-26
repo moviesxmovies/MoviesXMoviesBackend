@@ -372,17 +372,18 @@ def update_user(request, user: User) -> JsonResponse:
             errors = getattr(e, 'message_dict', {'error': e.messages})
             return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)
 
-    if 'email' in data and data['email'] != '' and user.email != data['email']:
-        user.email = data['email']
-        user.verified = False
-        send_verification_email.delay(user)
-
     try:
         picture = request.FILES.get('picture')
         if picture:
             picture.name = f'user_{user.username}_profile_{datetime.now().strftime("%Y%m%d%H%M%S")}.{picture.name.split(".")[-1]}'
             user.picture = picture
+        previous_email = user.email
+        user.email = data.get('email') if 'email' in data and data['email'] != '' else user.email
         user.full_clean()
+        if previous_email != data['email']:
+            print('Email changed, resetting verification status')
+            user.verified = False
+            send_verification_email.delay(user)
         user.save()
         return SelfUserSerializer(user, request=request).json_response()
     except ValidationError as e:
