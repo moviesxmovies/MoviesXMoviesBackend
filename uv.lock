@@ -551,7 +551,7 @@ wheels = [
 
 [[package]]
 name = "moviesxmoviesbackend"
-version = "1.16.16"
+version = "1.16.17"
 source = { virtual = "." }
 dependencies = [
     { name = "colorlog" },
