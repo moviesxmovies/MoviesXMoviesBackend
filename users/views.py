@@ -380,8 +380,7 @@ def update_user(request, user: User) -> JsonResponse:
         previous_email = user.email
         user.email = data.get('email') if 'email' in data and data['email'] != '' else user.email
         user.full_clean()
-        if previous_email != data['email']:
-            print('Email changed, resetting verification status')
+        if 'email' in data and previous_email != data['email']:
             user.verified = False
             send_verification_email.delay(user)
         user.save()
