@@ -4,6 +4,7 @@ import jwt
 from django.conf import settings
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils import translation
 from django.utils.translation import gettext as _
 
 from users.models import User
@@ -97,7 +98,17 @@ def auth_required(require_verification=True):
                 return error_response
             if error_response := _check_verification(request):
                 return error_response
-            return func(request, *args, **kwargs)
+            previous_language = translation.get_language()
+            if hasattr(request.user, 'preferred_language') and request.user.preferred_language:
+                translation.activate(request.user.preferred_language)
+                request.LANGUAGE_CODE = request.user.preferred_language
+            try:
+                return func(request, *args, **kwargs)
+            finally:
+                if previous_language:
+                    translation.activate(previous_language)
+                else:
+                    translation.deactivate()
 
         return wrapper
 

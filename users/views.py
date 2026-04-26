@@ -23,7 +23,7 @@ from shared.utils import (
 )
 from users.decorators import auth_required
 from users.models import FriendRequest, Q, User
-from users.serializers import FriendRequestSerializer, UserSerializer
+from users.serializers import FriendRequestSerializer, SelfUserSerializer, UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
 
 EMAIL_HELPER = 'User email'
@@ -283,7 +283,7 @@ def suggested_users(request, last_id: int, limit: int) -> JsonResponse:
 
 
 @extend_schema(
-    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    responses={200: SelfUserSerializer.get_schema(), 400: None, 404: None},
     description='Retrieve the details of the authenticated user',
     methods=['GET'],
     operation_id='get_self_user_detail',
@@ -292,7 +292,7 @@ def suggested_users(request, last_id: int, limit: int) -> JsonResponse:
     request={
         'multipart/form-data': UserUpdateSerializer,
     },
-    responses={200: UserSerializer.get_schema(), 400: None, 404: None},
+    responses={200: SelfUserSerializer.get_schema(), 400: None, 404: None},
     description='Update the details of the authenticated user',
     methods=['PUT'],
     operation_id='update_self_user',
@@ -328,7 +328,7 @@ def self_user_detail(request) -> JsonResponse:
     Returns:
         JsonResponse: Serialized user data with HTTP 200.
     """
-    return UserSerializer(request.user, request=request).json_response()
+    return SelfUserSerializer(request.user, request=request).json_response()
 
 
 @require_http_methods(['PUT'])
@@ -384,7 +384,7 @@ def update_user(request, user: User) -> JsonResponse:
             user.picture = picture
         user.full_clean()
         user.save()
-        return UserSerializer(user, request=request).json_response()
+        return SelfUserSerializer(user, request=request).json_response()
     except ValidationError as e:
         errors = getattr(e, 'message_dict', {'error': e.messages})
         return JsonResponse(errors, status=HTTPStatus.BAD_REQUEST)

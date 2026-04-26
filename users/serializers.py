@@ -43,6 +43,33 @@ class UserSerializer(BaseSerializer):
         }
 
 
+class SelfUserSerializer(BaseSerializer):
+    def serialize_instance(self, instance) -> dict:
+        return {
+            'id': instance.pk,
+            'username': instance.username,
+            'bio': instance.bio,
+            'email': instance.email,
+            'last_name': instance.last_name,
+            'first_name': instance.first_name,
+            'picture': self.build_url(instance.picture.url)
+            if instance.picture and self.request
+            else None,
+        }
+
+    @staticmethod
+    def get_fields_dict():
+        return {
+            'id': serializers.IntegerField(),
+            'username': serializers.CharField(),
+            'bio': serializers.CharField(allow_null=True),
+            'email': serializers.EmailField(),
+            'last_name': serializers.CharField(),
+            'first_name': serializers.CharField(),
+            'picture': serializers.URLField(allow_null=True),
+        }
+
+
 class FriendshipSerializer(serializers.Serializer):
     is_friend = serializers.BooleanField()
     status = serializers.ChoiceField(choices=FriendRequest.Status.choices, allow_null=True)
