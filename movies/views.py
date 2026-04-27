@@ -144,7 +144,7 @@ def movie_friends_ratings(request, movie: Movie, page: int = 1, limit: int = 10)
     Returns:
         JsonResponse: Paginated serialized ratings with HTTP 200.
     """
-    ratings_query = movie.ratings.filter(user__in=request.user.friends.all()).order_by(
+    ratings_query = movie.ratings.filter(user__in=request.user.get_friends()).order_by(
         '-created_at'
     )
     return get_paginated_response(ratings_query, RatingSerializer, request, page, limit)
