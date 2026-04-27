@@ -982,6 +982,12 @@ def delete_friend_request(request, user: User) -> JsonResponse:
         OpenApiParameter(
             name='limit', description='Items per page', required=False, type=int, default=10
         ),
+        OpenApiParameter(
+            name='is_friend',
+            description='If true, only return users who are friends with the authenticated user',
+            required=False,
+            type=bool,
+        ),
     ],
     responses={200: UserSerializer.get_paginated_schema(), 400: None},
     operation_id='user_search',
@@ -989,16 +995,14 @@ def delete_friend_request(request, user: User) -> JsonResponse:
 @api_view(['GET'])
 @auth_required()
 @require_http_methods(['GET'])
-@get_query_params(
-    'search_query',
-    'page',
-    'limit',
-)
+@get_query_params('search_query', 'page', 'limit', 'is_friend')
 @cached_view(
     make_key=lambda req, **kwargs: f'user_search:{req.user.pk}:' + req.META.get('QUERY_STRING', ''),
     timeout=60 * 5,
 )
-def user_search(request, search_query: str, page: int = 1, limit: int = 10) -> JsonResponse:
+def user_search(
+    request, search_query: str, page: int = 1, limit: int = 10, is_friend: str = 'false'
+) -> JsonResponse:
     """Search for users by username or name.
 
     Accepts a 'search_query' parameter and returns a list of users whose username, first name, or last name contains the query string (case-insensitive).
@@ -1015,4 +1019,9 @@ def user_search(request, search_query: str, page: int = 1, limit: int = 10) -> J
         | Q(first_name__icontains=search_query)
         | Q(last_name__icontains=search_query)
     ).order_by('username')
+    if is_friend == 'true':
+        users_query = (
+            users_query.filter(pk__in=request.user.get_friends())
+            .distinct()
+        )
     return get_paginated_response(users_query, UserSerializer, request, page, limit)
