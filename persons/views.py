@@ -1,3 +1,4 @@
+from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.decorators import api_view
 
@@ -209,4 +210,112 @@ def person_directed_movies(request, person: Person, last_id: int = None, limit: 
         last_id=last_id,
         limit=limit,
         ordering_field=['-release_date', '-title'],
+    )
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='search_query',
+            description='Search query for person name (case-insensitive substring match).',
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name='last_id',
+            description='Last ID for progressive pagination.',
+            required=False,
+            type=int,
+        ),
+        OpenApiParameter(
+            name='limit',
+            description='Number of items per page (default: 10, max: 100).',
+            required=False,
+            type=int,
+            default=10,
+        ),
+    ],
+    responses={
+        200: PersonSerializer.get_progressive_pagination_schema(),
+    },
+    description='Searches for actors by name. Requires `name` query parameter for case-insensitive substring match.',
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required()
+@get_query_params('search_query', 'last_id', 'limit')
+@cached_view(
+    make_key=lambda req, search_query, last_id, limit: (
+        f'actors_search:{search_query}:{last_id}:{limit}'
+    ),
+    timeout=60 * 60 * 24,
+)
+def actors_search(request, search_query: str, last_id: int = None, limit: int = 10):
+    if search_query is None:
+        search_query = ''
+    queryset = Person.objects.filter(
+        Q(name__icontains=search_query) | Q(slug__icontains=search_query),
+        acted_movies__isnull=False,
+    )
+    return get_progressive_response(
+        queryset,
+        PersonSerializer,
+        request,
+        last_id=last_id,
+        limit=limit,
+        ordering_field=['name'],
+    )
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='search_query',
+            description='Search query for person name (case-insensitive substring match).',
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name='last_id',
+            description='Last ID for progressive pagination.',
+            required=False,
+            type=int,
+        ),
+        OpenApiParameter(
+            name='limit',
+            description='Number of items per page (default: 10, max: 100).',
+            required=False,
+            type=int,
+            default=10,
+        ),
+    ],
+    responses={
+        200: PersonSerializer.get_progressive_pagination_schema(),
+    },
+    description='Searches for directors by name. Requires `name` query parameter for case-insensitive substring match.',
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required()
+@get_query_params('search_query', 'last_id', 'limit')
+@cached_view(
+    make_key=lambda req, search_query, last_id, limit: (
+        f'directors_search:{search_query}:{last_id}:{limit}'
+    ),
+    timeout=60 * 60 * 24,
+)
+def directors_search(request, search_query: str, last_id: int = None, limit: int = 10):
+    if search_query is None:
+        search_query = ''
+    queryset = Person.objects.filter(
+        Q(name__icontains=search_query) | Q(slug__icontains=search_query),
+        directed_movies__isnull=False,
+    )
+    return get_progressive_response(
+        queryset,
+        PersonSerializer,
+        request,
+        last_id=last_id,
+        limit=limit,
+        ordering_field=['name'],
     )

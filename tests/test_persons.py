@@ -8,8 +8,10 @@ from persons.serializers import PersonSerializer
 from tests.conftest import (
     PERSON_ACTED_MOVIES_URL,
     PERSON_ACTORS_SEARCH_URL,
+    PERSON_ACTORS_SEARCHING_URL,
     PERSON_DIRECTED_MOVIES_URL,
     PERSON_DIRECTORS_SEARCH_URL,
+    PERSON_DIRECTORS_SEARCHING_URL,
 )
 
 # ===========================================================================
@@ -258,3 +260,109 @@ def test_person_directed_movies_view_with_last_id(person_factory, auth_client, m
     data2 = response2.json()
     assert len(data2['results']) == 1
     assert data2['results'][0]['title'] == 'Movie 1'
+
+@pytest.mark.django_db
+def test_actors_search_view_with_no_query_returns_all(auth_client, person_factory, movie_factory):
+    person1 = person_factory(name='John Doe', slug='john-doe')
+    person2 = person_factory(name='Jane Smith', slug='jane-smith')
+
+    movie_factory(
+        title='Movie 1',
+        actors=[person1, person2],
+    )
+    
+    response = auth_client.get(PERSON_ACTORS_SEARCHING_URL)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 2
+    assert data['results'][0]['name'] == 'Jane Smith'
+    assert data['results'][1]['name'] == 'John Doe'
+
+@pytest.mark.django_db
+def test_directors_search_view_with_no_query_returns_all(auth_client, person_factory, movie_factory):
+    person1 = person_factory(name='John Doe', slug='john-doe')
+    person2 = person_factory(name='Jane Smith', slug='jane-smith')
+
+    movie_factory(
+        title='Movie 1',
+        directors=[person1, person2],
+    )
+    
+    response = auth_client.get(PERSON_DIRECTORS_SEARCHING_URL)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 2
+    assert data['results'][0]['name'] == 'Jane Smith'
+    assert data['results'][1]['name'] == 'John Doe'
+
+@pytest.mark.django_db
+def test_actors_search_view_with_query_returns_filtered(auth_client, person_factory, movie_factory):
+    person1 = person_factory(name='John Doe', slug='john-doe')
+    person2 = person_factory(name='Jane Smith', slug='jane-smith')
+
+    movie_factory(
+        title='Movie 1',
+        actors=[person1, person2],
+    )
+    
+    response = auth_client.get(PERSON_ACTORS_SEARCHING_URL, {'search_query': 'Jane'})
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 1
+    assert data['results'][0]['name'] == 'Jane Smith'
+
+@pytest.mark.django_db
+def test_directors_search_view_with_query_returns_filtered(auth_client, person_factory, movie_factory):
+    person1 = person_factory(name='John Doe', slug='john-doe')
+    person2 = person_factory(name='Jane Smith', slug='jane-smith')
+
+    movie_factory(
+        title='Movie 1',
+        directors=[person1, person2],
+    )
+    
+    response = auth_client.get(PERSON_DIRECTORS_SEARCHING_URL, {'search_query': 'Jane'})
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 1
+    assert data['results'][0]['name'] == 'Jane Smith'
+
+@pytest.mark.django_db
+def test_actors_search_view_with_query_and_last_id_returns_filtered_and_paginated(auth_client, person_factory, movie_factory):
+    person1 = person_factory(name='John Doe', slug='john-doe')
+    person2 = person_factory(name='Jane Smith', slug='jane-smith')
+    person3 = person_factory(name='Jane Doe', slug='jane-doe')
+
+    movie_factory(
+        title='Movie 1',
+        actors=[person1, person2, person3],
+    )
+    
+    response = auth_client.get(PERSON_ACTORS_SEARCHING_URL, {'search_query': 'Jane', 'last_id': person3.pk, 'limit': 1})
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 1
+    assert data['results'][0]['name'] == 'Jane Smith'
+
+@pytest.mark.django_db
+def test_directors_search_view_with_query_and_last_id_returns_filtered_and_paginated(auth_client, person_factory, movie_factory):
+    person1 = person_factory(name='John Doe', slug='john-doe')
+    person2 = person_factory(name='Jane Smith', slug='jane-smith')
+    person3 = person_factory(name='Jane Doe', slug='jane-doe')
+
+    movie_factory(
+        title='Movie 1',
+        directors=[person1, person2, person3],
+    )
+    
+    response = auth_client.get(PERSON_DIRECTORS_SEARCHING_URL, {'search_query': 'Jane', 'last_id': person3.pk, 'limit': 1})
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data['results']) == 1
+    assert data['results'][0]['name'] == 'Jane Smith'
