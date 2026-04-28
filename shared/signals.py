@@ -318,6 +318,9 @@ def invalidate_on_person(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys('actor_pagination:*'))
     cache.delete_many(keys=cache.keys('director_pagination:*'))
 
+    cache.delete_many(keys=cache.keys('actors_search:*'))
+    cache.delete_many(keys=cache.keys('directors_search:*'))
+
 
 @receiver(post_save, sender=Genre)
 def invalidate_on_genre(sender, instance, created, **kwargs):
