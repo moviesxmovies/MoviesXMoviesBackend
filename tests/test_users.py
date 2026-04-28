@@ -1533,3 +1533,16 @@ def test_user_search_case_insensitive(auth_client, user_factory):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json()['count'] == 1
+
+@pytest.mark.django_db
+def test_user_search_is_friend(auth_client, user_factory):
+    user1=user_factory(username='PythonDev')
+    user_factory(username='Test')
+
+    FriendShip.objects.create(user1=auth_client.user, user2=user1)
+
+    response = auth_client.get(USER_SEARCH_URL + '?is_friend=true')
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['count'] == 1
+    assert response.json()['results'][0]['username'] == 'PythonDev'
