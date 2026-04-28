@@ -111,7 +111,7 @@ def __get_cursor_filter(queryset, last_id, ordering_field):
 
     return queryset.filter(
         Q(**{lt_or_gt: field_value}) | Q(**{field_name: field_value}, pk__lt=last_id)
-    )
+    ).distinct()
 
 
 def __apply_ordering(queryset, ordering_field):
