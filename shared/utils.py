@@ -92,17 +92,26 @@ def __get_cursor_filter(queryset, last_id, ordering_field):
 
     fields = ordering_field if isinstance(ordering_field, list) else [ordering_field]
 
-    if '-release_date' in fields:
-        try:
-            last_item = queryset.model.objects.get(pk=last_id)
-            return queryset.filter(
-                Q(release_date__lt=last_item.release_date)
-                | Q(release_date=last_item.release_date, pk__lt=last_id)
-            )
-        except queryset.model.DoesNotExist:
-            return queryset
+    non_pk_fields = [f for f in fields if f.lstrip('-') != 'pk']
 
-    return queryset.filter(pk__lt=last_id)
+    if not non_pk_fields:
+        return queryset.filter(pk__lt=last_id)
+
+    try:
+        last_item = queryset.model.objects.get(pk=last_id)
+    except queryset.model.DoesNotExist:
+        return queryset
+
+    primary_field = non_pk_fields[0]
+    descending = primary_field.startswith('-')
+    field_name = primary_field.lstrip('-')
+    field_value = getattr(last_item, field_name)
+
+    lt_or_gt = f'{field_name}__{"lt" if descending else "gt"}'
+
+    return queryset.filter(
+        Q(**{lt_or_gt: field_value}) | Q(**{field_name: field_value}, pk__lt=last_id)
+    )
 
 
 def __apply_ordering(queryset, ordering_field):
