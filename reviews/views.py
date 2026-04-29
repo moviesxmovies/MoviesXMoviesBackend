@@ -74,7 +74,13 @@ class ReviewDeleteSerializer(serializers.Serializer):
     description='Delete a review for a specific movie',
     operation_id='delete_movie_review',
 )
-@api_view(['PUT', 'DELETE'])
+@extend_schema(
+    methods=['GET'],
+    responses={200: ReviewSerializer.get_schema(), 404: None},
+    description='Get a review for a specific movie',
+    operation_id='get_movie_review',
+)
+@api_view(['PUT', 'DELETE', 'GET'])
 @auth_required()
 def review_wrapper(request, review: Review) -> JsonResponse:
     """Route PUT and DELETE review requests to their respective handlers.
@@ -88,6 +94,8 @@ def review_wrapper(request, review: Review) -> JsonResponse:
         or from ``delete_review`` on DELETE.
     """
     match request.method:
+        case 'GET':
+            return get_review(request, review)
         case 'PUT':
             return edit_review(request, review)
         case 'DELETE':
@@ -145,6 +153,19 @@ def delete_review(request, review: Review) -> JsonResponse:
     review.delete()
     return JsonResponse({'status': True}, status=HTTPStatus.NO_CONTENT)
 
+@require_http_methods(['GET'])
+def get_review(request, review: Review) -> JsonResponse:
+    """Retrieve the details of a review.
+
+    Args:
+        request: The incoming HTTP request.
+        review (Review): The review instance resolved from the URL.
+
+    Returns:
+        JsonResponse: Serialized review details with HTTP 200, or a JSON
+        error body with HTTP 404 if the review does not exist.
+    """
+    return ReviewSerializer(review, request=request).json_response()
 
 # COMMENTS AND REACTIONS
 
