@@ -8,12 +8,12 @@ from reviews.serializers import ReviewSerializer
 from tests.conftest import (
     COMMENT_REACTION_DETAIL_URL,
     COMMENT_REACTIONS_URL,
-    EDIT_DELETE_REVIEW_URL,
     REVIEW_COMMENT_DETAIL_URL,
     REVIEW_COMMENT_REPLIES_URL,
     REVIEW_COMMENTS_URL,
     REVIEW_REACTION_DETAIL_URL,
     REVIEW_REACTIONS_URL,
+    REVIEW_WRAPPER_URL,
 )
 
 # ===========================================================================
@@ -76,7 +76,7 @@ def test_review_edit(review_factory, auth_client):
     )
 
     response = auth_client.put(
-        EDIT_DELETE_REVIEW_URL.format(review_id=review.pk),
+        REVIEW_WRAPPER_URL.format(review_id=review.pk),
         data=json.dumps(
             {
                 'title': 'Not so great',
@@ -106,7 +106,7 @@ def test_review_edit_forbidden(review_factory, auth_client):
     review = review_factory(title='Great movie!', content='I really enjoyed it.', is_positive=True)
 
     response = auth_client.put(
-        EDIT_DELETE_REVIEW_URL.format(review_id=review.pk),
+        REVIEW_WRAPPER_URL.format(review_id=review.pk),
         data=json.dumps(
             {
                 'title': 'Not so great',
@@ -131,7 +131,7 @@ def test_review_edit_forbidden(review_factory, auth_client):
 def test_review_delete(review_factory, auth_client):
     review = review_factory(user=auth_client.user)
 
-    response = auth_client.delete(EDIT_DELETE_REVIEW_URL.format(review_id=review.pk))
+    response = auth_client.delete(REVIEW_WRAPPER_URL.format(review_id=review.pk))
 
     assert response.status_code == 204
     review.refresh_from_db()
@@ -143,7 +143,7 @@ def test_review_delete(review_factory, auth_client):
 def test_review_delete_forbidden(review_factory, auth_client):
     review = review_factory()
 
-    response = auth_client.delete(EDIT_DELETE_REVIEW_URL.format(review_id=review.pk))
+    response = auth_client.delete(REVIEW_WRAPPER_URL.format(review_id=review.pk))
 
     assert response.status_code == 403
     review.refresh_from_db()
@@ -250,6 +250,17 @@ def test_delete_comment(review_factory, comment_factory, auth_client):
     comment.refresh_from_db()
     assert comment.deleted_at is not None
     assert not Comment.objects.filter(pk=comment.pk).exists()
+
+
+@pytest.mark.django_db
+def test_get_review(review_factory, auth_client):
+    review = review_factory(title='Amazing movie!', content='I loved it.', is_positive=True)
+    response = auth_client.get(REVIEW_WRAPPER_URL.format(review_id=review.pk))
+    assert response.status_code == 200
+    assert response.json()['id'] == review.pk
+    assert response.json()['title'] == 'Amazing movie!'
+    assert response.json()['content'] == 'I loved it.'
+    assert response.json()['is_positive'] is True
 
 
 @pytest.mark.django_db
@@ -399,7 +410,6 @@ def test_delete_review_reaction(review_factory, reaction_factory, auth_client):
     )
     assert response.status_code == 204
     assert Reaction.objects.filter(pk=reaction.pk).exists() is False
-
 
 
 @pytest.mark.django_db
