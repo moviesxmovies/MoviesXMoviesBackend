@@ -101,17 +101,15 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
         f'Invalidated friends_ratings cache for user {user.pk} and movie {movie.pk} due to new rating'
     )
 
-
+@receiver(post_delete, sender=Rating)
 @receiver(post_save, sender=Review)
-def invalidate_on_review(sender, instance, created, **kwargs):
-    if not created:
-        return
+def invalidate_on_review(sender, instance, **kwargs):
     logger.debug(
         f'Invalidating caches due to new review by user {instance.user.pk} for movie {instance.movie.pk}'
     )
-    cache.delete_many(keys=cache.keys(f'recommendations:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'user_reviews:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movie_reviews:{instance.movie.pk}:*'))
+    cache.delete(f'review_detail:{instance.pk}')
 
 
 @receiver(post_save, sender=User)

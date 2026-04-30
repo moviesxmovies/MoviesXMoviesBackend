@@ -154,6 +154,10 @@ def delete_review(request, review: Review) -> JsonResponse:
     return JsonResponse({'status': True}, status=HTTPStatus.NO_CONTENT)
 
 @require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, review: f'review_detail:{review.pk}',
+    timeout=60 * 5,
+)
 def get_review(request, review: Review) -> JsonResponse:
     """Retrieve the details of a review.
 
