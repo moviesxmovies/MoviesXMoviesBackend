@@ -25,7 +25,7 @@ SITE_URL = 'https://moviesxmovies.jonaykb.com'
 
 SUPPORTED_LANGUAGES = ['en', 'es', 'fr', 'de']
 DEFAULT_LANGUAGE = 'en'
-DEEPL_API_KEY = config('DEEPL_API_KEY', default='')
+DEEPL_API_KEY = config('DEEPL_API_KEY', default='your_deepl_api_not_here')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 

@@ -552,6 +552,13 @@ def delete_review_reaction(request, review: Review, reaction: Reaction) -> JsonR
     return _delete_reaction(request, reaction)
 
 
+def __translate_text(text: str, target_lang: str = 'ES') -> str:
+    result = translator.translate_text(text, target_lang=target_lang)
+    if isinstance(result, list):
+        return result[0].text
+    return result.text
+
+
 @extend_schema(
     methods=['GET'],
     responses={200: ReviewTranslationSerializer, 404: None},
@@ -568,8 +575,8 @@ def delete_review_reaction(request, review: Review, reaction: Reaction) -> JsonR
     timeout=60 * 60 * 24,
 )
 def review_translations_deepl(request, review: Review) -> JsonResponse:
-    title = translator.translate_text(review.title, target_lang=request.user.preferred_language)
-    content = translator.translate_text(review.content, target_lang=request.user.preferred_language)
+    title = __translate_text(review.title, target_lang=request.user.preferred_language)
+    content = __translate_text(review.content, target_lang=request.user.preferred_language)
     return JsonResponse({'title': title, 'content': content})
 
 
@@ -589,7 +596,5 @@ def review_translations_deepl(request, review: Review) -> JsonResponse:
     timeout=60 * 60 * 24,
 )
 def comment_translations_deepl(request, review: Review, comment: Comment) -> JsonResponse:
-    content = translator.translate_text(
-        comment.content, target_lang=request.user.preferred_language
-    )
+    content = __translate_text(comment.content, target_lang=request.user.preferred_language)
     return JsonResponse({'content': content})

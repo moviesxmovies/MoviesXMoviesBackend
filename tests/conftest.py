@@ -92,8 +92,10 @@ USER_FRIEND_REQUESTS_URL = '/api/users/{username}/friend-requests/'
 
 # REVIEWS - COMMENTS - REACTIONS
 REVIEW_WRAPPER_URL = '/api/reviews/{review_id}/'
+REVIEW_TRANSLATIONS_URL = '/api/reviews/{review_id}/translations/'
 REVIEW_COMMENTS_URL = '/api/reviews/{review_id}/comments/'
 REVIEW_COMMENT_DETAIL_URL = '/api/reviews/{review_id}/comments/{comment_id}/'
+REVIEW_COMMENT_TRANSLATIONS_URL = '/api/reviews/{review_id}/comments/{comment_id}/translations/'
 REVIEW_COMMENT_REPLIES_URL = '/api/reviews/{review_id}/comments/{comment_id}/replies/'
 REVIEW_REACTIONS_URL = '/api/reviews/{review_id}/reactions/'
 REVIEW_REACTION_DETAIL_URL = '/api/reviews/{review_id}/reactions/{reaction_id}/'
