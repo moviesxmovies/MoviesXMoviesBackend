@@ -2,11 +2,13 @@ import json
 from unittest import mock
 from unittest.mock import MagicMock
 
+import deepl
 import pytest
 from django.urls import reverse
 
 from reviews.models import Comment, Reaction, Review
 from reviews.serializers import ReviewSerializer
+from reviews.views import __translate_text
 from tests.conftest import (
     COMMENT_REACTION_DETAIL_URL,
     COMMENT_REACTIONS_URL,
@@ -571,3 +573,43 @@ def test_get_comment_translation(review_factory, comment_factory, auth_client, m
 
     assert response.status_code == 200
     assert response.json()['content'] == 'Este es un comentario.'
+
+
+def test_translate_success(mock_reviews_deepl):
+    mock_reviews_deepl.translate_text.return_value = mock.MagicMock(text='Hola')
+    assert __translate_text('Hello', 'es') == 'Hola'
+
+
+def test_translate_authorization_error(mock_reviews_deepl):
+    mock_reviews_deepl.translate_text.side_effect = deepl.AuthorizationException('error')
+    assert __translate_text('Hello', 'es') == 'Hello'
+
+
+def test_translate_deepl_error(mock_reviews_deepl):
+    mock_reviews_deepl.translate_text.side_effect = deepl.DeepLException('error')
+    assert __translate_text('Hello', 'es') == 'Hello'
+
+
+def test_translate_connection_error(mock_reviews_deepl):
+    mock_reviews_deepl.translate_text.side_effect = deepl.ConnectionException('error')
+    assert __translate_text('Hello', 'es') == 'Hello'
+
+
+def test_translate_quota_exceeded(mock_reviews_deepl):
+    mock_reviews_deepl.translate_text.side_effect = deepl.QuotaExceededException('error')
+    assert __translate_text('Hello', 'es') == 'Hello'
+
+
+def test_translate_too_many_requests(mock_reviews_deepl):
+    mock_reviews_deepl.translate_text.side_effect = deepl.TooManyRequestsException('error')
+    assert __translate_text('Hello', 'es') == 'Hello'
+
+
+def test_translate_unsupported_language(mock_reviews_deepl):
+    assert __translate_text('Hello', 'jp') == 'Hello'
+
+
+def test_translate_returns_list(mock_reviews_deepl):
+    result = mock.MagicMock(text='Hola')
+    mock_reviews_deepl.translate_text.return_value = [result]
+    assert __translate_text('Hello', 'es') == 'Hola'
