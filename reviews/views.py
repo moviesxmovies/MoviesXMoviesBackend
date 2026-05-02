@@ -1,3 +1,4 @@
+import logging
 from http import HTTPStatus
 
 import deepl
@@ -21,6 +22,8 @@ from reviews.serializers import (
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_progressive_response
 from users.decorators import auth_required
+
+logger = logging.getLogger(__name__)
 
 
 class ReviewUpdateSerializer(serializers.Serializer):
@@ -552,8 +555,34 @@ def delete_review_reaction(request, review: Review, reaction: Reaction) -> JsonR
     return _delete_reaction(request, reaction)
 
 
-def __translate_text(text: str, target_lang: str = 'ES') -> str:
-    result = translator.translate_text(text, target_lang=target_lang)
+def __translate_text(text: str, target_lang: str = 'en') -> str:
+    lang_map = {
+        'en': 'EN-US',
+        'es': 'ES',
+        'fr': 'FR',
+        'de': 'DE',
+    }
+    try:
+        result = translator.translate_text(text, target_lang=lang_map[target_lang])
+    except deepl.AuthorizationException as e:
+        logger.error(f'DeepL authorization error: {e}')
+        return text
+    except deepl.DeepLException as e:
+        logger.error(f'DeepL error: {e}')
+        return text
+    except KeyError:
+        logger.warning(f'Unsupported target language for translation: {target_lang}')
+        return text
+    except deepl.ConnectionException as e:
+        logger.error(f'DeepL connection error: {e}')
+        return text
+    except deepl.QuotaExceededException as e:
+        logger.error(f'DeepL quota exceeded: {e}')
+        return text
+    except deepl.TooManyRequestsException as e:
+        logger.error(f'DeepL too many requests: {e}')
+        return text
+
     if isinstance(result, list):
         return result[0].text
     return result.text
