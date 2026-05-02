@@ -6,6 +6,7 @@ app_name = 'reviews'
 
 urlpatterns = [
     path('<review:review>/', views.review_wrapper, name='movie-reviews'),
+    path('<review:review>/translations/', views.review_translations_deepl, name='review-translations-deepl'),
     path(
         '<review:review>/reactions/', views.reaction_review_wrapper, name='reaction-review-wrapper'
     ),
@@ -19,6 +20,11 @@ urlpatterns = [
         '<review:review>/comments/<comment:comment>/',
         views.comment_wrapper_with_id,
         name='comment-wrapper-with-id',
+    ),
+    path(
+        '<review:review>/comments/<comment:comment>/translations/',
+        views.comment_translations_deepl,
+        name='comment-translations-deepl',
     ),
     path(
         '<review:review>/comments/<comment:comment>/replies/',

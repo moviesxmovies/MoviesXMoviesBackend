@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 MOVIE_SEARCH_ALL = 'movie_search:*'
 USER_SEARCH_ALL = 'user_search:*'
 
+
 @receiver(post_delete, sender=Reaction)
 @receiver(post_save, sender=Reaction)
 def invalidate_reaction_caches(sender, instance, **kwargs):
@@ -101,7 +102,8 @@ def invalidate_on_rating(sender, instance, created, **kwargs):
         f'Invalidated friends_ratings cache for user {user.pk} and movie {movie.pk} due to new rating'
     )
 
-@receiver(post_delete, sender=Rating)
+
+@receiver(post_delete, sender=Review)
 @receiver(post_save, sender=Review)
 def invalidate_on_review(sender, instance, **kwargs):
     logger.debug(
@@ -110,6 +112,8 @@ def invalidate_on_review(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(f'user_reviews:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movie_reviews:{instance.movie.pk}:*'))
     cache.delete(f'review_detail:{instance.pk}')
+
+    cache.delete_many(keys=cache.keys(f'review_translation_deepl:{instance.pk}:*'))
 
 
 @receiver(post_save, sender=User)
@@ -153,7 +157,7 @@ def invalidate_on_comment(sender, instance, created, **kwargs):
         f'Invalidating caches due to new comment by user {instance.user.pk} for review {instance.review.pk}'
     )
     cache.delete_many(keys=cache.keys(f'review_comments:{instance.review.pk}:*'))
-
+    cache.delete_many(keys=cache.keys(f'comment_translation_deepl:{instance.pk}:*'))
 
 @receiver(post_save, sender=FriendShip)
 @receiver(post_delete, sender=FriendShip)
