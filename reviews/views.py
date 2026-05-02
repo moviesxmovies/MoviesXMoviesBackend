@@ -1,5 +1,8 @@
+import logging
 from http import HTTPStatus
 
+import deepl
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError
 from django.forms import ValidationError
@@ -19,6 +22,8 @@ from reviews.serializers import (
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_progressive_response
 from users.decorators import auth_required
+
+logger = logging.getLogger(__name__)
 
 
 class ReviewUpdateSerializer(serializers.Serializer):
@@ -59,6 +64,18 @@ class ReviewDeleteSerializer(serializers.Serializer):
     """
 
     status = serializers.BooleanField(required=True, help_text='Status of the review deletion')
+
+
+class ReviewTranslationSerializer(serializers.Serializer):
+    title = serializers.CharField(required=True, help_text='Translated title of review')
+    content = serializers.CharField(required=True, help_text='Translated content of review')
+
+
+class CommentTranslationSerializer(serializers.Serializer):
+    content = serializers.CharField(required=True, help_text='Translated content of comment')
+
+
+translator = deepl.Translator(settings.DEEPL_API_KEY)
 
 
 @extend_schema(
@@ -153,6 +170,7 @@ def delete_review(request, review: Review) -> JsonResponse:
     review.delete()
     return JsonResponse({'status': True}, status=HTTPStatus.NO_CONTENT)
 
+
 @require_http_methods(['GET'])
 @cached_view(
     make_key=lambda req, review: f'review_detail:{review.pk}',
@@ -170,6 +188,7 @@ def get_review(request, review: Review) -> JsonResponse:
         error body with HTTP 404 if the review does not exist.
     """
     return ReviewSerializer(review, request=request).json_response()
+
 
 # COMMENTS AND REACTIONS
 
@@ -534,3 +553,77 @@ def delete_reaction_comment(
 @require_http_methods(['DELETE'])
 def delete_review_reaction(request, review: Review, reaction: Reaction) -> JsonResponse:
     return _delete_reaction(request, reaction)
+
+
+def __translate_text(text: str, target_lang: str = 'en') -> str:
+    lang_map = {
+        'en': 'EN-US',
+        'es': 'ES',
+        'fr': 'FR',
+        'de': 'DE',
+    }
+    try:
+        result = translator.translate_text(text, target_lang=lang_map[target_lang])
+    except deepl.AuthorizationException as e:
+        logger.error(f'DeepL authorization error: {e}')
+        return text
+    except deepl.DeepLException as e:
+        logger.error(f'DeepL error: {e}')
+        return text
+    except KeyError:
+        logger.warning(f'Unsupported target language for translation: {target_lang}')
+        return text
+    except deepl.ConnectionException as e:
+        logger.error(f'DeepL connection error: {e}')
+        return text
+    except deepl.QuotaExceededException as e:
+        logger.error(f'DeepL quota exceeded: {e}')
+        return text
+    except deepl.TooManyRequestsException as e:
+        logger.error(f'DeepL too many requests: {e}')
+        return text
+
+    if isinstance(result, list):
+        return result[0].text
+    return result.text
+
+
+@extend_schema(
+    methods=['GET'],
+    responses={200: ReviewTranslationSerializer, 404: None},
+    description='Get DeepL translations for a review',
+    operation_id='review_translations_deepl',
+)
+@api_view(['GET'])
+@auth_required()
+@require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, review: (
+        f'review_translation_deepl:{review.pk}:{req.user.preferred_language}'
+    ),
+    timeout=60 * 60 * 24,
+)
+def review_translations_deepl(request, review: Review) -> JsonResponse:
+    title = __translate_text(review.title, target_lang=request.user.preferred_language)
+    content = __translate_text(review.content, target_lang=request.user.preferred_language)
+    return JsonResponse({'title': title, 'content': content})
+
+
+@extend_schema(
+    methods=['GET'],
+    responses={200: CommentTranslationSerializer, 404: None},
+    description='Get DeepL translations for a comment',
+    operation_id='comment_translations_deepl',
+)
+@api_view(['GET'])
+@auth_required()
+@require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, review, comment: (
+        f'comment_translation_deepl:{comment.pk}:{req.user.preferred_language}'
+    ),
+    timeout=60 * 60 * 24,
+)
+def comment_translations_deepl(request, review: Review, comment: Comment) -> JsonResponse:
+    content = __translate_text(comment.content, target_lang=request.user.preferred_language)
+    return JsonResponse({'content': content})

@@ -228,6 +228,18 @@ wheels = [
 ]
 
 [[package]]
+name = "deepl"
+version = "1.30.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/f2/87bf02eb97d20695bd39e1f8b33563bb85fc86301241c33f1c5e1a6dab86/deepl-1.30.0.tar.gz", hash = "sha256:491da545da6f6145db69a19bc4460a8fb66b29307c68d55f9297910cdcb577d9", size = 56527, upload-time = "2026-04-09T18:38:50.727Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/41/1174945272c2d5331d5e49d29110c95e24458d681d4949ffef3b67210745/deepl-1.30.0-py3-none-any.whl", hash = "sha256:b4e08ef484522ba62ba4895a9c43a980981b07d2e989cc99b5ee68e00d3675c3", size = 49903, upload-time = "2026-04-09T18:38:49.481Z" },
+]
+
+[[package]]
 name = "defusedxml"
 version = "0.7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -551,11 +563,12 @@ wheels = [
 
 [[package]]
 name = "moviesxmoviesbackend"
-version = "1.16.19"
+version = "1.18.0"
 source = { virtual = "." }
 dependencies = [
     { name = "colorlog" },
     { name = "cryptography" },
+    { name = "deepl" },
     { name = "dj-rest-auth" },
     { name = "django" },
     { name = "django-allauth" },
@@ -590,6 +603,7 @@ dev = [
 requires-dist = [
     { name = "colorlog", specifier = ">=6.10.1" },
     { name = "cryptography", specifier = ">=46.0.4" },
+    { name = "deepl", specifier = ">=1.30.0" },
     { name = "dj-rest-auth", specifier = ">=5.0.2" },
     { name = "django", specifier = ">=6.0.1" },
     { name = "django-allauth", specifier = "==0.55.0" },
