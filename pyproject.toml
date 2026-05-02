@@ -1,6 +1,6 @@
 [project]
 name = "moviesxmoviesbackend"
-version = "1.17.1"
+version = "1.18.0"
 requires-python = ">=3.14"
 dependencies = [
     "colorlog>=6.10.1",
