@@ -88,6 +88,7 @@ class CommentSerializer(BaseSerializer):
             )
             if comment.reply_comment
             else None,
+            'has_replies': comment.replies.exists(),
         }
 
     @staticmethod
@@ -98,4 +99,5 @@ class CommentSerializer(BaseSerializer):
             'content': serializers.CharField(),
             'created_at': serializers.DateTimeField(),
             'reply_comment': serializers.URLField(),
+            'has_replies': serializers.BooleanField(),
         }
