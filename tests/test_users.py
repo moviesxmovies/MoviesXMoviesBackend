@@ -24,6 +24,7 @@ from conftest import (
     USER_PREFERRED_LANGUAGE_URL,
     USER_REVIEWS_URL,
     USER_SEARCH_URL,
+    USER_SELF_FRIENDS_WRAPPER_URL,
     VERIFY_USER_URL,
 )
 from django.conf import settings
@@ -37,7 +38,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 
 from users.decorators import auth_required
-from users.models import FriendRequest, FriendShip, User
+from users.models import FriendRequest, FriendShip, Q, User
 from users.serializers import UserSerializer
 from users.tasks import send_password_reset_email, send_verification_email
 
@@ -1534,9 +1535,10 @@ def test_user_search_case_insensitive(auth_client, user_factory):
     assert response.status_code == HTTPStatus.OK
     assert response.json()['count'] == 1
 
+
 @pytest.mark.django_db
 def test_user_search_is_friend(auth_client, user_factory):
-    user1=user_factory(username='PythonDev')
+    user1 = user_factory(username='PythonDev')
     user_factory(username='Test')
 
     FriendShip.objects.create(user1=auth_client.user, user2=user1)
@@ -1546,3 +1548,65 @@ def test_user_search_is_friend(auth_client, user_factory):
     assert response.status_code == HTTPStatus.OK
     assert response.json()['count'] == 1
     assert response.json()['results'][0]['username'] == 'PythonDev'
+
+
+@pytest.mark.django_db
+def test_remove_friend_success(auth_client, user_factory):
+    friend = user_factory(username='friend')
+    FriendShip.objects.create(user1=auth_client.user, user2=friend)
+
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL + f'?username={friend.username}',
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()['status'] == 'Unfriended successfully'
+    assert not FriendShip.objects.filter(
+        Q(user1=auth_client.user, user2=friend) | Q(user1=friend, user2=auth_client.user)
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_remove_friend_self(auth_client):
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL + f'?username={auth_client.user.username}',
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['status'] == 'You cannot unfriend yourself'
+
+
+@pytest.mark.django_db
+def test_remove_friend_not_friends(auth_client, user_factory):
+    friend = user_factory(username='friend')
+
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL + f'?username={friend.username}',
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['status'] == 'Not friends'
+
+
+@pytest.mark.django_db
+def test_remove_friend_no_username(auth_client):
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL,
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['status'] == 'Username parameter is required'
+
+@pytest.mark.django_db
+def test_remove_friend_nonexistent_user(auth_client):
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL + '?username=nonexistent',
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json()['status'] == 'User not found'

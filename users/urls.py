@@ -36,7 +36,7 @@ urlpatterns = [
     ),
     path('users/', views.self_user_wrapper, name='self_user_wrapper'),
     path('users/friend-requests/', views.self_friend_requests, name='self-friend-requests'),
-    path('users/friends/', views.self_friends, name='self-friends'),
+    path('users/friends/', views.self_friend_wrapper, name='self-friends'),
     path('users/searching/', views.user_search, name='user-search'),
     path('users/<user:user>/', views.user_detail, name='user-detail'),
     # REVIEWS
