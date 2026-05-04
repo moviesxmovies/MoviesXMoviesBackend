@@ -86,7 +86,8 @@ USER_REVIEWS_URL = '/api/users/{username}/reviews/'
 USER_PREFERRED_LANGUAGE_URL = '/api/users/preferred-language/'
 USER_ONBOARDING_URL = '/api/users/onboarding/'
 USER_SEARCH_URL = '/api/users/searching/'
-USER_FRIENDS_URL = '/api/users/{username}/friends/'
+USER_FRIENDS_WRAPPER_URL = '/api/users/{username}/friends/'
+USER_SELF_FRIENDS_WRAPPER_URL = '/api/users/friends/'
 USER_FRIEND_REQUESTS_URL = '/api/users/{username}/friend-requests/'
 
 

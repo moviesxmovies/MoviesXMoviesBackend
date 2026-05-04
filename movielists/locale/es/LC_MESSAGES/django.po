@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-05-04 16:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -19,23 +19,23 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
 
-#: movielists/apps.py:7 movielists/models.py:34
+#: movielists/apps.py:7 movielists/models.py:48
 msgid "Movie Lists"
 msgstr "Listas de Películas"
 
-#: movielists/models.py:30
+#: movielists/models.py:44
 msgid "A movie list with this name already exists."
 msgstr "Ya existe una lista de películas con este nombre."
 
-#: movielists/models.py:33
+#: movielists/models.py:47
 msgid "Movie List"
 msgstr "Lista de Películas"
 
-#: movielists/models.py:50
+#: movielists/models.py:64
 msgid "Privacy Setting"
 msgstr "Configuración de Privacidad"
 
-#: movielists/models.py:51
+#: movielists/models.py:65
 msgid "Privacy Settings"
 msgstr "Configuraciones de Privacidad"
 
@@ -54,6 +54,6 @@ msgstr "La celebridad `{c}` no existe"
 msgid "Friend `{f}` is not in your list"
 msgstr "`{f}` no está en tu lista de amigos"
 
-#: movielists/views.py:315 movielists/views.py:354
+#: movielists/views.py:323 movielists/views.py:362
 msgid "This movies list doesn't exist or you're not allowed to see it"
 msgstr "Esta lista de películas no existe o no tienes permiso para verla"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-05-04 16:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,19 +30,19 @@ msgstr "Ungültiger JSON-Body"
 msgid "Missing required fields"
 msgstr "Erforderliche Felder fehlen"
 
-#: shared/handlers.py:10
+#: shared/handlers.py:9
 msgid "Not Found"
 msgstr "Nicht gefunden"
 
-#: shared/handlers.py:11
+#: shared/handlers.py:10
 msgid "The requested resource was not found."
 msgstr "Die angeforderte Ressource wurde nicht gefunden."
 
-#: shared/handlers.py:12 shared/handlers.py:13
+#: shared/handlers.py:11 shared/handlers.py:12
 msgid "unknown"
 msgstr "unbekannt"
 
-#: shared/utils.py:29
+#: shared/utils.py:30
 #, python-brace-format
 msgid "Does not exist {model_name} with identifier {lookup_value}"
 msgstr "{model_name} mit der Kennung {lookup_value} existiert nicht"

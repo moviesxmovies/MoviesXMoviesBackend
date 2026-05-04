@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:10+0000\n"
+"POT-Creation-Date: 2026-05-04 16:19+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,18 +18,18 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: genres/apps.py:7 genres/models.py:17
+#: genres/apps.py:7 genres/models.py:18
 msgid "Genres"
 msgstr "Genres"
 
-#: genres/models.py:16
+#: genres/models.py:17
 msgid "Genre"
 msgstr "Genre"
 
-#: genres/models.py:31
+#: genres/models.py:32
 msgid "Genre Translation"
 msgstr "Traduction de Genre"
 
-#: genres/models.py:32
+#: genres/models.py:33
 msgid "Genre Translations"
 msgstr "Traductions de Genre"

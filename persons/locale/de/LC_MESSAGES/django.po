@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-05-04 16:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,10 +18,18 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: persons/apps.py:6 persons/models.py:19
+#: persons/apps.py:6 persons/models.py:20
 msgid "People"
 msgstr "Personen"
 
-#: persons/models.py:18
+#: persons/models.py:19
 msgid "Person"
 msgstr "Person"
+
+#: persons/models.py:39
+msgid "Person Translation"
+msgstr "Personenübersetzung"
+
+#: persons/models.py:40
+msgid "Person Translations"
+msgstr "Personenübersetzungen"

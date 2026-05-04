@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-05-04 16:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -47,22 +47,22 @@ msgstr "Reacción"
 msgid "Reactions"
 msgstr "Reacciones"
 
-#: reviews/views.py:118
+#: reviews/views.py:143
 msgid "You can only edit your own reviews"
 msgstr "Solo puedes editar tus propias reseñas"
 
-#: reviews/views.py:143
+#: reviews/views.py:168
 msgid "You can only delete your own reviews"
 msgstr "Solo puedes eliminar tus propias reseñas"
 
-#: reviews/views.py:196
+#: reviews/views.py:240
 msgid "You can only delete your own reactions"
 msgstr "Solo puedes eliminar tus propias reacciones"
 
-#: reviews/views.py:366
+#: reviews/views.py:414
 msgid "You can only edit your own comments"
 msgstr "Solo puedes editar tus propios comentarios"
 
-#: reviews/views.py:377
+#: reviews/views.py:425
 msgid "You can only delete your own comments"
 msgstr "Solo puedes eliminar tus propios comentarios"
