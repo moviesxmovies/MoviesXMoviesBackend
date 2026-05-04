@@ -1589,3 +1589,24 @@ def test_remove_friend_not_friends(auth_client, user_factory):
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['status'] == 'Not friends'
+
+
+@pytest.mark.django_db
+def test_remove_friend_no_username(auth_client):
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL,
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()['status'] == 'Username parameter is required'
+
+@pytest.mark.django_db
+def test_remove_friend_nonexistent_user(auth_client):
+    response = auth_client.delete(
+        USER_SELF_FRIENDS_WRAPPER_URL + '?username=nonexistent',
+        content_type='application/json',
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json()['status'] == 'User not found'

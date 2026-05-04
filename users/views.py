@@ -846,8 +846,9 @@ def delete_friend(request, username: str) -> JsonResponse:
         return JsonResponse(
             {'status': 'Username parameter is required'}, status=HTTPStatus.BAD_REQUEST
         )
-    user = User.objects.filter(username=username).first()
-    if user is None:
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
         return JsonResponse({'status': _('User not found')}, status=HTTPStatus.NOT_FOUND)
     if request.user.pk == user.pk:
         return JsonResponse(
