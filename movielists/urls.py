@@ -7,6 +7,7 @@ app_name = 'movie_lists'
 
 urlpatterns = [
     path('', views.movies_list_self_wrapper, name='movies-lists-self-wrapper'),
+    path('searching/', views.movies_list_search, name='movies-lists-search'),
     path(
         '<user:user>/<movies-list:movies_list>/', views.movies_list_detail, name='movies-lists-self'
     ),

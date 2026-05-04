@@ -2,6 +2,7 @@ import pytest
 from conftest import (
     MOVIE_LIST_DETAIL_URL,
     MOVIE_LIST_MOVIE_WRAPPER_URL,
+    MOVIE_LIST_SEARCHING_URL,
     MOVIE_LIST_SELF_URL,
     MOVIE_LIST_USER_URL,
 )
@@ -344,7 +345,9 @@ def test_movies_list_save(auth_client):
 
 
 @pytest.mark.django_db
-def test_movies_list_save_intelligent(auth_client, movie_factory, rating_factory, platform_factory, genre_factory):
+def test_movies_list_save_intelligent(
+    auth_client, movie_factory, rating_factory, platform_factory, genre_factory
+):
     netflix = platform_factory(slug='netflix')
     drama = genre_factory(name='Drama', slug='drama')
     user = auth_client.user
@@ -579,3 +582,33 @@ def test_movie_list_remove_movie(auth_client, movie_list_factory, movie_factory)
     movie_list.refresh_from_db()
     assert movie_list.movies.count() == 0
     assert not movie_list.movies.filter(id=movie.id).exists()
+
+
+@pytest.mark.django_db
+def test_movie_list_search(auth_client, movie_list_factory):
+    user = auth_client.user
+
+    movie_list_factory(user=user, name='Action Movies', privacity=MovieList.Privacity.PUBLIC)
+    movie_list_factory(user=user, name='Comedy Movies', privacity=MovieList.Privacity.PUBLIC)
+    movie_list_factory(user=user, name='Romantic Movies', privacity=MovieList.Privacity.PUBLIC)
+
+    response = auth_client.get(MOVIE_LIST_SEARCHING_URL + '?query=Action')
+    assert response.status_code == 200
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['name'] == 'Action Movies'
+
+
+@pytest.mark.django_db
+def test_movie_list_search_no_query(auth_client, movie_list_factory):
+    user = auth_client.user
+
+    movie_list_factory(user=user, name='Action Movies', privacity=MovieList.Privacity.PUBLIC)
+    movie_list_factory(user=user, name='Comedy Movies', privacity=MovieList.Privacity.PUBLIC)
+    movie_list_factory(user=user, name='Romantic Movies', privacity=MovieList.Privacity.PUBLIC)
+
+    response = auth_client.get(MOVIE_LIST_SEARCHING_URL)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['name'] == 'Action Movies'
