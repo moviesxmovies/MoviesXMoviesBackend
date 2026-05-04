@@ -401,3 +401,61 @@ def remove_movie_from_list(request, movies_list: MovieList, movie) -> JsonRespon
     movies_list.movies.remove(movie)
     movies_list.save()
     return JsonResponse({'success': True})
+
+
+@extend_schema(
+    responses={200: MovieListSerializer.get_paginated_schema(), 404: None},
+    description='Search movie lists of the authenticated user by name',
+    operation_id='search_self_movie_lists',
+    methods=['GET'],
+    parameters=[
+        OpenApiParameter(
+            name='query',
+            type=str,
+            description='Search query to match against movie list names',
+            required=True,
+        ),
+        OpenApiParameter(
+            name='page',
+            type=int,
+            description='Page number for pagination. Defaults to 1.',
+            required=False,
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=int,
+            description='Number of items per page. Defaults to 10.',
+            required=False,
+        ),
+    ],
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@get_query_params('query', 'page', 'limit')
+@auth_required()
+@cached_view(
+    lambda req, query, page, limit: f'movies_lists_search:{req.user.pk}:{query}:{page}:{limit}',
+    timeout=60 * 60,
+)
+def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> JsonResponse:
+    """Return a paginated list of the authenticated user's movie lists matching a query.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        query (str): The search query to match against movie list names.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Paginated serialized movie lists with HTTP 200.
+    """
+    if not query:
+        query = ''
+    movies_lists = request.user.movies_lists.filter(name__icontains=query)
+    return get_paginated_response(
+        movies_lists,
+        MovieListSerializer,
+        request=request,
+        page=page,
+        limit=limit,
+    )

@@ -64,6 +64,7 @@ FORGOT_PASSWORD_URL = '/api/auth/forgot-password/'
 
 # MOVIE LISTS
 MOVIE_LIST_SELF_URL = '/api/movies-lists/'
+MOVIE_LIST_SEARCHING_URL = '/api/movies-lists/searching/'
 MOVIE_LIST_USER_URL = '/api/movies-lists/{username}/'
 MOVIE_LIST_DETAIL_URL = '/api/movies-lists/{username}/{movies_list_slug}/'
 MOVIE_LIST_MOVIE_WRAPPER_URL = '/api/movies-lists/{username}/{movies_list_slug}/{movie_slug}/'

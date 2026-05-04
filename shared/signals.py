@@ -136,6 +136,7 @@ def invalidate_on_movielist(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user.pk}:{instance.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user.pk}:*'))
+    cache.delete_many(keys=cache.keys('movies_lists_search:*'))
 
 
 @receiver(m2m_changed, sender=MovieList.movies.through)
@@ -147,6 +148,7 @@ def invalidate_on_movielist_movies_change(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user.pk}:{instance.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'self_movie_lists_slug:{instance.user.pk}:*'))
+    cache.delete_many(keys=cache.keys('movies_lists_search:*'))
 
 
 @receiver(post_save, sender=Comment)
@@ -158,6 +160,7 @@ def invalidate_on_comment(sender, instance, created, **kwargs):
     )
     cache.delete_many(keys=cache.keys(f'review_comments:{instance.review.pk}:*'))
     cache.delete_many(keys=cache.keys(f'comment_translation_deepl:{instance.pk}:*'))
+
 
 @receiver(post_save, sender=FriendShip)
 @receiver(post_delete, sender=FriendShip)
