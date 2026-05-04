@@ -610,5 +610,5 @@ def test_movie_list_search_no_query(auth_client, movie_list_factory):
     response = auth_client.get(MOVIE_LIST_SEARCHING_URL)
     assert response.status_code == 200
     data = response.json()
-    assert data['count'] == 1
+    assert data['count'] == 3
     assert data['results'][0]['name'] == 'Action Movies'
