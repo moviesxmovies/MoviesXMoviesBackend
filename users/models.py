@@ -161,6 +161,17 @@ class User(AbstractUser):
         except FriendRequest.DoesNotExist:
             return None
 
+    def remove_friend(self, friend_user):
+        """Remove a friend relationship between self and friend_user."""
+        if friend_user is None or self.pk == friend_user.pk:
+            return
+        FriendShip.objects.filter(
+            Q(user1=self, user2=friend_user) | Q(user1=friend_user, user2=self)
+        ).delete()
+        FriendRequest.objects.filter(
+            Q(from_user=self, to_user=friend_user) | Q(from_user=friend_user, to_user=self)
+        ).delete()
+
 
 class FriendRequest(models.Model):
     """

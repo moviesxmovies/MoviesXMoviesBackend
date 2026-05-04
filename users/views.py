@@ -807,10 +807,61 @@ def user_friends(request, user: User, last_id: int = None, limit: int = 10) -> J
         ),
         OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
     ],
+    methods=['GET'],
 )
-@api_view(['GET'])
-@require_http_methods(['GET'])
+@extend_schema(
+    methods=['DELETE'],
+    responses={200: FriendResponse, 400: FriendResponse, 404: None},
+    description='Delete a friend for the authenticated user',
+    parameters=[
+        OpenApiParameter(
+            name='username', description='Username of the friend to delete', required=True, type=str
+        )
+    ],
+)
+@api_view(['GET', 'DELETE'])
+@require_http_methods(['GET', 'DELETE'])
 @auth_required()
+def self_friend_wrapper(request):
+    match request.method:
+        case 'GET':
+            return self_friends(request)
+        case 'DELETE':
+            return delete_friend(request)
+
+
+@require_http_methods(['DELETE'])
+@get_query_params('username')
+def delete_friend(request, username: str) -> JsonResponse:
+    """Delete the friend relationship between the authenticated user and the specified user.
+
+    If they are friends, deletes the friendship. If there is no relationship, does nothing.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The target user instance resolved from the URL.
+    Returns:
+        JsonResponse: A JSON response with a 'status' message indicating the result of the operation"""
+    if not username or username.strip() == '':
+        return JsonResponse(
+            {'status': 'Username parameter is required'}, status=HTTPStatus.BAD_REQUEST
+        )
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return JsonResponse({'status': _('User not found')}, status=HTTPStatus.NOT_FOUND)
+    if request.user.pk == user.pk:
+        return JsonResponse(
+            {'status': _('You cannot unfriend yourself')}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    if not request.user.is_friend(user):
+        return JsonResponse({'status': _('Not friends')}, status=HTTPStatus.BAD_REQUEST)
+
+    request.user.remove_friend(user)
+    return JsonResponse({'status': _('Unfriended successfully')})
+
+
+@require_http_methods(['GET'])
 @get_query_params('last_id', 'limit')
 def self_friends(request, last_id: int = None, limit: int = 10) -> JsonResponse:
     """Return a paginated list of the authenticated user's friends.
@@ -1020,8 +1071,5 @@ def user_search(
         | Q(last_name__icontains=search_query)
     ).order_by('username')
     if is_friend == 'true':
-        users_query = (
-            users_query.filter(pk__in=request.user.get_friends())
-            .distinct()
-        )
+        users_query = users_query.filter(pk__in=request.user.get_friends()).distinct()
     return get_paginated_response(users_query, UserSerializer, request, page, limit)

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-25 20:09+0000\n"
+"POT-Creation-Date: 2026-05-04 16:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,35 +19,34 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
 
-#: movies/apps.py:8 movies/models.py:24
+#: movies/apps.py:8 movies/models.py:25
 msgid "Movies"
 msgstr "Películas"
 
-#: movies/models.py:23
+#: movies/models.py:24
 msgid "Movie"
 msgstr "Película"
 
-#: movies/models.py:39
+#: movies/models.py:40
 msgid "Movie Translation"
 msgstr "Traducción de película"
 
-#: movies/models.py:40
+#: movies/models.py:41
 msgid "Movie Translations"
 msgstr "Traducciones de película"
 
-#: movies/views.py:283 movies/views.py:346
+#: movies/views.py:297 movies/views.py:360
 msgid "Rating not found"
 msgstr "Valoración no encontrada"
 
-#: movies/views.py:306
+#: movies/views.py:320
 msgid "You have already rated this movie"
 msgstr "Ya has valorado esta película"
 
-
-#: movies/views.py:507
+#: movies/views.py:540
 msgid "Movie already marked as unseen"
 msgstr "Película ya marcada como no vista"
 
-#: movies/views.py:528
+#: movies/views.py:561
 msgid "Movie not marked as unseen"
 msgstr "Película no marcada como no vista"
