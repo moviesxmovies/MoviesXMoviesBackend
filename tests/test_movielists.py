@@ -1,6 +1,7 @@
 import pytest
 from conftest import (
     MOVIE_LIST_DETAIL_URL,
+    MOVIE_LIST_MOVIE_SEARCHING_URL,
     MOVIE_LIST_MOVIE_WRAPPER_URL,
     MOVIE_LIST_SEARCHING_URL,
     MOVIE_LIST_SELF_URL,
@@ -612,3 +613,99 @@ def test_movie_list_search_no_query(auth_client, movie_list_factory):
     data = response.json()
     assert data['count'] == 3
     assert data['results'][0]['name'] == 'Action Movies'
+
+
+@pytest.mark.django_db
+def test_movie_list_search_movies(auth_client, movie_list_factory, movie_factory):
+    user = auth_client.user
+
+    movie1 = movie_factory(title='Inception')
+    movie2 = movie_factory(title='Interstellar')
+
+    movielist = movie_list_factory(
+        user=user, name='Sci-Fi Movies', privacity=MovieList.Privacity.PUBLIC
+    )
+    movielist.movies.add(movie1, movie2)
+
+    response = auth_client.get(
+        MOVIE_LIST_MOVIE_SEARCHING_URL.format(
+            username=user.username, movies_list_slug=movielist.slug
+        )
+        + '?query=Inception'
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['title'] == 'Inception'
+
+
+@pytest.mark.django_db
+def test_movie_list_search_movies_no_query(auth_client, movie_list_factory, movie_factory):
+    user = auth_client.user
+
+    movie1 = movie_factory(title='Inception')
+    movie2 = movie_factory(title='Interstellar')
+
+    movielist = movie_list_factory(
+        user=user, name='Sci-Fi Movies', privacity=MovieList.Privacity.PUBLIC, movies=[movie1, movie2]
+    )
+
+    response = auth_client.get(
+        MOVIE_LIST_MOVIE_SEARCHING_URL.format(
+            username=user.username, movies_list_slug=movielist.slug
+        )
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['count'] == 2
+    titles = [result['title'] for result in data['results']]
+    assert 'Inception' in titles
+    assert 'Interstellar' in titles
+
+
+@pytest.mark.django_db
+def test_movie_list_search_movies_no_access_private(
+    auth_client, movie_list_factory, movie_factory, user_factory
+):
+    owner = user_factory(username='owner')
+    movie = movie_factory(title='Inception')
+
+    movielist = movie_list_factory(
+        user=owner, name='Private List', privacity=MovieList.Privacity.PRIVATE
+    )
+    movielist.movies.add(movie)
+
+    response = auth_client.get(
+        MOVIE_LIST_MOVIE_SEARCHING_URL.format(
+            username=owner.username, movies_list_slug=movielist.slug
+        )
+        + '?query=Inception'
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"
+
+
+@pytest.mark.django_db
+def test_movie_list_search_movies_no_access_friends(
+    auth_client, movie_list_factory, movie_factory, user_factory
+):
+    owner = user_factory(username='owner')
+    movie = movie_factory(title='Inception')
+
+    movielist = movie_list_factory(
+        user=owner, name='Friends List', privacity=MovieList.Privacity.FRIENDS
+    )
+    movielist.movies.add(movie)
+
+    response = auth_client.get(
+        MOVIE_LIST_MOVIE_SEARCHING_URL.format(
+            username=owner.username, movies_list_slug=movielist.slug
+        )
+        + '?query=Inception'
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"

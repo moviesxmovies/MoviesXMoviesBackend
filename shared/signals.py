@@ -137,6 +137,9 @@ def invalidate_on_movielist(sender, instance, created, **kwargs):
     cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user.pk}:{instance.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys('movies_lists_search:*'))
+    cache.delete_many(
+        keys=cache.keys(f'movies_lists_movies_search:{instance.user.pk}:{instance.pk}:*')
+    )
 
 
 @receiver(m2m_changed, sender=MovieList.movies.through)
@@ -149,6 +152,9 @@ def invalidate_on_movielist_movies_change(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(f'movies_lists_user:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'self_movie_lists_slug:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys('movies_lists_search:*'))
+    cache.delete_many(
+        keys=cache.keys(f'movies_lists_movies_search:{instance.user.pk}:{instance.pk}:*')
+    )
 
 
 @receiver(post_save, sender=Comment)
