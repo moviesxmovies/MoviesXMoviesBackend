@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext as _
@@ -9,6 +10,7 @@ from rest_framework import serializers
 from rest_framework.decorators import api_view
 
 from genres.models import Genre
+from movies.serializers import MovieSerializer
 from persons.models import Person
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
 from shared.utils import get_paginated_response, get_progressive_response
@@ -31,6 +33,9 @@ class SaveMovieListSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
     description = serializers.CharField(max_length=1024)
     privacity = serializers.ChoiceField(choices=MovieList.Privacity.choices)
+
+
+NOT_ALLOWED_TO_SEEE = "This movies list doesn't exist or you're not allowed to see it"
 
 
 @extend_schema(
@@ -320,7 +325,7 @@ def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
                 return MovieListSerializer(movies_list, request=request).json_response()
 
     return JsonResponse(
-        {'error': _("This movies list doesn't exist or you're not allowed to see it")},
+        {'error': _(NOT_ALLOWED_TO_SEEE)},
         status=HTTPStatus.NOT_FOUND,
     )
 
@@ -359,7 +364,7 @@ def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> J
     """
     if request.user != user or movies_list.user != user:
         return JsonResponse(
-            {'error': _("This movies list doesn't exist or you're not allowed to see it")},
+            {'error': _(NOT_ALLOWED_TO_SEEE)},
             status=HTTPStatus.FORBIDDEN,
         )
     match request.method:
@@ -455,6 +460,113 @@ def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> J
     return get_paginated_response(
         movies_lists,
         MovieListSerializer,
+        request=request,
+        page=page,
+        limit=limit,
+    )
+
+
+@extend_schema(
+    responses={200: MovieListSerializer.get_paginated_schema(), 404: None},
+    description='Search movies in a movie list by title',
+    operation_id='search_movies_in_list',
+    methods=['GET'],
+    parameters=[
+        OpenApiParameter(
+            name='query',
+            type=str,
+            description='Search query to match against movie titles in the list',
+            required=True,
+        ),
+        OpenApiParameter(
+            name='page',
+            type=int,
+            description='Page number for pagination. Defaults to 1.',
+            required=False,
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=int,
+            description='Number of items per page. Defaults to 10.',
+            required=False,
+        ),
+    ],
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@get_query_params('query', 'page', 'limit')
+@auth_required()
+@cached_view(
+    lambda req, user, movies_list, query, page, limit: (
+        f'movies_lists_movies_search:{user.pk}:{movies_list.pk}:{query}:{page}:{limit}:{req.user.pk}:{req.user.preferred_language}'
+    ),
+    timeout=60 * 60,
+)
+def movies_list_movie_search(
+    request, user, movies_list: MovieList, query: str, page: int = 1, limit: int = 10
+) -> JsonResponse:
+    """Return a paginated list of movies in a movie list matching a search query.
+
+    Enforces the same privacity rules as ``movies_list_detail`` to determine
+    if the requester can view the list. If allowed, filters the movies in the
+    list by title matching the query.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user who owns the movie list, resolved from the URL.
+        movies_list (MovieList): The movie list instance resolved from the URL.
+        query (str): The search query to match against movie titles in the list.
+        page (int): Page number for pagination. Defaults to 1.
+        limit (int): Number of items per page. Defaults to 10.
+
+    Returns:
+        JsonResponse: Paginated serialized movies with HTTP 200, or a JSON
+        error body with HTTP 404 if the list is private or the requester is
+        not allowed to view it.
+    """
+    if not query:
+        query = ''
+    if request.user == user:
+        movies_qs = movies_list.movies.filter(
+            Q(title__icontains=query)
+            | Q(
+                translations__title__icontains=query,
+                translations__language=request.user.preferred_language,
+            )
+        )
+    else:
+        match movies_list.privacity:
+            case MovieList.Privacity.PUBLIC:
+                movies_qs = movies_list.movies.filter(
+                    Q(title__icontains=query)
+                    | Q(
+                        translations__title__icontains=query,
+                        translations__language=request.user.preferred_language,
+                    )
+                )
+            case MovieList.Privacity.FRIENDS:
+                if user.is_friend(request.user):
+                    movies_qs = movies_list.movies.filter(
+                        Q(title__icontains=query)
+                        | Q(
+                            translations__title__icontains=query,
+                            translations__language=request.user.preferred_language,
+                        )
+                    )
+                else:
+                    return JsonResponse(
+                        {'error': _(NOT_ALLOWED_TO_SEEE)},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+            case MovieList.Privacity.PRIVATE:
+                return JsonResponse(
+                    {'error': _(NOT_ALLOWED_TO_SEEE)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+
+    return get_paginated_response(
+        movies_qs.distinct(),
+        MovieSerializer,
         request=request,
         page=page,
         limit=limit,

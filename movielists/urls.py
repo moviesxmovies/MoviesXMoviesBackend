@@ -11,6 +11,9 @@ urlpatterns = [
     path(
         '<user:user>/<movies-list:movies_list>/', views.movies_list_detail, name='movies-lists-self'
     ),
+    path(
+        '<user:user>/<movies-list:movies_list>/movies/searching/', views.movies_list_movie_search, name='movies-lists-movies-search'
+    ),
     path('<user:user>/', views.movies_list_list, name='movies-lists-user'),
     path(
         '<user:user>/<movies-list:movies_list>/<movie:movie>/',
