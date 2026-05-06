@@ -647,7 +647,10 @@ def test_movie_list_search_movies_no_query(auth_client, movie_list_factory, movi
     movie2 = movie_factory(title='Interstellar')
 
     movielist = movie_list_factory(
-        user=user, name='Sci-Fi Movies', privacity=MovieList.Privacity.PUBLIC, movies=[movie1, movie2]
+        user=user,
+        name='Sci-Fi Movies',
+        privacity=MovieList.Privacity.PUBLIC,
+        movies=[movie1, movie2],
     )
 
     response = auth_client.get(
@@ -709,3 +712,30 @@ def test_movie_list_search_movies_no_access_friends(
     data = response.json()
     assert 'error' in data
     assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"
+
+
+@pytest.mark.django_db
+def test_movie_list_search_movies_access_friends(
+    auth_client, movie_list_factory, movie_factory, user_factory
+):
+    owner = user_factory(username='owner')
+    friend = auth_client.user
+    FriendShip.objects.create(user1=owner, user2=friend)
+
+    movie = movie_factory(title='Inception')
+
+    movielist = movie_list_factory(
+        user=owner, name='Friends List', privacity=MovieList.Privacity.FRIENDS
+    )
+    movielist.movies.add(movie)
+
+    response = auth_client.get(
+        MOVIE_LIST_MOVIE_SEARCHING_URL.format(
+            username=owner.username, movies_list_slug=movielist.slug
+        )
+        + '?query=Inception'
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['title'] == 'Inception'

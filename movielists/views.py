@@ -35,6 +35,9 @@ class SaveMovieListSerializer(serializers.Serializer):
     privacity = serializers.ChoiceField(choices=MovieList.Privacity.choices)
 
 
+NOT_ALLOWED_TO_SEEE = "This movies list doesn't exist or you're not allowed to see it"
+
+
 @extend_schema(
     responses={200: MovieListSerializer.get_paginated_schema(), 404: None},
     description='Get a all movie list of the authenticated user',
@@ -322,7 +325,7 @@ def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
                 return MovieListSerializer(movies_list, request=request).json_response()
 
     return JsonResponse(
-        {'error': _("This movies list doesn't exist or you're not allowed to see it")},
+        {'error': _(NOT_ALLOWED_TO_SEEE)},
         status=HTTPStatus.NOT_FOUND,
     )
 
@@ -361,7 +364,7 @@ def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> J
     """
     if request.user != user or movies_list.user != user:
         return JsonResponse(
-            {'error': _("This movies list doesn't exist or you're not allowed to see it")},
+            {'error': _(NOT_ALLOWED_TO_SEEE)},
             status=HTTPStatus.FORBIDDEN,
         )
     match request.method:
@@ -524,7 +527,13 @@ def movies_list_movie_search(
     if not query:
         query = ''
     if request.user == user:
-        movies_qs = movies_list.movies.filter(title__icontains=query)
+        movies_qs = movies_list.movies.filter(
+            Q(title__icontains=query)
+            | Q(
+                translations__title__icontains=query,
+                translations__language=request.user.preferred_language,
+            )
+        )
     else:
         match movies_list.privacity:
             case MovieList.Privacity.PUBLIC:
@@ -546,16 +555,12 @@ def movies_list_movie_search(
                     )
                 else:
                     return JsonResponse(
-                        {
-                            'error': _(
-                                "This movies list doesn't exist or you're not allowed to see it"
-                            )
-                        },
+                        {'error': _(NOT_ALLOWED_TO_SEEE)},
                         status=HTTPStatus.NOT_FOUND,
                     )
             case MovieList.Privacity.PRIVATE:
                 return JsonResponse(
-                    {'error': _("This movies list doesn't exist or you're not allowed to see it")},
+                    {'error': _(NOT_ALLOWED_TO_SEEE)},
                     status=HTTPStatus.NOT_FOUND,
                 )
 
