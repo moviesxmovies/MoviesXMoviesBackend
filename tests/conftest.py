@@ -115,6 +115,7 @@ PLATFORMS_LIST_URL = '/api/platforms/'
 
 # PERSONS
 PERSON_DETAIL_URL = '/api/persons/{person_slug}/'
+PERSON_SEARCHING_URL = '/api/persons/searching/'
 PERSON_ACTORS_SEARCH_URL = '/api/persons/actors/'
 PERSON_ACTORS_SEARCHING_URL = '/api/persons/actors/searching/'
 PERSON_DIRECTORS_SEARCH_URL = '/api/persons/directors/'

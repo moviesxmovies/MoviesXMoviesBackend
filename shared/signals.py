@@ -331,6 +331,7 @@ def invalidate_on_person(sender, instance, created, **kwargs):
 
     cache.delete_many(keys=cache.keys('actors_search:*'))
     cache.delete_many(keys=cache.keys('directors_search:*'))
+    cache.delete_many(keys=cache.keys('person_search:*'))
 
 
 @receiver(post_save, sender=Genre)

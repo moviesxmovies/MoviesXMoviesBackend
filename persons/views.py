@@ -120,6 +120,49 @@ def directors_pagination(request, page: int = 1, limit: int = 10, name: str = No
     return _get_person_response(queryset, request, page, limit, name)
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='search_query',
+            description='Search query for person name (case-insensitive substring match).',
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name='page',
+            description='Page number for pagination (default: 1).',
+            required=False,
+            type=int,
+            default=1,
+        ),
+        OpenApiParameter(
+            name='limit',
+            description='Number of items per page (default: 10, max: 100).',
+            required=False,
+            type=int,
+            default=10,
+        ),
+    ],
+    responses={
+        200: PersonSerializer.get_paginated_schema(),
+    },
+    description='Searches for persons by name. Requires `name` query parameter for case-insensitive substring match.',
+)
+@api_view(['GET'])
+@require_http_methods(['GET'])
+@auth_required()
+@get_query_params('search_query','page', 'limit')
+@cached_view(
+    make_key=lambda req, search_query, page, limit: (
+        f'person_search:{search_query}:{page}:{limit}:{req.user.preferred_language}'
+    ),
+    timeout=60 * 60 * 24,
+)
+def person_search(request, search_query: str, page: int = 1, limit: int = 10):
+    queryset = Person.objects.all()
+    return _get_person_response(queryset, request, page, limit, search_query)
+
+
 # =============================================================================================================================================
 # Progressive pagination for person's acted/directed movies
 # =============================================================================================================================================

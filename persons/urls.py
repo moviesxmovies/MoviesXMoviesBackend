@@ -4,6 +4,7 @@ from persons import views
 app_name = 'persons'
 
 urlpatterns = [
+    path('searching/', views.person_search, name='person-search'),
     path('actors/', views.actors_pagination, name='actors-pagination'),
     path('directors/', views.directors_pagination, name='directors-pagination'),
     path('actors/searching/', views.actors_search, name='actors-search'),
