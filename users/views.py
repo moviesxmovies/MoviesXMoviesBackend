@@ -1097,3 +1097,37 @@ def user_search(
 def user_translations_deepl(request, user: User) -> JsonResponse:
     bio = translate_text(user.bio, target_lang=request.user.preferred_language)
     return JsonResponse({'bio': bio})
+
+
+@extend_schema(
+    methods=['GET'],
+    responses={200: UserSerializer.get_paginated_schema(), 400: None, 404: None},
+    description='Search friends of a user by username or name',
+    parameters=[
+        OpenApiParameter(
+            name='search_query',
+            description='The search query to find friends by username, first name, or last name (case-insensitive substring match)',
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name='page', description='Page number', required=False, type=int, default=1
+        ),
+        OpenApiParameter(name='limit', description='Items per page', required=False, type=int),
+    ],
+)
+@api_view(['GET'])
+@auth_required()
+@require_http_methods(['GET'])
+@get_query_params('search_query', 'page', 'limit')
+@cached_view(
+    make_key=lambda req, user, page, limit: (
+        f'user_friends_search:{user.pk}:{page}:{limit}:{req.user.pk}'
+    ),
+    timeout=60 * 5,
+)
+def user_friends_search(
+    request, user: User, search_query: str, page: int, limit: int
+) -> JsonResponse:
+    friends_query = user.get_friends().filter(username__icontains=search_query).order_by('username')
+    return get_paginated_response(friends_query, UserSerializer, request, page, limit)
