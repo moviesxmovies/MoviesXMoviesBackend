@@ -1,8 +1,6 @@
 import logging
 from http import HTTPStatus
 
-import deepl
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError
 from django.forms import ValidationError
@@ -20,7 +18,7 @@ from reviews.serializers import (
     ReviewSerializer,
 )
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
-from shared.utils import get_progressive_response
+from shared.utils import get_progressive_response, translate_text
 from users.decorators import auth_required
 
 logger = logging.getLogger(__name__)
@@ -73,9 +71,6 @@ class ReviewTranslationSerializer(serializers.Serializer):
 
 class CommentTranslationSerializer(serializers.Serializer):
     content = serializers.CharField(required=True, help_text='Translated content of comment')
-
-
-translator = deepl.Translator(settings.DEEPL_API_KEY)
 
 
 @extend_schema(
@@ -555,39 +550,6 @@ def delete_review_reaction(request, review: Review, reaction: Reaction) -> JsonR
     return _delete_reaction(request, reaction)
 
 
-def __translate_text(text: str, target_lang: str = 'en') -> str:
-    lang_map = {
-        'en': 'EN-US',
-        'es': 'ES',
-        'fr': 'FR',
-        'de': 'DE',
-    }
-    try:
-        result = translator.translate_text(text, target_lang=lang_map[target_lang])
-    except deepl.AuthorizationException as e:
-        logger.error(f'DeepL authorization error: {e}')
-        return text
-    except deepl.DeepLException as e:
-        logger.error(f'DeepL error: {e}')
-        return text
-    except KeyError:
-        logger.warning(f'Unsupported target language for translation: {target_lang}')
-        return text
-    except deepl.ConnectionException as e:
-        logger.error(f'DeepL connection error: {e}')
-        return text
-    except deepl.QuotaExceededException as e:
-        logger.error(f'DeepL quota exceeded: {e}')
-        return text
-    except deepl.TooManyRequestsException as e:
-        logger.error(f'DeepL too many requests: {e}')
-        return text
-
-    if isinstance(result, list):
-        return result[0].text
-    return result.text
-
-
 @extend_schema(
     methods=['GET'],
     responses={200: ReviewTranslationSerializer, 404: None},
@@ -604,8 +566,8 @@ def __translate_text(text: str, target_lang: str = 'en') -> str:
     timeout=60 * 60 * 24,
 )
 def review_translations_deepl(request, review: Review) -> JsonResponse:
-    title = __translate_text(review.title, target_lang=request.user.preferred_language)
-    content = __translate_text(review.content, target_lang=request.user.preferred_language)
+    title = translate_text(review.title, target_lang=request.user.preferred_language)
+    content = translate_text(review.content, target_lang=request.user.preferred_language)
     return JsonResponse({'title': title, 'content': content})
 
 
@@ -625,5 +587,5 @@ def review_translations_deepl(request, review: Review) -> JsonResponse:
     timeout=60 * 60 * 24,
 )
 def comment_translations_deepl(request, review: Review, comment: Comment) -> JsonResponse:
-    content = __translate_text(comment.content, target_lang=request.user.preferred_language)
+    content = translate_text(comment.content, target_lang=request.user.preferred_language)
     return JsonResponse({'content': content})

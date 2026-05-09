@@ -44,4 +44,5 @@ urlpatterns = [
     # FRIENDS
     path('users/<user:user>/friends/', views.user_friends, name='user-friends'),
     path('users/<user:user>/friend-requests/', views.friend_requests_wrapper, name='friend-requests-wrapper'),
+    path('users/<user:user>/translations/', views.user_translations_deepl, name='user-translations-deepl'),
 ]

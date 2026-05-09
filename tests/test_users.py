@@ -25,6 +25,7 @@ from conftest import (
     USER_REVIEWS_URL,
     USER_SEARCH_URL,
     USER_SELF_FRIENDS_WRAPPER_URL,
+    USER_TRANSLATIONS_URL,
     VERIFY_USER_URL,
 )
 from django.conf import settings
@@ -1610,3 +1611,30 @@ def test_remove_friend_nonexistent_user(auth_client):
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()['status'] == 'User not found'
+
+@pytest.fixture
+def mock_reviews_deepl():
+    with mock.patch('shared.utils.translator') as mock_translator:
+        mock_result = mock.MagicMock()
+        mock_result.text = '¡Gran película!'
+        mock_translator.translate_text.return_value = mock_result
+        yield mock_translator
+    
+@pytest.mark.django_db
+def test_get_user_translation(user_factory, auth_client, mock_reviews_deepl):
+    user = user_factory(bio='This is a user bio.')
+
+    def side_effect(text, target_lang):
+        mock_result = MagicMock()
+        if text == 'This is a user bio.':
+            mock_result.text = 'Esta es una biografía de usuario.'
+        return mock_result
+
+    mock_reviews_deepl.translate_text.side_effect = side_effect
+
+    response = auth_client.get(
+        USER_TRANSLATIONS_URL.format(username=user.username)
+    )
+
+    assert response.status_code == 200
+    assert response.json()['bio'] == 'Esta es una biografía de usuario.'

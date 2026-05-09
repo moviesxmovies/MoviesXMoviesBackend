@@ -1,3 +1,6 @@
+import logging
+
+import deepl
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404, JsonResponse
@@ -6,6 +9,8 @@ from django.utils import translation
 from django.utils.translation import gettext as _
 
 from main import settings
+
+logger = logging.getLogger(__name__)
 
 
 def get_object_or_json_404(klass, *args, **kwargs):
@@ -143,3 +148,39 @@ def get_progressive_response(
             'count': count,
         }
     )
+
+
+translator = deepl.Translator(settings.DEEPL_API_KEY)
+
+
+def translate_text(text: str, target_lang: str = 'en') -> str:
+    lang_map = {
+        'en': 'EN-US',
+        'es': 'ES',
+        'fr': 'FR',
+        'de': 'DE',
+    }
+    try:
+        result = translator.translate_text(text, target_lang=lang_map[target_lang])
+    except deepl.AuthorizationException as e:
+        logger.error(f'DeepL authorization error: {e}')
+        return text
+    except deepl.DeepLException as e:
+        logger.error(f'DeepL error: {e}')
+        return text
+    except KeyError:
+        logger.warning(f'Unsupported target language for translation: {target_lang}')
+        return text
+    except deepl.ConnectionException as e:
+        logger.error(f'DeepL connection error: {e}')
+        return text
+    except deepl.QuotaExceededException as e:
+        logger.error(f'DeepL quota exceeded: {e}')
+        return text
+    except deepl.TooManyRequestsException as e:
+        logger.error(f'DeepL too many requests: {e}')
+        return text
+
+    if isinstance(result, list):
+        return result[0].text
+    return result.text

@@ -20,6 +20,7 @@ from shared.utils import (
     deactivate_language,
     get_paginated_response,
     get_progressive_response,
+    translate_text,
 )
 from users.decorators import auth_required
 from users.models import FriendRequest, Q, User
@@ -163,6 +164,10 @@ class GetPreferredLanguageResponse(serializers.Serializer):
     """
 
     preferred_language = serializers.CharField(help_text='Current preferred language code')
+
+
+class UserTranslationSerializer(serializers.Serializer):
+    bio = serializers.CharField(required=True, help_text='Translated bio of user')
 
 
 @extend_schema(
@@ -1074,3 +1079,21 @@ def user_search(
     if is_friend == 'true':
         users_query = users_query.filter(pk__in=request.user.get_friends()).distinct()
     return get_paginated_response(users_query, UserSerializer, request, page, limit)
+
+
+@extend_schema(
+    methods=['GET'],
+    responses={200: UserTranslationSerializer, 404: None},
+    description='Get DeepL translations for a user',
+    operation_id='user_translations_deepl',
+)
+@api_view(['GET'])
+@auth_required()
+@require_http_methods(['GET'])
+@cached_view(
+    make_key=lambda req, user: f'user_translation_deepl:{user.pk}:{req.user.preferred_language}',
+    timeout=60 * 60 * 24,
+)
+def user_translations_deepl(request, user: User) -> JsonResponse:
+    bio = translate_text(user.bio, target_lang=request.user.preferred_language)
+    return JsonResponse({'bio': bio})

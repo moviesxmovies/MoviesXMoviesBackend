@@ -127,6 +127,8 @@ def invalidate_user_detail(sender, instance, **kwargs):
     cache.delete_many(keys=cache.keys(USER_SEARCH_ALL))
     logger.debug(f'Invalidated user_search cache due to update of user {instance.pk}')
 
+    cache.delete_many(keys=cache.keys(f'user_translation_deepl:{instance.pk}:*'))
+
 
 @receiver(post_save, sender=MovieList)
 def invalidate_on_movielist(sender, instance, created, **kwargs):
