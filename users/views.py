@@ -1121,13 +1121,15 @@ def user_translations_deepl(request, user: User) -> JsonResponse:
 @require_http_methods(['GET'])
 @get_query_params('search_query', 'page', 'limit')
 @cached_view(
-    make_key=lambda req, user, page, limit: (
-        f'user_friends_search:{user.pk}:{page}:{limit}:{req.user.pk}'
+    make_key=lambda req, user, page, limit,search_query: (
+        f'user_friends_search:{user.pk}:{page}:{limit}:{req.user.pk}:{search_query}'
     ),
     timeout=60 * 5,
 )
 def user_friends_search(
     request, user: User, search_query: str, page: int, limit: int
 ) -> JsonResponse:
+    if search_query is None:
+        search_query = ''
     friends_query = user.get_friends().filter(username__icontains=search_query).order_by('username')
     return get_paginated_response(friends_query, UserSerializer, request, page, limit)
