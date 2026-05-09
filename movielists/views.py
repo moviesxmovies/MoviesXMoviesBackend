@@ -291,10 +291,36 @@ def movies_list_list(request, user, last_id: int = None, limit: int = 10) -> Jso
     responses={200: MovieListSerializer.get_schema(), 404: None},
     description='Get a specific movie list of a user',
     operation_id='get_movie_list_detail',
+    methods=['GET'],
 )
-@api_view()
-@require_http_methods(['GET'])
+@extend_schema(
+    responses={200: None, 403: None, 404: None},
+    description='Delete a specific movie list of a user',
+    operation_id='delete_movie_list',
+    methods=['DELETE'],
+)
+@api_view(['GET', 'DELETE'])
+@require_http_methods(['GET', 'DELETE'])
 @auth_required()
+def movies_list_wrapper(request, user, movies_list: MovieList) -> JsonResponse:
+    """Wrapper for handling movie list requests.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user who owns the movie list, resolved from the URL.
+        movies_list (MovieList): The movie list instance resolved from the URL.
+
+    Returns:
+        JsonResponse: The response from the appropriate handler.
+    """
+    match request.method:
+        case 'GET':
+            return movies_list_detail(request, user, movies_list)
+        case 'DELETE':
+            return delete_movie_list_self(request, user, movies_list)
+
+
+@require_http_methods(['GET'])
 @cached_view(
     lambda req, user, movies_list: f'movies_lists_detail:{user.pk}:{movies_list.pk}:{req.user.pk}',
     timeout=60 * 60,
@@ -328,6 +354,27 @@ def movies_list_detail(request, user, movies_list: MovieList) -> JsonResponse:
         {'error': _(NOT_ALLOWED_TO_SEEE)},
         status=HTTPStatus.NOT_FOUND,
     )
+
+
+@require_http_methods(['DELETE'])
+def delete_movie_list_self(request, user, movies_list: MovieList) -> JsonResponse:
+    """Delete a movie list if the requester is the owner.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user who owns the movie list, resolved from the URL.
+        movies_list (MovieList): The movie list instance resolved from the URL.
+
+    Returns:
+        JsonResponse: A JSON response indicating success or failure.
+    """
+    if request.user != user:
+        return JsonResponse(
+            {'error': _(NOT_ALLOWED_TO_SEEE)},
+            status=HTTPStatus.FORBIDDEN,
+        )
+    movies_list.hard_delete()
+    return JsonResponse({'success': True}, status=HTTPStatus.OK)
 
 
 @extend_schema(

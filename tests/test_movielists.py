@@ -1,11 +1,11 @@
 import pytest
 from conftest import (
-    MOVIE_LIST_DETAIL_URL,
     MOVIE_LIST_MOVIE_SEARCHING_URL,
     MOVIE_LIST_MOVIE_WRAPPER_URL,
     MOVIE_LIST_SEARCHING_URL,
     MOVIE_LIST_SELF_URL,
     MOVIE_LIST_USER_URL,
+    MOVIE_LIST_WRAPPER_URL,
 )
 from django.core.cache import cache
 from django.urls import reverse
@@ -250,7 +250,7 @@ def test_movies_list_detail_view_public(auth_client, movie_list_factory, user_fa
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 200
     data = response.json()
@@ -268,7 +268,7 @@ def test_movies_list_detail_view_followers(auth_client, movie_list_factory, user
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 200
     data = response.json()
@@ -284,7 +284,7 @@ def test_movies_list_detail_view_followers_forbidden(auth_client, movie_list_fac
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 404
     data = response.json()
@@ -300,7 +300,7 @@ def test_movies_list_detail_view_private(auth_client, movie_list_factory, user_f
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 404
     data = response.json()
@@ -316,7 +316,7 @@ def test_movies_list_detail_view_self(auth_client, movie_list_factory):
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 200
     data = response.json()

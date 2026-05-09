@@ -9,10 +9,14 @@ urlpatterns = [
     path('', views.movies_list_self_wrapper, name='movies-lists-self-wrapper'),
     path('searching/', views.movies_list_search, name='movies-lists-search'),
     path(
-        '<user:user>/<movies-list:movies_list>/', views.movies_list_detail, name='movies-lists-self'
+        '<user:user>/<movies-list:movies_list>/',
+        views.movies_list_wrapper,
+        name='movies-lists-wrapper',
     ),
     path(
-        '<user:user>/<movies-list:movies_list>/movies/searching/', views.movies_list_movie_search, name='movies-lists-movies-search'
+        '<user:user>/<movies-list:movies_list>/movies/searching/',
+        views.movies_list_movie_search,
+        name='movies-lists-movies-search',
     ),
     path('<user:user>/', views.movies_list_list, name='movies-lists-user'),
     path(
