@@ -1,11 +1,11 @@
 import pytest
 from conftest import (
-    MOVIE_LIST_DETAIL_URL,
     MOVIE_LIST_MOVIE_SEARCHING_URL,
     MOVIE_LIST_MOVIE_WRAPPER_URL,
     MOVIE_LIST_SEARCHING_URL,
     MOVIE_LIST_SELF_URL,
     MOVIE_LIST_USER_URL,
+    MOVIE_LIST_WRAPPER_URL,
 )
 from django.core.cache import cache
 from django.urls import reverse
@@ -250,7 +250,7 @@ def test_movies_list_detail_view_public(auth_client, movie_list_factory, user_fa
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 200
     data = response.json()
@@ -268,7 +268,7 @@ def test_movies_list_detail_view_followers(auth_client, movie_list_factory, user
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 200
     data = response.json()
@@ -284,7 +284,7 @@ def test_movies_list_detail_view_followers_forbidden(auth_client, movie_list_fac
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 404
     data = response.json()
@@ -300,7 +300,7 @@ def test_movies_list_detail_view_private(auth_client, movie_list_factory, user_f
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 404
     data = response.json()
@@ -316,7 +316,7 @@ def test_movies_list_detail_view_self(auth_client, movie_list_factory):
     )
 
     response = auth_client.get(
-        MOVIE_LIST_DETAIL_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
     )
     assert response.status_code == 200
     data = response.json()
@@ -739,3 +739,36 @@ def test_movie_list_search_movies_access_friends(
     data = response.json()
     assert data['count'] == 1
     assert data['results'][0]['title'] == 'Inception'
+
+
+@pytest.mark.django_db
+def test_movie_list_delete_success(auth_client, movie_list_factory):
+    user = auth_client.user
+    movie_list = movie_list_factory(user=user)
+
+    response = auth_client.delete(
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert 'success' in data
+    assert data['success']
+
+    assert not MovieList.objects.filter(id=movie_list.id).exists()
+
+@pytest.mark.django_db
+def test_movie_list_delete_no_access(auth_client, movie_list_factory, user_factory):
+    owner = user_factory(username='owner')
+    movie_list = movie_list_factory(user=owner)
+
+    response = auth_client.delete(
+        MOVIE_LIST_WRAPPER_URL.format(username=owner.username, movies_list_slug=movie_list.slug)
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"
+
+    assert MovieList.objects.filter(id=movie_list.id).exists()
