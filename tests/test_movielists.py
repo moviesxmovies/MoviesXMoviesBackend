@@ -739,3 +739,36 @@ def test_movie_list_search_movies_access_friends(
     data = response.json()
     assert data['count'] == 1
     assert data['results'][0]['title'] == 'Inception'
+
+
+@pytest.mark.django_db
+def test_movie_list_delete_success(auth_client, movie_list_factory):
+    user = auth_client.user
+    movie_list = movie_list_factory(user=user)
+
+    response = auth_client.delete(
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug)
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert 'success' in data
+    assert data['success']
+
+    assert not MovieList.objects.filter(id=movie_list.id).exists()
+
+@pytest.mark.django_db
+def test_movie_list_delete_no_access(auth_client, movie_list_factory, user_factory):
+    owner = user_factory(username='owner')
+    movie_list = movie_list_factory(user=owner)
+
+    response = auth_client.delete(
+        MOVIE_LIST_WRAPPER_URL.format(username=owner.username, movies_list_slug=movie_list.slug)
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"
+
+    assert MovieList.objects.filter(id=movie_list.id).exists()

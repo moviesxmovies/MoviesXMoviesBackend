@@ -371,7 +371,7 @@ def delete_movie_list_self(request, user, movies_list: MovieList) -> JsonRespons
     if request.user != user:
         return JsonResponse(
             {'error': _(NOT_ALLOWED_TO_SEEE)},
-            status=HTTPStatus.FORBIDDEN,
+            status=HTTPStatus.NOT_FOUND,
         )
     movies_list.hard_delete()
     return JsonResponse({'success': True}, status=HTTPStatus.OK)
