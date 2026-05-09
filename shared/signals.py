@@ -128,6 +128,7 @@ def invalidate_user_detail(sender, instance, **kwargs):
     logger.debug(f'Invalidated user_search cache due to update of user {instance.pk}')
 
     cache.delete_many(keys=cache.keys(f'user_translation_deepl:{instance.pk}:*'))
+    cache.delete_many(keys=cache.keys(f'user_friends_search:{instance.pk}:*'))
 
 
 @receiver(post_save, sender=MovieList)
@@ -237,6 +238,7 @@ def invalidate_on_friendship(sender, instance: FriendShip, **kwargs):
     logger.debug(
         f'Invalidated user_detail cache for user {instance.user1.pk} and user {instance.user2.pk} due to new friendship'
     )
+    cache.delete_many(keys=cache.keys(f'user_friends_search:{instance.pk}:*'))
 
 
 @receiver(post_save, sender=FriendRequest)
@@ -305,6 +307,8 @@ def invalidate_on_friend_request(sender, instance: FriendRequest, **kwargs):
     logger.debug(
         f'Invalidated user_detail cache for user {instance.from_user.pk} and user {instance.to_user.pk} due to new friendship'
     )
+
+    cache.delete_many(keys=cache.keys(f'user_friends_search:{instance.pk}:*'))
 
 
 @receiver(post_save, sender=Award)

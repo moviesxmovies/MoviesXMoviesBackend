@@ -20,6 +20,7 @@ from conftest import (
     TEST_USER_USERNAME,
     USER_DETAIL_URL,
     USER_FRIEND_REQUESTS_URL,
+    USER_FRIENDS_SEARCHING_URL,
     USER_ONBOARDING_URL,
     USER_PREFERRED_LANGUAGE_URL,
     USER_REVIEWS_URL,
@@ -1602,6 +1603,7 @@ def test_remove_friend_no_username(auth_client):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()['status'] == 'Username parameter is required'
 
+
 @pytest.mark.django_db
 def test_remove_friend_nonexistent_user(auth_client):
     response = auth_client.delete(
@@ -1612,6 +1614,7 @@ def test_remove_friend_nonexistent_user(auth_client):
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()['status'] == 'User not found'
 
+
 @pytest.fixture
 def mock_reviews_deepl():
     with mock.patch('shared.utils.translator') as mock_translator:
@@ -1619,7 +1622,8 @@ def mock_reviews_deepl():
         mock_result.text = '¡Gran película!'
         mock_translator.translate_text.return_value = mock_result
         yield mock_translator
-    
+
+
 @pytest.mark.django_db
 def test_get_user_translation(user_factory, auth_client, mock_reviews_deepl):
     user = user_factory(bio='This is a user bio.')
@@ -1632,9 +1636,56 @@ def test_get_user_translation(user_factory, auth_client, mock_reviews_deepl):
 
     mock_reviews_deepl.translate_text.side_effect = side_effect
 
-    response = auth_client.get(
-        USER_TRANSLATIONS_URL.format(username=user.username)
-    )
+    response = auth_client.get(USER_TRANSLATIONS_URL.format(username=user.username))
 
     assert response.status_code == 200
     assert response.json()['bio'] == 'Esta es una biografía de usuario.'
+
+
+@pytest.mark.django_db
+def test_friend_searching_by_username(auth_client, user_factory):
+    friend = user_factory(username='friend')
+    FriendShip.objects.create(user1=auth_client.user, user2=friend)
+    FriendShip.objects.create(user1=auth_client.user, user2=user_factory(username='other'))
+
+    response = auth_client.get(
+        USER_FRIENDS_SEARCHING_URL.format(username=auth_client.user.username)
+        + '?search_query=friend'
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 1
+    assert data['results'][0]['username'] == 'friend'
+
+
+@pytest.mark.django_db
+def test_friend_searching_not_query(auth_client, user_factory):
+    friend = user_factory(username='friend')
+    FriendShip.objects.create(user1=auth_client.user, user2=friend)
+    FriendShip.objects.create(user1=auth_client.user, user2=user_factory(username='other'))
+
+
+    response = auth_client.get(
+        USER_FRIENDS_SEARCHING_URL.format(username=auth_client.user.username)
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 2
+    assert data['results'][0]['username'] == 'friend'
+
+@pytest.mark.django_db
+def test_friend_searching_no_results(auth_client, user_factory):
+    friend = user_factory(username='friend')
+    FriendShip.objects.create(user1=auth_client.user, user2=friend)
+
+    response = auth_client.get(
+        USER_FRIENDS_SEARCHING_URL.format(username=auth_client.user.username)
+        + '?search_query=nonexistent'
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['count'] == 0
+    assert data['results'] == []

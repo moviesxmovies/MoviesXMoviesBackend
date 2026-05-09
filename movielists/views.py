@@ -222,7 +222,7 @@ def _validate_intelligent_params(
 
     if friends:
         existing_friends = set(
-            user.friends.filter(username__in=friends).values_list('username', flat=True)
+            user.get_friends().filter(username__in=friends).values_list('username', flat=True)
         )
         for f in friends:
             if f not in existing_friends:
