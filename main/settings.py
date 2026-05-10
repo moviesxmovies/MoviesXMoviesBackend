@@ -325,7 +325,7 @@ LOGGING = {
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['null'] if TESTING else ['file', 'file_all'],
+            'handlers': ['null'],
             'level': 'DEBUG',
             'propagate': False,
         },
