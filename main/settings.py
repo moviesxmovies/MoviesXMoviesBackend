@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import logging
 import os
 import sys
 from datetime import timedelta
@@ -287,13 +288,22 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'errors_only': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: record.levelno >= logging.ERROR,
+        },
+    },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'colored',
         },
-        'file': {
+        'file_error': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOG_BASE_DIR, 'django_error.log'),
@@ -315,23 +325,28 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
-            'level': 'INFO',
+            'handlers': ['null'] if TESTING else ['console', 'file_all', 'file_error'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         'django': {
-            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
+            'handlers': ['null'] if TESTING else ['console', 'file_all', 'file_error'],
             'level': 'WARNING',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['null'],
-            'level': 'DEBUG',
+            'handlers': ['null'] if TESTING else ['file_error'],
+            'level': 'ERROR',
             'propagate': False,
         },
         'django.server': {
             'handlers': ['null'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['null'] if TESTING else ['file_error'],
+            'level': 'ERROR',
             'propagate': False,
         },
         'requests': {
