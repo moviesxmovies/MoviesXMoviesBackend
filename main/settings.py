@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-import logging
 import os
 import sys
 from datetime import timedelta
@@ -288,22 +287,13 @@ LOGGING = {
             'style': '{',
         },
     },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        },
-        'errors_only': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: record.levelno >= logging.ERROR,
-        },
-    },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'colored',
         },
-        'file_error': {
+        'file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOG_BASE_DIR, 'django_error.log'),
@@ -325,28 +315,23 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['null'] if TESTING else ['console', 'file_all', 'file_error'],
-            'level': 'DEBUG',
+            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
+            'level': 'INFO',
             'propagate': False,
         },
         'django': {
-            'handlers': ['null'] if TESTING else ['console', 'file_all', 'file_error'],
+            'handlers': ['null'] if TESTING else ['console', 'file', 'file_all'],
             'level': 'WARNING',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['null'] if TESTING else ['file_error'],
-            'level': 'ERROR',
+            'handlers': ['null'] if TESTING else ['file', 'file_all'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         'django.server': {
             'handlers': ['null'],
             'level': 'DEBUG',
-            'propagate': False,
-        },
-        'django.security': {
-            'handlers': ['null'] if TESTING else ['file_error'],
-            'level': 'ERROR',
             'propagate': False,
         },
         'requests': {
