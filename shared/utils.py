@@ -13,7 +13,7 @@ from main import settings
 logger = logging.getLogger(__name__)
 
 
-def get_object_or_json_404(klass, *args, **kwargs):
+def get_object_or_json_404(klass, *args, **kwargs) :
     """
     Retrieves a single object from the database based on the provided model class and lookup parameters. If the object does not exist, it raises an Http404 exception with a custom error message.
 
