@@ -888,7 +888,7 @@ class TestMovieSearchView:
         response = auth_client.get(f'{MOVIE_SEARCHING_URL}?genres[]=action')
         assert len(response.json()['results']) == 1
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?actors[]=brad-pitt')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?celebrities[]=brad-pitt')
         assert len(response.json()['results']) == 1
 
     def test_search_marked_unseen(self, movie_factory, auth_client):
@@ -955,7 +955,7 @@ class TestMovieSearchView:
         assert len(response.json()['results']) == 1
         assert response.json()['results'][0]['id'] == m1.id
 
-    def test_search_by_directors(self, movie_factory, person_factory, auth_client):
+    def test_search_by_celebrities(self, movie_factory, person_factory, auth_client):
         director_nolan = person_factory(slug='christopher-nolan')
         director_spielberg = person_factory(slug='steven-spielberg')
 
@@ -964,7 +964,7 @@ class TestMovieSearchView:
 
         movie_factory(title='Spielberg Movie').directors.add(director_spielberg)
 
-        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?directors[]=christopher-nolan')
+        response = auth_client.get(f'{MOVIE_SEARCHING_URL}?celebrities[]=christopher-nolan')
         assert len(response.json()['results']) == 1
         assert response.json()['results'][0]['id'] == m1.id
 

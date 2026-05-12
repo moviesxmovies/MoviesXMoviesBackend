@@ -589,18 +589,8 @@ def unmark_movie_unseen(request, movie: Movie) -> JsonResponse:
             explode=True,
         ),
         OpenApiParameter(
-            name='directors[]',
-            description='List of director slugs to filter by',
-            required=False,
-            type=OpenApiTypes.STR,
-            many=True,
-            location=OpenApiParameter.QUERY,
-            style='form',
-            explode=True,
-        ),
-        OpenApiParameter(
-            name='actors[]',
-            description='List of actor slugs to filter by',
+            name='celebrities[]',
+            description='List of celebrity slugs to filter by',
             required=False,
             type=OpenApiTypes.STR,
             many=True,
@@ -686,8 +676,7 @@ def movie_search(
         request: The authenticated incoming HTTP request.
         genres: Optional list of genre slugs to filter by.
         platforms: Optional list of platform slugs to filter by.
-        directors: Optional list of director names to filter by.
-        actors: Optional list of actor names to filter by.
+        celebrities: Optional list of celebrity slugs to filter by (matches both actors and directors).
         marked_unseen: If true, include only movies marked as unseen by the user.
         stars: Optional dict mapping star ratings (1-5) to booleans indicating
             whether to include movies with that rating from the user.
@@ -701,19 +690,17 @@ def movie_search(
     movies_qs = Movie.objects.all()
     genres = request.GET.getlist('genres[]')
     platforms = request.GET.getlist('platforms[]')
-    directors = request.GET.getlist('directors[]')
-    actors = request.GET.getlist('actors[]')
+    celebrities = request.GET.getlist('celebrities[]')
     stars = request.GET.getlist('stars[]')
 
     if genres:
         movies_qs = movies_qs.filter(genres__slug__in=genres)
     if platforms:
         movies_qs = movies_qs.filter(platforms__slug__in=platforms)
-    if directors:
-        movies_qs = movies_qs.filter(directors__slug__in=directors)
-    if actors:
-        movies_qs = movies_qs.filter(actors__slug__in=actors)
-
+    if celebrities:
+        movies_qs = movies_qs.filter(
+            Q(directors__slug__in=celebrities) | Q(actors__slug__in=celebrities)
+        )
     if marked_unseen == 'true':
         movies_qs = movies_qs.filter(users_unseen=user)
     if stars:
