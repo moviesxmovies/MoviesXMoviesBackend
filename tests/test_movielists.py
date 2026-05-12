@@ -757,6 +757,7 @@ def test_movie_list_delete_success(auth_client, movie_list_factory):
 
     assert not MovieList.objects.filter(id=movie_list.id).exists()
 
+
 @pytest.mark.django_db
 def test_movie_list_delete_no_access(auth_client, movie_list_factory, user_factory):
     owner = user_factory(username='owner')
@@ -772,3 +773,66 @@ def test_movie_list_delete_no_access(auth_client, movie_list_factory, user_facto
     assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"
 
     assert MovieList.objects.filter(id=movie_list.id).exists()
+
+
+@pytest.mark.django_db
+def test_edit_movie_list(auth_client, movie_list_factory):
+    user = auth_client.user
+    movie_list = movie_list_factory(
+        user=user,
+        name='Old Name',
+        description='Old Description',
+        privacity=MovieList.Privacity.PRIVATE,
+    )
+
+    response = auth_client.put(
+        MOVIE_LIST_WRAPPER_URL.format(username=user.username, movies_list_slug=movie_list.slug),
+        data={
+            'name': 'New Name',
+            'description': 'New Description',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['name'] == 'New Name'
+    assert data['description'] == 'New Description'
+    assert data['privacity'] == MovieList.Privacity.PUBLIC
+
+    movie_list.refresh_from_db()
+    assert movie_list.name == 'New Name'
+    assert movie_list.description == 'New Description'
+    assert movie_list.privacity == MovieList.Privacity.PUBLIC
+
+
+@pytest.mark.django_db
+def test_edit_movie_list_no_access(auth_client, movie_list_factory, user_factory):
+    owner = user_factory(username='owner')
+    movie_list = movie_list_factory(
+        user=owner,
+        name='Old Name',
+        description='Old Description',
+        privacity=MovieList.Privacity.PRIVATE,
+    )
+
+    response = auth_client.put(
+        MOVIE_LIST_WRAPPER_URL.format(username=owner.username, movies_list_slug=movie_list.slug),
+        data={
+            'name': 'New Name',
+            'description': 'New Description',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert 'error' in data
+    assert data['error'] == "This movies list doesn't exist or you're not allowed to see it"
+
+    movie_list.refresh_from_db()
+    assert movie_list.name == 'Old Name'
+    assert movie_list.description == 'Old Description'
+    assert movie_list.privacity == MovieList.Privacity.PRIVATE
