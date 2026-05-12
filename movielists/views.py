@@ -299,8 +299,15 @@ def movies_list_list(request, user, last_id: int = None, limit: int = 10) -> Jso
     operation_id='delete_movie_list',
     methods=['DELETE'],
 )
-@api_view(['GET', 'DELETE'])
-@require_http_methods(['GET', 'DELETE'])
+@extend_schema(
+    request=SaveMovieListSerializer,
+    responses={200: MovieListSerializer.get_schema(), 400: None, 403: None, 404: None},
+    description='Update a specific movie list of a user',
+    operation_id='update_movie_list',
+    methods=['PUT'],
+)
+@api_view(['GET', 'DELETE', 'PUT'])
+@require_http_methods(['GET', 'DELETE', 'PUT'])
 @auth_required()
 def movies_list_wrapper(request, user, movies_list_slug: str) -> JsonResponse:
     """Wrapper for handling movie list requests.
@@ -319,6 +326,38 @@ def movies_list_wrapper(request, user, movies_list_slug: str) -> JsonResponse:
             return movies_list_detail(request, user, movies_list)
         case 'DELETE':
             return delete_movie_list_self(request, user, movies_list)
+        case 'PUT':
+            return edit_movie_list_self(request, user, movies_list)
+
+
+@require_http_methods(['PUT'])
+@get_body(None, ['name', 'description', 'privacity'])
+def edit_movie_list_self(request, user, movies_list: MovieList, body) -> JsonResponse:
+    """Edit a movie list if the requester is the owner.
+
+    Args:
+        request: The authenticated incoming HTTP request.
+        user (User): The user who owns the movie list, resolved from the URL.
+        movies_list (MovieList): The movie list instance resolved from the URL.
+
+    Returns:
+        JsonResponse: The updated movie list or an error message.
+    """
+    if request.user != user:
+        return JsonResponse(
+            {'error': _(NOT_ALLOWED_TO_SEEE)},
+            status=HTTPStatus.NOT_FOUND,
+        )
+    movies_list.name = body['name']
+    movies_list.slug = slugify(body['name'])
+    movies_list.description = body['description']
+    movies_list.privacity = body['privacity']
+    try:
+        movies_list.full_clean()
+        movies_list.save()
+        return MovieListSerializer(movies_list, request=request).json_response()
+    except ValidationError as e:
+        return JsonResponse(e.message_dict, status=HTTPStatus.BAD_REQUEST)
 
 
 @require_http_methods(['GET'])
