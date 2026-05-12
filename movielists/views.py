@@ -503,7 +503,7 @@ def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> J
     """
     if not query:
         query = ''
-    movies_lists = request.user.movies_lists.filter(name__icontains=query)
+    movies_lists = MovieList.objects.filter(name__icontains=query)
     return get_paginated_response(
         movies_lists,
         MovieListSerializer,

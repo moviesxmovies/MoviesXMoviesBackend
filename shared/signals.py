@@ -133,9 +133,9 @@ def invalidate_user_detail(sender, instance, **kwargs):
 
 @receiver(post_save, sender=MovieList)
 @receiver(post_delete, sender=MovieList)
-def invalidate_on_movielist(sender, instance, created, **kwargs):
+def invalidate_on_movielist(sender, instance, **kwargs):
     logger.debug(
-        f'Invalidating caches due to {"creation" if created else "update"} of movie list {instance.pk} by user {instance.user.pk}'
+        f'Invalidating caches due to modification of movie list {instance.pk} by user {instance.user.pk}'
     )
     cache.delete_many(keys=cache.keys(f'movies_lists_self:{instance.user.pk}:*'))
     cache.delete_many(keys=cache.keys(f'movies_lists_detail:{instance.user.pk}:{instance.pk}:*'))
