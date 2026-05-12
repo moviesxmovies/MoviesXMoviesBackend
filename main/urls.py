@@ -6,7 +6,6 @@ from django.urls.converters import get_converters
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from awards.conversors import AwardConverter
-from movielists.converters import MovieListConverter
 from movies.converters import MovieConverter
 from persons.conversors import PersonConverter
 from reviews.converters import CommentConverter, ReactionConverter, ReviewConverter
@@ -15,7 +14,6 @@ from users.converters import UserConverter
 # CONVERTERS
 CUSTOM_CONVERTERS = {
     'user': UserConverter,
-    'movies-list': MovieListConverter,
     'movie': MovieConverter,
     'review': ReviewConverter,
     'comment': CommentConverter,

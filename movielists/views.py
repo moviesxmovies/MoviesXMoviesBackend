@@ -13,7 +13,7 @@ from genres.models import Genre
 from movies.serializers import MovieSerializer
 from persons.models import Person
 from shared.decorators import cached_view, get_body, get_query_params, require_http_methods
-from shared.utils import get_paginated_response, get_progressive_response
+from shared.utils import get_object_or_json_404, get_paginated_response, get_progressive_response
 from users.decorators import auth_required
 
 from .models import MovieList
@@ -302,17 +302,18 @@ def movies_list_list(request, user, last_id: int = None, limit: int = 10) -> Jso
 @api_view(['GET', 'DELETE'])
 @require_http_methods(['GET', 'DELETE'])
 @auth_required()
-def movies_list_wrapper(request, user, movies_list: MovieList) -> JsonResponse:
+def movies_list_wrapper(request, user, movies_list_slug: str) -> JsonResponse:
     """Wrapper for handling movie list requests.
 
     Args:
         request: The authenticated incoming HTTP request.
         user (User): The user who owns the movie list, resolved from the URL.
-        movies_list (MovieList): The movie list instance resolved from the URL.
+        movies_list_slug (str): The slug of the movie list, resolved from the URL.
 
     Returns:
         JsonResponse: The response from the appropriate handler.
     """
+    movies_list = get_object_or_json_404(MovieList, user=user, slug=movies_list_slug)
     match request.method:
         case 'GET':
             return movies_list_detail(request, user, movies_list)
@@ -392,7 +393,7 @@ def delete_movie_list_self(request, user, movies_list: MovieList) -> JsonRespons
 @api_view(['POST', 'DELETE'])
 @require_http_methods(['POST', 'DELETE'])
 @auth_required()
-def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> JsonResponse:
+def movies_list_movie_wrapper(request, user, movies_list_slug: str, movie) -> JsonResponse:
     """Route POST and DELETE movie-in-list requests to their respective handlers.
 
     Rejects the request if the authenticated user is not the owner of both
@@ -401,7 +402,7 @@ def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> J
     Args:
         request: The authenticated incoming HTTP request.
         user (User): The user who owns the movie list, resolved from the URL.
-        movies_list (MovieList): The movie list instance resolved from the URL.
+        movies_list_slug (str): The slug of the movie list, resolved from the URL.
         movie (Movie): The movie instance resolved from the URL.
 
     Returns:
@@ -409,6 +410,7 @@ def movies_list_movie_wrapper(request, user, movies_list: MovieList, movie) -> J
         from ``remove_movie_from_list`` on DELETE, or a JSON error body
         with HTTP 403 if the requester is not the list owner.
     """
+    movies_list = get_object_or_json_404(MovieList, user=user, slug=movies_list_slug)
     if request.user != user or movies_list.user != user:
         return JsonResponse(
             {'error': _(NOT_ALLOWED_TO_SEEE)},
@@ -503,7 +505,7 @@ def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> J
     """
     if not query:
         query = ''
-    movies_lists = request.user.movies_lists.filter(name__icontains=query)
+    movies_lists = MovieList.objects.filter(name__icontains=query)
     return get_paginated_response(
         movies_lists,
         MovieListSerializer,
@@ -544,13 +546,13 @@ def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> J
 @get_query_params('query', 'page', 'limit')
 @auth_required()
 @cached_view(
-    lambda req, user, movies_list, query, page, limit: (
-        f'movies_lists_movies_search:{user.pk}:{movies_list.pk}:{query}:{page}:{limit}:{req.user.pk}:{req.user.preferred_language}'
+    lambda req, user, movies_list_slug, query, page, limit: (
+        f'movies_lists_movies_search:{user.pk}:{movies_list_slug}:{query}:{page}:{limit}:{req.user.pk}:{req.user.preferred_language}'
     ),
     timeout=60 * 60,
 )
 def movies_list_movie_search(
-    request, user, movies_list: MovieList, query: str, page: int = 1, limit: int = 10
+    request, user, movies_list_slug: str, query: str, page: int = 1, limit: int = 10
 ) -> JsonResponse:
     """Return a paginated list of movies in a movie list matching a search query.
 
@@ -561,7 +563,7 @@ def movies_list_movie_search(
     Args:
         request: The authenticated incoming HTTP request.
         user (User): The user who owns the movie list, resolved from the URL.
-        movies_list (MovieList): The movie list instance resolved from the URL.
+        movies_list_slug (str): The slug of the movie list, resolved from the URL.
         query (str): The search query to match against movie titles in the list.
         page (int): Page number for pagination. Defaults to 1.
         limit (int): Number of items per page. Defaults to 10.
@@ -571,6 +573,7 @@ def movies_list_movie_search(
         error body with HTTP 404 if the list is private or the requester is
         not allowed to view it.
     """
+    movies_list = get_object_or_json_404(MovieList, user=user, slug=movies_list_slug)
     if not query:
         query = ''
     if request.user == user:
