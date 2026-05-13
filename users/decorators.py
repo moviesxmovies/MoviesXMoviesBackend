@@ -49,6 +49,8 @@ def auth_required(require_verification=True):
         unverified_restricted_path = request.path not in [
             reverse('verify_user'),
             reverse('resend_verification_email'),
+            reverse('self_user_wrapper'),
+            reverse('self-friend-requests'),
         ]
         if require_verification and not request.user.verified and unverified_restricted_path:
             return JsonResponse(

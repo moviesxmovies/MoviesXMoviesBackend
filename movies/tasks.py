@@ -6,9 +6,7 @@ from django_rq import job
 from implicit.als import AlternatingLeastSquares
 from scipy.sparse import csr_matrix
 
-from movies.models import Movie
 from ratings.models import Rating
-from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +37,8 @@ def retrain_professional_model() -> str:
         logger.info('No ratings to train the model')
         return 'No ratings to train the model'
 
-    users_list = list(User.objects.values_list('id', flat=True))
-    movies_list = list(Movie.objects.values_list('id', flat=True))
+    users_list = list(Rating.objects.values_list('user_id', flat=True).distinct())
+    movies_list = list(Rating.objects.values_list('movie_id', flat=True).distinct())
 
     user_id_map = {old_id: new_id for new_id, old_id in enumerate(users_list)}
     movie_id_map = {old_id: new_id for new_id, old_id in enumerate(movies_list)}

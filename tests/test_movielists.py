@@ -11,6 +11,7 @@ from django.core.cache import cache
 from django.urls import reverse
 
 from movielists.models import MovieList
+from movielists.recommender import RecommenderModel
 from movielists.serializers import MovieListSerializer
 from movies.tasks import retrain_professional_model
 from users.models import FriendShip
@@ -394,17 +395,20 @@ def test_movie_list_save_using_cache(auth_client, user_factory, movie_factory, r
 
     watched_movies = [movie_factory(slug=f'already-watched-movie-{i}') for i in range(3)]
     unseen_movies = [movie_factory(slug=f'shiny-new-recommendation-{i}') for i in range(3)]
-
     comunidad = [user_factory() for _ in range(3)]
 
     for m in watched_movies:
         rating_factory(user=user, movie=m, rating=5)
-
     for u in comunidad:
         for m in watched_movies + unseen_movies:
             rating_factory(user=u, movie=m, rating=5)
 
     retrain_professional_model()
+
+    data = RecommenderModel.get_data()
+    trained_movie_ids = set(data['movie_id_map'].keys())
+    for m in watched_movies + unseen_movies:
+        assert m.id in trained_movie_ids, f'Película {m.slug} no está en el modelo entrenado'
 
     response = auth_client.post(
         MOVIE_LIST_SELF_URL + '?intelligent=true',
@@ -415,11 +419,9 @@ def test_movie_list_save_using_cache(auth_client, user_factory, movie_factory, r
         },
         content_type='application/json',
     )
-
     assert response.status_code == 201
-    data = response.json()
-
-    recommended_urls = data['movies']
+    response_data = response.json()
+    recommended_urls = response_data['movies']
     assert len(recommended_urls) > 0, 'La IA no ha devuelto películas'
 
     watched_slugs = [m.slug for m in watched_movies]
@@ -433,6 +435,47 @@ def test_movie_list_save_using_cache(auth_client, user_factory, movie_factory, r
         any(u_slug in url for u_slug in unseen_slugs) for url in recommended_urls
     )
     assert found_any_target, f'No se encontró ninguna recomendación esperada en: {recommended_urls}'
+
+    cache.delete('movie_recommendation_model')
+
+
+@pytest.mark.django_db
+def test_movie_list_falls_back_when_insufficient_data(auth_client, movie_factory, rating_factory):
+    cache.clear()
+    user = auth_client.user
+    user.platforms.clear()
+
+    movies = [movie_factory(slug=f'fallback-movie-{i}') for i in range(5)]
+    watched = movies[:2]
+    unwatched = movies[2:]
+
+    for m in watched:
+        rating_factory(user=user, movie=m, rating=5)
+
+    retrain_professional_model()
+
+    data = RecommenderModel.get_data()
+    assert len(data['movie_id_map']) < 500, 'Este test requiere pocos datos para forzar el fallback'
+
+    response = auth_client.post(
+        MOVIE_LIST_SELF_URL + '?intelligent=true',
+        data={
+            'name': 'Fallback List',
+            'description': 'Testing fallback path',
+            'privacity': MovieList.Privacity.PUBLIC,
+        },
+        content_type='application/json',
+    )
+    assert response.status_code == 201
+    response_data = response.json()
+    recommended_urls = response_data['movies']
+
+    assert len(recommended_urls) > 0, 'El fallback no devolvió películas'
+
+    watched_slugs = [m.slug for m in watched]
+    for url in recommended_urls:
+        for w_slug in watched_slugs:
+            assert w_slug not in url, f'Película vista {w_slug} apareció en fallback'
 
     cache.delete('movie_recommendation_model')
 
