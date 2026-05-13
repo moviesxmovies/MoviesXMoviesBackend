@@ -300,7 +300,9 @@ class MovieList(BaseModel):
             )
             favourite_genre_ids = [gid for gid in favourite_genre_ids if gid is not None]
             if favourite_genre_ids:
-                qs = qs.filter(genres__id__in=favourite_genre_ids)
+                filtered_qs = qs.filter(genres__id__in=favourite_genre_ids)
+                if filtered_qs.exists():
+                    qs = filtered_qs
 
         return (
             qs.annotate(
