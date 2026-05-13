@@ -221,10 +221,16 @@ class MovieList(BaseModel):
         if raw_data:
             try:
                 data = RecommenderModel.get_data()
+                if len(data['movie_id_map']) < 500:
+                    logger.warning(
+                        'ALS model has insufficient movies to generate recommendations. Actual count: %d',
+                        len(data['movie_id_map']),
+                    )
+                    return self._get_fallback_candidates(exclude_ids)
                 internal_id = data['user_id_map'].get(self.user.id)
 
                 if internal_id is not None:
-                    n_candidates = min(50 + len(exclude_ids), 1000)
+                    n_candidates = min(500 + len(exclude_ids), 1000)
 
                     ids, _ = data['model'].recommend(
                         internal_id,
@@ -239,7 +245,6 @@ class MovieList(BaseModel):
                         if i in data['reverse_movie_map']
                         and data['reverse_movie_map'][i] not in exclude_ids
                     ]
-
                     if candidate_ids:
                         preserved = Case(
                             *[When(id=pk, then=pos) for pos, pk in enumerate(candidate_ids)],
@@ -305,8 +310,8 @@ class MovieList(BaseModel):
                     (F('avg_rating') * F('rating_count')) / (F('rating_count') + 10),
                     output_field=FloatField(),
                 ),
-                popularity_tmdb=F('popularity')
+                popularity_tmdb=F('popularity'),
             )
-            .order_by('-popularity_tmdb','-popularity_score', '-release_date')
+            .order_by('-popularity_tmdb', '-popularity_score', '-release_date')
             .distinct()
         )
