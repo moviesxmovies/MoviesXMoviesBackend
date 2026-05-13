@@ -544,7 +544,15 @@ def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> J
     """
     if not query:
         query = ''
-    movies_lists = MovieList.objects.filter(name__icontains=query)
+    movies_lists = MovieList.objects.filter(
+        Q(name__icontains=query)
+        & (
+            Q(user=request.user)
+            | Q(privacity=MovieList.Privacity.PUBLIC)
+            | Q(privacity=MovieList.Privacity.FRIENDS, user__in=request.user.get_friends())
+        )
+    ).distinct()
+
     return get_paginated_response(
         movies_lists,
         MovieListSerializer,
