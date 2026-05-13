@@ -549,7 +549,7 @@ def movies_list_search(request, query: str, page: int = 1, limit: int = 10) -> J
         & (
             Q(user=request.user)
             | Q(privacity=MovieList.Privacity.PUBLIC)
-            | Q(privacity=MovieList.Privacity.FRIENDS, user__in=request.user.friends.all())
+            | Q(privacity=MovieList.Privacity.FRIENDS, user__in=request.user.get_friends())
         )
     ).distinct()
 
