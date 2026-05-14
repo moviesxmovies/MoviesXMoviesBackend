@@ -283,7 +283,12 @@ def suggested_users(request, last_id: int, limit: int) -> JsonResponse:
         JsonResponse: Paginated serialized user list with HTTP 200.
     """
     return get_progressive_response(
-        request.user.suggest_friends(), UserSerializer, request, last_id, limit, order=False
+        request.user.suggest_friends(),
+        UserSerializer,
+        request,
+        last_id,
+        limit,
+        ordering_field=['-common_friends_count', '-date_joined', 'pk'],
     )
 
 
@@ -1121,7 +1126,7 @@ def user_translations_deepl(request, user: User) -> JsonResponse:
 @require_http_methods(['GET'])
 @get_query_params('search_query', 'page', 'limit')
 @cached_view(
-    make_key=lambda req, user, page, limit,search_query: (
+    make_key=lambda req, user, page, limit, search_query: (
         f'user_friends_search:{user.pk}:{page}:{limit}:{req.user.pk}:{search_query}'
     ),
     timeout=60 * 5,
