@@ -714,6 +714,103 @@ def test_suggest_friends_pure_recency_fallback(auth_client, user_factory):
 
 
 @pytest.mark.django_db
+def test_suggest_friends_cursor_preserves_logical_order(auth_client, user_factory):
+    """
+    Regression: when last_id points to an element whose pk is NOT the
+    largest in the remaining set, __get_cursor_filter must use the
+    composite cursor (common_friends_count, date_joined, pk) instead
+    of a plain pk__lt filter.
+
+    Setup — ordered list the API should return:
+      pk=20  mutual=3               ← page 1, pos 0
+      pk=18  mutual=2  date=newest  ← page 1, pos 1  → last_id sent to page 2
+      pk=21  mutual=2  date=older   ← page 2, pos 0  (pk > last_id, must appear)
+      pk=22  mutual=1  date=newest  ← page 2, pos 1
+      pk=19  mutual=1  date=older   ← page 2, pos 2  (pk < last_id, must appear)
+
+    With the buggy pk__lt=18 filter:
+      - pk=21 (> 18) is excluded → wrong
+      - pk=19 (< 18) appears but order is broken
+    With the composite cursor:
+      - all three items appear in the correct logical order
+    """
+    me = auth_client.user
+    now = datetime.now(timezone.utc)
+
+    # 3 bridges shared with everyone → triple_mutual is top of list
+    bridges_3 = [user_factory(username=f'bridge3_{i}') for i in range(3)]
+    triple_mutual = user_factory(username='triple_mutual')
+    for b in bridges_3:
+        FriendShip.objects.create(user1=me, user2=b)
+        FriendShip.objects.create(user1=b, user2=triple_mutual)
+
+    # 2 bridges shared with two targets, tie-broken by date_joined
+    bridges_2 = [user_factory(username=f'bridge2_{i}') for i in range(2)]
+    # newer date_joined → comes first in the mutual=2 group
+    mutual2_newer = user_factory(username='mutual2_newer', date_joined=now - timedelta(days=3))
+    # older date_joined → comes second in the mutual=2 group; this is our cursor
+    mutual2_older = user_factory(username='mutual2_older', date_joined=now - timedelta(days=10))
+    for b in bridges_2:
+        FriendShip.objects.create(user1=me, user2=b)
+        FriendShip.objects.create(user1=b, user2=mutual2_newer)
+        FriendShip.objects.create(user1=b, user2=mutual2_older)
+
+    # 1 bridge for two isolated targets, tie-broken by date_joined
+    bridge_1 = user_factory(username='bridge1')
+    FriendShip.objects.create(user1=me, user2=bridge_1)
+    # newer date → first in mutual=1 group
+    mutual1_newer = user_factory(username='mutual1_newer', date_joined=now - timedelta(days=5))
+    # older date → second in mutual=1 group; pk intentionally lower than cursor
+    mutual1_older = user_factory(username='mutual1_older', date_joined=now - timedelta(days=15))
+    FriendShip.objects.create(user1=bridge_1, user2=mutual1_newer)
+    FriendShip.objects.create(user1=bridge_1, user2=mutual1_older)
+
+    # ── page 1: limit=2, no cursor ──────────────────────────────────────────
+    response_p1 = auth_client.get(f'{SUGGESTED_USERS_URL}?limit=2')
+    assert response_p1.status_code == HTTPStatus.OK
+    data_p1 = response_p1.json()
+
+    assert data_p1['count'] == 5
+    assert len(data_p1['results']) == 2
+    assert data_p1['results'][0]['username'] == 'triple_mutual'
+    assert data_p1['results'][1]['username'] == 'mutual2_newer'
+    assert data_p1['next_last_id'] is not None
+
+    cursor = data_p1['next_last_id']  # pk of mutual2_newer
+
+    # ── page 2: limit=2, cursor = mutual2_newer ─────────────────────────────
+    response_p2 = auth_client.get(f'{SUGGESTED_USERS_URL}?limit=2&last_id={cursor}')
+    assert response_p2.status_code == HTTPStatus.OK
+    data_p2 = response_p2.json()
+
+    assert len(data_p2['results']) == 2
+    usernames_p2 = [r['username'] for r in data_p2['results']]
+
+    # mutual2_older must appear even though its pk may be < cursor pk
+    assert usernames_p2[0] == 'mutual2_older', (
+        f'Expected mutual2_older first on page 2, got {usernames_p2}'
+    )
+    assert usernames_p2[1] == 'mutual1_newer', (
+        f'Expected mutual1_newer second on page 2, got {usernames_p2}'
+    )
+    assert data_p2['next_last_id'] is not None
+
+    cursor2 = data_p2['next_last_id']
+
+    # ── page 3: limit=2, cursor = mutual1_newer ─────────────────────────────
+    response_p3 = auth_client.get(f'{SUGGESTED_USERS_URL}?limit=2&last_id={cursor2}')
+    assert response_p3.status_code == HTTPStatus.OK
+    data_p3 = response_p3.json()
+
+    assert len(data_p3['results']) == 1
+    # mutual1_older has a lower pk than the cursor but must still appear
+    assert data_p3['results'][0]['username'] == 'mutual1_older', (
+        f'mutual1_older missing from page 3 — composite cursor bug: {data_p3["results"]}'
+    )
+    assert data_p3['next_last_id'] is None
+
+
+@pytest.mark.django_db
 def test_self_user_detail(auth_client):
     response = auth_client.get(SELF_USER_WRAPPER_URL)
     assert response.status_code == HTTPStatus.OK
@@ -1665,7 +1762,6 @@ def test_friend_searching_not_query(auth_client, user_factory):
     FriendShip.objects.create(user1=auth_client.user, user2=friend)
     FriendShip.objects.create(user1=auth_client.user, user2=user_factory(username='other'))
 
-
     response = auth_client.get(
         USER_FRIENDS_SEARCHING_URL.format(username=auth_client.user.username)
     )
@@ -1674,6 +1770,7 @@ def test_friend_searching_not_query(auth_client, user_factory):
     data = response.json()
     assert data['count'] == 2
     assert data['results'][0]['username'] == 'friend'
+
 
 @pytest.mark.django_db
 def test_friend_searching_no_results(auth_client, user_factory):

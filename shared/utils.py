@@ -13,7 +13,7 @@ from main import settings
 logger = logging.getLogger(__name__)
 
 
-def get_object_or_json_404(klass, *args, **kwargs) :
+def get_object_or_json_404(klass, *args, **kwargs):
     """
     Retrieves a single object from the database based on the provided model class and lookup parameters. If the object does not exist, it raises an Http404 exception with a custom error message.
 
@@ -96,27 +96,31 @@ def __get_cursor_filter(queryset, last_id, ordering_field):
         return queryset
 
     fields = ordering_field if isinstance(ordering_field, list) else [ordering_field]
-
     non_pk_fields = [f for f in fields if f.lstrip('-') != 'pk']
 
     if not non_pk_fields:
         return queryset.filter(pk__lt=last_id)
 
     try:
-        last_item = queryset.model.objects.get(pk=last_id)
+        last_item = queryset.get(pk=last_id)
     except queryset.model.DoesNotExist:
         return queryset
 
-    primary_field = non_pk_fields[0]
-    descending = primary_field.startswith('-')
-    field_name = primary_field.lstrip('-')
-    field_value = getattr(last_item, field_name)
+    filter_q = Q()
+    equal_conditions = Q()
 
-    lt_or_gt = f'{field_name}__{"lt" if descending else "gt"}'
+    for field_expr in non_pk_fields:
+        descending = field_expr.startswith('-')
+        field_name = field_expr.lstrip('-')
+        field_value = getattr(last_item, field_name)
+        lookup = f'{field_name}__{"lt" if descending else "gt"}'
 
-    return queryset.filter(
-        Q(**{lt_or_gt: field_value}) | Q(**{field_name: field_value}, pk__lt=last_id)
-    ).distinct()
+        filter_q |= equal_conditions & Q(**{lookup: field_value})
+        equal_conditions &= Q(**{field_name: field_value})
+
+    filter_q |= equal_conditions & Q(pk__lt=last_id)
+
+    return queryset.filter(filter_q).distinct()
 
 
 def __apply_ordering(queryset, ordering_field):
