@@ -80,9 +80,7 @@ def invalidate_movie_detail(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Rating)
-def invalidate_on_rating(sender, instance, created, **kwargs):
-    if not created:
-        return
+def invalidate_on_rating(sender, instance, **kwargs):
     user = instance.user
     movie = instance.movie
 
